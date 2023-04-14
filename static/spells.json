@@ -1,0 +1,53 @@
+{
+  "arcane": {
+    "Grease": {
+      "rank": "novice",
+      "stip": "Duration (1 min)",
+      "effect": "An 4m square area becomes difficult terrain."
+    },
+    "Sleep": {
+      "rank": "novice",
+      "stip": "Duration (8 hours)",
+      "effect": "2HD/level worth of targets in 30 ft. fall asleep."
+    },
+    "Arcane Arrow": {
+      "rank": "novice",
+      "effect": "Fire a magic bolt 40m dealing 1d4 damage to all targets in line."
+    },
+    "Detect Magic": {
+      "rank": "novice",
+      "effect": "You sense all near magic. A relevant check might be required to learn its function."
+    },
+    "Feather Fall": {
+      "rank": "novice",
+      "stip": "Quick, Duration (1 min)",
+      "effect": "Fall speed is slowed to 24m/second."
+    }
+  },
+  "divine": {
+    "Charm": {
+      "rank": "novice",
+      "stip": "Concentration, Resist",
+      "effect": "One creature in 30 ft. is friendly towards you."
+    },
+    "Command": {
+      "rank": "novice",
+      "stip": "Resist",
+      "effect": "Speak a one-word command to a target."
+    },
+    "Protection from Evil": {
+      "rank": "novice",
+      "effect": "Proficiency on resisting the next [ your level ] attacks and effects."
+    },
+    "Blindness/Deafness": {
+      "rank": "novice",
+      "stip": "Resist, Duration (1 round/level)",
+      "effect": "Blind or deafen one creature within sight."
+    },
+    "Holy Weapon": {
+      "rank": "novice",
+      "stip": "Duration (1 min/level)",
+      "effect": "Empower a weapon to deal double damage to undead."
+    }
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "scripts": {
+    "dev": "trunk serve",
+    "prod": "trunk build --release && tailwindcss -i tailwind_stub.css -o dist/tailwind.css --minify"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.2.4"
+  }
+}
