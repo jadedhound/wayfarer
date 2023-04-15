@@ -2,14 +2,86 @@
 @tailwind components;
 @tailwind utilities;
 
-h1 {
-  @apply text-9xl;
+/* Grab fonts through the google link: https://fonts.googleapis.com/css2?family={family}:wght@{lowest}..{heighest}&display=swap */
+
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/ebgaramond/v26/SlGUmQSNjdsmc35JDF1K5GR1SDk.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
-h2 {
+@font-face {
+  font-family: 'Open Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-stretch: 100%;
+  src: url(https://fonts.gstatic.com/s/opensans/v34/memSYaGs126MiZpBA-UvWbX2vVnXBbObj2OVZyOOSr4dVJWUgsjZ0B4gaVI.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  font-display: swap;
+}
+
+/* Bold Open Sans */
+@font-face {
+  font-family: 'Open Sans';
+  font-style: normal;
+  font-weight: 700;
+  font-stretch: 100%;
+  src: url(https://fonts.gstatic.com/s/opensans/v34/memvYaGs126MiZpBA-UvWbX2vVnXBbObj2OVTS-muw.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  font-display: swap;
+}
+
+main {
+  @apply animate-fade overflow-y-auto h-full;
+}
+
+/*               ---  HEADINGS ---                 */
+
+h1 {
   @apply text-7xl;
 }
 
-h3 {
+h2 {
   @apply text-5xl;
+}
+
+h3 {
+  @apply text-3xl;
+}
+
+h4 {
+  @apply text-2xl;
+}
+
+/*               ---  TABLE  ---                 */
+
+th {
+  @apply font-normal;
+}
+
+.tr-px-2 > tr > th, .tr-px-2 > tr > td{
+  @apply px-2;
+}
+
+.table-heading-space > tbody:before,
+.table-heading-space > thead:after {
+  line-height: 0.5rem; 
+  content: "\200C"; 
+  display: block;
+}
+
+.table-shaded > thead {
+  background-color: #070b15;
+}
+.table-shaded > tbody > tr:nth-child(even) {
+  @apply bg-slate-700 rounded-xl;
+}
+
+/*               ---  HEADINGS ---                 */
+
+.pseudo {
+  content: "\200C"; 
 }

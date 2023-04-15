@@ -1,10 +1,32 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: { 
-    files: ["*.html", "./src/**/*.rs"],
-  },
+  content: [
+    "./src/**/*.rs",
+    "index.html",
+    "tailwind_stub.css"
+  ],
   theme: {
-    extend: {},
+    fontFamily: {
+      'sans': ['Open Sans','ui-sans-serif'],
+      'serif': ['EB Garamond', 'ui-serif'],
+      'mono': ['ui-monospace'],
+    },
+    extend: {
+      spacing: {
+        '128': '32rem',
+      },
+      animation: {
+        "fade": "fadeIn .5s ease-in",
+      },
+      keyframes: {
+        fadeIn: {
+          '0%': {
+            opacity: '.2',
+            transform: 'translateY(2%)'
+          },
+        },
+      }
+    }
   },
   plugins: [],
 }
