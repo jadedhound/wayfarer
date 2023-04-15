@@ -3,6 +3,9 @@ use app::*;
 use leptos::*;
 
 mod app;
+mod class;
+mod errors;
+mod utils;
 
 pub fn main() {
     #[cfg(debug_assertions)]

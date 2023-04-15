@@ -1,6 +1,9 @@
 use leptos::*;
 use leptos_router::*;
 
+use crate::class::*;
+use crate::errors::*;
+
 #[component]
 pub fn App(cx: Scope) -> impl IntoView {
     view! { cx,
@@ -14,7 +17,11 @@ fn AppRouter(cx: Scope) -> impl IntoView {
         cx,
         <Router>
             <Routes>
-                <Route path= "" view=move |cx| view! { cx, <Home/> }/>
+                <Route path= "" view=move |cx| view! { cx, <Home /> }/>
+                <Route path= "/class" view=move |cx| view! { cx, <ClassList /> }>
+                    <Route path= "" view=move |cx| view! { cx, <ClassEmptyDetails /> } />
+                    <Route path= ":name" view=move |cx| view! { cx, <ClassDetails /> }/>
+                </Route>
                 <Route path= "/coming-soon" view=|cx| view! { cx, <ComingSoon /> }/>
                 <Route path= "/*any" view=|cx| view! { cx, <NotFound/> }/>
             </Routes>
@@ -33,6 +40,7 @@ fn Home(cx: Scope) -> impl IntoView {
                     <Card title= "FAQ" link= "/coming-soon" />
                 </div>
                 <div class= "flex flex-col space-y-2 items-center pt-2">
+                    <Card title= "Classes" link= "class" />
                     <Card title= "Spellbook" link= "/coming-soon" />
                     <Card title= "Combat" link= "/coming-soon" />
                     <Card title= "Adventuring" link= "/coming-soon" />
@@ -48,38 +56,14 @@ fn Card<T>(cx: Scope, title: T, link: T) -> impl IntoView
 where
     T: AsRef<str>,
 {
+    let link = link.as_ref().to_string();
+    let title = title.as_ref().to_string();
+
     view! { cx,
-        <a href=link.as_ref()>
+        <A href=link>
             <div class="p-2 bg-sky-800 rounded w-40">
-                 {title.as_ref().to_string()}
+                 {title}
             </div>
-        </a>
-    }
-}
-
-#[component]
-fn FatalError<T>(cx: Scope, code: T, reason: T) -> impl IntoView
-where
-    T: AsRef<str>,
-{
-    view! { cx,
-        <div class="flex flex-col items-center justify-center h-full space-y-4 text-center px-4">
-            <h1> {code.as_ref().to_string()} </h1>
-            <h3> {reason.as_ref().to_string()} </h3>
-        </div>
-    }
-}
-
-#[component]
-fn ComingSoon(cx: Scope) -> impl IntoView {
-    view! { cx,
-        <FatalError code= "TBC" reason= "This page hasn't been created yet, but it's coming!"/>
-    }
-}
-
-#[component]
-fn NotFound(cx: Scope) -> impl IntoView {
-    view! { cx,
-        <FatalError code= "404" reason= "Page not found"/>
+        </A>
     }
 }
