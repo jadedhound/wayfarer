@@ -1,36 +1,10 @@
 use leptos::*;
 use leptos_router::*;
 
-use crate::class::*;
 use crate::errors::*;
 
 #[component]
-pub fn App(cx: Scope) -> impl IntoView {
-    view! { cx,
-        <AppRouter />
-    }
-}
-
-#[component]
-fn AppRouter(cx: Scope) -> impl IntoView {
-    view! {
-        cx,
-        <Router>
-            <Routes>
-                <Route path= "" view=move |cx| view! { cx, <Home /> }/>
-                <Route path= "/class" view=move |cx| view! { cx, <ClassList /> }>
-                    <Route path= "" view=move |cx| view! { cx, <ClassEmptyDetails /> } />
-                    <Route path= ":name" view=move |cx| view! { cx, <ClassDetails /> }/>
-                </Route>
-                <Route path= "/coming-soon" view=|cx| view! { cx, <ComingSoon /> }/>
-                <Route path= "/*any" view=|cx| view! { cx, <NotFound/> }/>
-            </Routes>
-        </Router>
-    }
-}
-
-#[component]
-fn Home(cx: Scope) -> impl IntoView {
+pub fn Home(cx: Scope) -> impl IntoView {
     view! { cx,
         <div class="flex flex-col h-full items-center justify-center text-center">
             <h1> "Wayfarer" </h1>

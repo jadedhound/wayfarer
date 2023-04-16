@@ -1,10 +1,11 @@
 #![allow(clippy::let_with_type_underscore)]
-use app::*;
 use leptos::*;
+use router::*;
 
-mod app;
 mod class;
 mod errors;
+mod home;
+mod router;
 mod utils;
 
 pub fn main() {
@@ -15,6 +16,6 @@ pub fn main() {
     }
 
     mount_to_body(|cx| {
-        view! { cx, <App /> }
+        view! { cx, <AppRouter /> }
     });
 }
