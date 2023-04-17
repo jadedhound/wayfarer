@@ -8,6 +8,7 @@ module.exports = {
   theme: {
     fontFamily: {
       'sans': ['Open Sans','ui-sans-serif'],
+      'sans-condensed': ['Open Sans Condensed','ui-sans-serif'],
       'serif': ['EB Garamond', 'ui-serif'],
       'mono': ['ui-monospace'],
     },

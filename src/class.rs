@@ -17,7 +17,7 @@ struct PClass {
     adv_table: [String; 4],
     basics: PCBasics,
     equipment: Vec<String>,
-    core: Option<Features>,
+    core: Features,
     archetypes: HashMap<String, Archetype>,
 }
 

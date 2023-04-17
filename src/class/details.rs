@@ -32,7 +32,7 @@ pub fn ClassDetails(cx: Scope) -> impl IntoView {
 pub fn NoClassDetails(cx: Scope) -> impl IntoView {
     view! {
         cx,
-        <div class= "flex flex-col items-center justify-center h-full text-center">
+        <div class= "flex flex-col items-center justify-center h-cover text-center">
             <h2 class= "mb-4"> "Select a class" </h2>
             <h4> "Use the list button to return" </h4>
         </div>
@@ -45,12 +45,27 @@ fn RenderDetails(cx: Scope) -> impl IntoView {
     let class = get_provided::<PClass>(cx);
     provide_context(cx, class.adv_table);
 
+    let v_archetypes: Vec<View> = class
+        .archetypes
+        .into_iter()
+        .map(|(name, arch)| {
+            let Archetype { prof, features } = arch;
+            let sub = format!("You're proficient in {prof} related checks.");
+            view! { cx,
+                <RenderFeatures title=name sub=sub f=features />
+            }
+            .into_view(cx)
+        })
+        .collect();
+
     view! {
         cx,
-        <div class= "flex flex-col h-full px-4">
-            <h1 class= "mb-4"> {name} </h1>
+        <div class= "flex flex-col h-full px-4 my-4 pb-12 space-y-6">
+            <h1> {name} </h1>
             {class.desc}
             <AdvTable />
+            <RenderFeatures title= "Core".into() f=class.core />
+            {v_archetypes}
         </div>
     }
 }
@@ -71,7 +86,7 @@ fn AdvTable(cx: Scope) -> impl IntoView {
         view! {cx, {feat()} }.into_view(cx),
         view! {cx, <span class= "italic"> {&arche} </span> }.into_view(cx),
         view! {cx, {feat()} }.into_view(cx),
-        view! {cx, <span class= "italic"> {&arche} </span> ", establish a guild" }.into_view(cx),
+        view! {cx, <span class= "italic"> {&arche} </span> ", " {feat()} }.into_view(cx),
         view! {cx, "Add +1 to any ability score" }.into_view(cx),
         view! {cx, "Add +1 to any ability score" }.into_view(cx),
         view! {cx, "Add +1 to any ability score" }.into_view(cx),
@@ -93,8 +108,8 @@ fn AdvTable(cx: Scope) -> impl IntoView {
     view! {
         cx,
         <div class= "">
-            <h4 class= "text-center mt-4"> "Advancement Table" </h4>
-            <table class= "mt-2 table-shaded">
+            <h4 class= "text-center"> "Advancement Table" </h4>
+            <table class= "mt-2 table-shaded w-full">
                 <tr>
                     <th> "LEVEL" </th>
                     <th> "FEATURES" </th>
@@ -103,6 +118,43 @@ fn AdvTable(cx: Scope) -> impl IntoView {
                     {v_rows}
                 </tbody>
             </table>
+        </div>
+    }
+}
+
+#[component]
+fn RenderFeatures(
+    cx: Scope,
+    title: String,
+    #[prop(optional)] sub: String,
+    f: Features,
+) -> impl IntoView {
+    let v: Vec<View> = f
+        .into_iter()
+        .map(|(title, effect)| {
+            view! { cx,
+                <div>
+                    <div class= "font-sans-condensed font-bold">{title.to_uppercase()}</div>
+                    <div class= "font-sans">{effect}</div>
+                </div>
+            }
+            .into_view(cx)
+        })
+        .collect();
+    view! {
+        cx,
+        <div>
+            <h4 class= "text-center">{title}</h4>
+            {move ||
+                if !sub.is_empty() {
+                    view!{cx, <div> {sub.clone()} </div>}.into_view(cx)
+                } else {
+                    view!{cx, }.into_view(cx)
+                }
+            }
+            <div class= "grid gap-2">
+                {v}
+            </div>
         </div>
     }
 }

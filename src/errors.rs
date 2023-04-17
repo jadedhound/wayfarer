@@ -6,7 +6,7 @@ where
     T: std::fmt::Display,
 {
     view! { cx,
-        <div class="flex flex-col items-center justify-center h-full space-y-4 text-center px-4">
+        <div class="flex flex-col items-center justify-center h-cover space-y-4 text-center px-4">
             <h1> {code.to_string()} </h1>
             <h3> {reason.to_string()} </h3>
         </div>

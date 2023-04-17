@@ -1,12 +1,10 @@
 use leptos::*;
 use leptos_router::*;
 
-use crate::errors::*;
-
 #[component]
 pub fn Home(cx: Scope) -> impl IntoView {
     view! { cx,
-        <div class="flex flex-col h-full items-center justify-center text-center">
+        <div class="flex flex-col h-cover items-center justify-center text-center">
             <h1> "Wayfarer" </h1>
             <div class= "grid my-8 divide-y-2 divide-amber-600 w-fit">
                 <div class= "flex flex-col space-y-2 items-center pb-2">

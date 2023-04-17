@@ -1,5 +1,3 @@
-use std::rc::Rc;
-
 use leptos::*;
 use leptos_router::*;
 
@@ -7,6 +5,16 @@ use crate::class::*;
 
 #[derive(Clone, Copy)]
 struct IsHidden(bool);
+
+fn add_hidden<F>(f: F, mut c: String) -> String
+where
+    F: Fn() -> bool,
+{
+    if f() {
+        c.push_str(" hidden");
+    }
+    c
+}
 
 #[component]
 pub fn ClassList(cx: Scope) -> impl IntoView {
@@ -16,15 +24,10 @@ pub fn ClassList(cx: Scope) -> impl IntoView {
         || (),
         |_| async move { fetch::<AllClasses>("/static/classes.json".into()).await },
     );
-    let (is_hidden, set_hidden) = create_signal(cx, IsHidden(true));
+    let (bool_wrap, set_hidden) = create_signal(cx, IsHidden(true));
+    let is_hidden = move || bool_wrap.get().0;
+    let is_shown = move || !bool_wrap.get().0;
     provide_context(cx, set_hidden);
-    let list_classes = move || {
-        let mut c = "z-10 absolute bg-zinc-950 h-full w-full".to_string();
-        if is_hidden.get().0 {
-            c.push_str(" hidden")
-        };
-        c
-    };
 
     view! {
         cx,
@@ -33,10 +36,10 @@ pub fn ClassList(cx: Scope) -> impl IntoView {
                 Ok(data) => {
                     provide_context(cx, data);
                     view!{ cx,
-                        <div class=list_classes >
+                        <div class=add_hidden(is_hidden, "z-10 absolute bg-zinc-950 h-full w-full".into())>
                             <RenderList />
                         </div>
-                        <div class= "w-full h-full">
+                        <div class=add_hidden(is_shown, "w-full h-full".into())>
                             <Outlet />
                             <ReturnFAB />
                         </div>
@@ -86,7 +89,7 @@ fn ClassCard(cx: Scope, name: String) -> impl IntoView {
 #[component]
 fn ReturnFAB(cx: Scope) -> impl IntoView {
     const CSS: &str =
-        "absolute bottom-4 right-4 stroke-zinc-200 h-12 w-12 p-1 rounded-full bg-amber-900";
+        "fixed bottom-4 right-4 stroke-zinc-200 h-12 w-12 p-1 rounded-full bg-amber-900";
     let show = get_provided::<WriteSignal<IsHidden>>(cx);
 
     view! {
