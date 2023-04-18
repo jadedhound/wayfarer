@@ -8,7 +8,7 @@ pub fn Home(cx: Scope) -> impl IntoView {
             <h1> "Wayfarer" </h1>
             <div class= "grid my-8 divide-y-2 divide-amber-600 w-fit">
                 <div class= "flex flex-col space-y-2 items-center pb-2">
-                    <Card title= "Create Character" link= "/coming-soon" />
+                    <Card title= "Create Character" link= "/char-creation" />
                     <Card title= "FAQ" link= "/coming-soon" />
                 </div>
                 <div class= "flex flex-col space-y-2 items-center pt-2">

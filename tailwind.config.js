@@ -2,6 +2,7 @@
 module.exports = {
   content: [
     "./src/**/*.rs",
+    "./static/pages/*.html",
     "index.html",
     "tailwind_stub.css"
   ],

@@ -1,3 +1,4 @@
+use gloo::net::Error as GlooError;
 use leptos::*;
 use serde::de::DeserializeOwned;
 use thiserror::Error;
@@ -8,16 +9,29 @@ pub enum UtilsErr {
     FetchFail(String),
 }
 
+/// Fetch an asset from the static folder as JSON.
 pub async fn fetch<T>(url: String) -> Result<T, UtilsErr>
 where
     T: DeserializeOwned,
 {
-    let to_utils_error = |e: gloo::net::Error| UtilsErr::FetchFail(e.to_string());
-    gloo::net::http::Request::new(url.as_ref())
+    let to_utils_error = |e: GlooError| UtilsErr::FetchFail(e.to_string());
+    gloo::net::http::Request::new(&format!("/static/{url}"))
         .send()
         .await
         .map_err(to_utils_error)?
         .json()
+        .await
+        .map_err(to_utils_error)
+}
+
+/// Fetch an asset from the static folder as `String`.
+pub async fn fetch_text(url: String) -> Result<String, UtilsErr> {
+    let to_utils_error = |e: GlooError| UtilsErr::FetchFail(e.to_string());
+    gloo::net::http::Request::new(&format!("/static/{url}"))
+        .send()
+        .await
+        .map_err(to_utils_error)?
+        .text()
         .await
         .map_err(to_utils_error)
 }

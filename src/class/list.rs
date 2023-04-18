@@ -22,7 +22,7 @@ pub fn ClassList(cx: Scope) -> impl IntoView {
     let p_class = create_local_resource(
         cx,
         || (),
-        |_| async move { fetch::<AllClasses>("/static/classes.json".into()).await },
+        |_| async move { fetch::<AllClasses>("classes.json".into()).await },
     );
     let (bool_wrap, set_hidden) = create_signal(cx, IsHidden(true));
     let is_hidden = move || bool_wrap.get().0;
