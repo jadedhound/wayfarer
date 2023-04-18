@@ -19,9 +19,7 @@ pub fn ClassDetails(cx: Scope) -> impl IntoView {
         cx,
         {move || match class() {
             Some((name, class)) => {
-                provide_context(cx, ClassName(name));
-                provide_context(cx, class);
-                view!{ cx, <RenderDetails /> }.into_view(cx)
+                view!{ cx, <RenderDetails name=name class=class /> }.into_view(cx)
             },
             None => view! {cx, <NotFound /> }.into_view(cx)
         }}
@@ -40,13 +38,17 @@ pub fn NoClassDetails(cx: Scope) -> impl IntoView {
 }
 
 #[component]
-fn RenderDetails(cx: Scope) -> impl IntoView {
-    let name = get_provided::<ClassName>(cx).0;
-    let class = get_provided::<PClass>(cx);
-    provide_context(cx, class.adv_table);
+fn RenderDetails(cx: Scope, name: String, class: PClass) -> impl IntoView {
+    let PClass {
+        desc,
+        adv_table,
+        basics,
+        equipment,
+        core,
+        archetypes,
+    } = class;
 
-    let v_archetypes: Vec<View> = class
-        .archetypes
+    let v_archetypes: Vec<View> = archetypes
         .into_iter()
         .map(|(name, arch)| {
             let Archetype { prof, features } = arch;
@@ -61,24 +63,24 @@ fn RenderDetails(cx: Scope) -> impl IntoView {
     view! {
         cx,
         <div class= "flex flex-col h-full px-4 my-4 pb-12 space-y-6">
-            <h1> {name} </h1>
-            {class.desc}
-            <AdvTable />
-            <RenderFeatures title= "Core".into() f=class.core />
+            <h1> {name.clone()} </h1>
+            {desc}
+            <AdvTable name=name table=adv_table />
+            <Basics basics=basics />
+            <RenderFeatures title= "Core".into() f=core />
             {v_archetypes}
         </div>
     }
 }
 
 #[component]
-fn AdvTable(cx: Scope) -> impl IntoView {
+fn AdvTable(cx: Scope, name: String, table: [String; 4]) -> impl IntoView {
     use std::process;
-    let mut data = get_provided::<[String; 4]>(cx).into_iter();
+    let mut data = table.into_iter();
     let mut feat = move || match data.next() {
         Some(t) => t,
         None => process::abort(),
     };
-    let name = get_provided::<ClassName>(cx).0;
     let arche = format!("{name} archetype");
     let rows = vec![
         view! {cx, {format!("Starting HP, {name} equipment, {}", feat())} }.into_view(cx),
@@ -118,6 +120,27 @@ fn AdvTable(cx: Scope) -> impl IntoView {
                     {v_rows}
                 </tbody>
             </table>
+        </div>
+    }
+}
+
+#[component]
+fn Basics(cx: Scope, basics: PCBasics) -> impl IntoView {
+    let PCBasics {
+        starting_hp,
+        level_hp,
+        armour_prof,
+        weap_prof,
+    } = basics;
+    view! { cx,
+        <div>
+            <h4 class= "text-center"> "Basics" </h4>
+            <ul>
+                <li> "Starting HP: " {starting_hp} </li>
+                <li> "HP after levelling: +" {level_hp} </li>
+                <li> "Weapon proficiencies: " {weap_prof} </li>
+                <li> "Armour proficiencies: " {armour_prof} </li>
+            </ul>
         </div>
     }
 }
