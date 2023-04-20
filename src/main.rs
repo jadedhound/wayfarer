@@ -2,10 +2,10 @@
 use leptos::*;
 use router::*;
 
-mod char_creation;
 mod class;
 mod errors;
 mod home;
+mod render_page;
 mod router;
 mod utils;
 

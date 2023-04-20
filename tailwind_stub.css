@@ -50,7 +50,7 @@ main {
 /*               ---  TEXT ---                 */
 
 h1 {
-  @apply text-7xl;
+  @apply text-7xl mb-6;
 }
 
 h2 {
@@ -62,7 +62,7 @@ h3 {
 }
 
 h4 {
-  @apply text-3xl;
+  @apply text-3xl mb-1;
 }
 
 .font-sans-condensed, .font-sans {
@@ -87,8 +87,41 @@ td {
   @apply px-2;
 }
 
+.px-tbl > thead > tr > th, .px-tbl > tbody > tr > td {
+  @apply px-2;
+}
+
 .table-shaded > tbody > tr:nth-child(even) {
-  @apply bg-zinc-800 rounded-xl;
+  @apply bg-zinc-700 rounded-xl;
+}
+
+.table-shaded > tbody > tr:nth-child(odd) {
+  @apply bg-zinc-900 rounded-xl;
+}
+
+.table-shaded > thead > tr {
+  @apply bg-amber-800;
+}
+
+/* ROUNDED BORDERS FOR TABLE */
+/* top-left border-radius */
+.rounded-tbl tr:first-child th:first-child {
+  border-top-left-radius: 6px;
+}
+
+/* top-right border-radius */
+.rounded-tbl tr:first-child th:last-child {
+  border-top-right-radius: 6px;
+}
+
+/* bottom-left border-radius */
+.rounded-tbl tr:last-child td:first-child {
+  border-bottom-left-radius: 6px;
+}
+
+/* bottom-right border-radius */
+.rounded-tbl tr:last-child td:last-child {
+  border-bottom-right-radius: 6px;
 }
 
 /*               ---  HEADINGS ---                 */

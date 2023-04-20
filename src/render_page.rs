@@ -6,22 +6,20 @@ use crate::{
 };
 
 #[component]
-pub fn CharCreation(cx: Scope) -> impl IntoView {
+pub fn RenderPage(cx: Scope, page: &'static str) -> impl IntoView {
     #[allow(clippy::redundant_async_block)]
     let html = create_local_resource(
         cx,
         || (),
-        |_| async move { fetch_text("pages/creation_guide.html".into()).await },
+        move |_| async move { fetch_text(format!("pages/{page}.html")).await },
     );
+
     view! { cx,
         {move || html.read(cx).blank_or(cx, |data| {
             match data {
                 Ok(page) => {
                     view!{ cx,
-                        <div class= "px-4">
-                            <h2> "Character Creation Guide" </h2>
-                            <div class= "" inner_html=page></div>
-                        </div>
+                        <div class= "px-4 h-full w-full" inner_html=page></div>
                     }.into_view(cx)
                 },
                 Err(e) => {

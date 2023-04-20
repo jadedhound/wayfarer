@@ -54,7 +54,7 @@ fn RenderDetails(cx: Scope, name: String, class: PClass) -> impl IntoView {
             let Archetype { prof, features } = arch;
             let sub = format!("You're proficient in {prof} related checks.");
             view! { cx,
-                <RenderFeatures title=name sub=sub f=features />
+                <Features title=name sub=sub f=features />
             }
             .into_view(cx)
         })
@@ -67,7 +67,8 @@ fn RenderDetails(cx: Scope, name: String, class: PClass) -> impl IntoView {
             {desc}
             <AdvTable name=name table=adv_table />
             <Basics basics=basics />
-            <RenderFeatures title= "Core".into() f=core />
+            <Equipment e=equipment />
+            <Features title= "Core".into() f=core />
             {v_archetypes}
         </div>
     }
@@ -111,12 +112,14 @@ fn AdvTable(cx: Scope, name: String, table: [String; 4]) -> impl IntoView {
         cx,
         <div class= "">
             <h4 class= "text-center"> "Advancement Table" </h4>
-            <table class= "mt-2 table-shaded w-full">
-                <tr>
-                    <th> "LEVEL" </th>
-                    <th> "FEATURES" </th>
-                </tr>
-                <tbody class= "tr-px-2">
+            <table class= "mt-2 table-shaded rounded-tbl w-full px-tbl">
+                <thead>
+                    <tr>
+                        <th> "LEVEL" </th>
+                        <th> "FEATURES" </th>
+                    </tr>
+                </thead>
+                <tbody>
                     {v_rows}
                 </tbody>
             </table>
@@ -146,12 +149,28 @@ fn Basics(cx: Scope, basics: PCBasics) -> impl IntoView {
 }
 
 #[component]
-fn RenderFeatures(
-    cx: Scope,
-    title: String,
-    #[prop(optional)] sub: String,
-    f: Features,
-) -> impl IntoView {
+fn Equipment(cx: Scope, e: Vec<String>) -> impl IntoView {
+    let v_e: Vec<View> = e
+        .into_iter()
+        .map(|item| {
+            view! { cx,
+                <li> {item} </li>
+            }
+            .into_view(cx)
+        })
+        .collect();
+    view! { cx,
+        <div>
+            <h4 class= "text-center"> "Equipment" </h4>
+            <ul class= "list-disc ml-4">
+                {v_e}
+            </ul>
+        </div>
+    }
+}
+
+#[component]
+fn Features(cx: Scope, title: String, #[prop(optional)] sub: String, f: Features) -> impl IntoView {
     let v: Vec<View> = f
         .into_iter()
         .map(|(title, effect)| {

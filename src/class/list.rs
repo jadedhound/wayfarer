@@ -26,7 +26,6 @@ pub fn ClassList(cx: Scope) -> impl IntoView {
     );
     let (bool_wrap, set_hidden) = create_signal(cx, IsHidden(true));
     let is_hidden = move || bool_wrap.get().0;
-    let is_shown = move || !bool_wrap.get().0;
     provide_context(cx, set_hidden);
 
     view! {
@@ -36,12 +35,12 @@ pub fn ClassList(cx: Scope) -> impl IntoView {
                 Ok(data) => {
                     provide_context(cx, data);
                     view!{ cx,
-                        <div class=add_hidden(is_hidden, "z-10 absolute bg-zinc-950 h-full w-full".into())>
-                            <RenderList />
-                        </div>
-                        <div class=add_hidden(is_shown, "w-full h-full".into())>
+                        <div class=add_hidden(is_hidden, "z-10 w-full h-full".into())>
                             <Outlet />
                             <ReturnFAB />
+                        </div>
+                        <div class= "fixed bg-zinc-950 h-full w-full">
+                            <RenderList />
                         </div>
                     }.into_view(cx)
                 },
@@ -76,9 +75,10 @@ fn RenderList(cx: Scope) -> impl IntoView {
 #[component]
 fn ClassCard(cx: Scope, name: String) -> impl IntoView {
     let hide = get_provided::<WriteSignal<IsHidden>>(cx);
+    let show_layer = move |_| hide.update(|a| *a = IsHidden(false));
 
     view! { cx,
-        <A href=name.clone() on:click=move |_| hide.update(|a| *a = IsHidden(true))>
+        <A href=name.clone() on:click=show_layer>
             <div class="bg-sky-800 p-2 rounded w-40 text-center">
                 {name}
             </div>
@@ -94,7 +94,7 @@ fn ReturnFAB(cx: Scope) -> impl IntoView {
 
     view! {
         cx,
-        <button class=CSS on:click=move |_| show.update(|a| *a = IsHidden(false))>
+        <button class=CSS on:click=move |_| show.update(|a| *a = IsHidden(true))>
             <svg viewBox="0 0 24 24" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
             </svg>
