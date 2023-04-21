@@ -7,6 +7,7 @@ mod errors;
 mod home;
 mod render_page;
 mod router;
+mod spellbook;
 mod utils;
 
 pub fn main() {

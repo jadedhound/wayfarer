@@ -24,9 +24,9 @@ pub fn ClassList(cx: Scope) -> impl IntoView {
         || (),
         |_| async move { fetch::<AllClasses>("classes.json".into()).await },
     );
-    let (bool_wrap, set_hidden) = create_signal(cx, IsHidden(true));
-    let is_hidden = move || bool_wrap.get().0;
-    provide_context(cx, set_hidden);
+    let (get_h, set_h) = create_signal(cx, IsHidden(true));
+    let hide_details = move || get_h.get().0;
+    provide_context(cx, set_h);
 
     view! {
         cx,
@@ -35,7 +35,7 @@ pub fn ClassList(cx: Scope) -> impl IntoView {
                 Ok(data) => {
                     provide_context(cx, data);
                     view!{ cx,
-                        <div class=add_hidden(is_hidden, "z-10 w-full h-full".into())>
+                        <div class=add_hidden(hide_details, "z-10 w-full h-full".into())>
                             <Outlet />
                             <ReturnFAB />
                         </div>

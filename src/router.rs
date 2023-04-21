@@ -5,6 +5,7 @@ use crate::class::{details::*, list::*};
 use crate::errors::*;
 use crate::home::*;
 use crate::render_page::*;
+use crate::spellbook::*;
 
 #[component]
 pub fn AppRouter(cx: Scope) -> impl IntoView {
@@ -19,6 +20,8 @@ pub fn AppRouter(cx: Scope) -> impl IntoView {
                     <Route path= "" view=move |cx| view! { cx, <NoClassDetails /> } />
                     <Route path= ":name" view=move |cx| view! { cx, <ClassDetails /> }/>
                 </Route>
+                <Route path= "/spellbook" view=|cx| view! { cx, <Spellbook /> }/>
+                <Route path= "/spellbook/:school" view=|cx| view! { cx, <Spellbook /> }/>
                 <Route path= "/combat" view=move |cx| view! { cx, <RenderPage page="combat" /> }/>
                 <Route path= "/adventuring" view=move |cx| view! { cx, <RenderPage page="adventuring" /> }/>
                 <Route path= "/spellcasting" view=move |cx| view! { cx, <RenderPage page="spellcasting" /> }/>

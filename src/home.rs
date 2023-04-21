@@ -13,7 +13,7 @@ pub fn Home(cx: Scope) -> impl IntoView {
                 </div>
                 <div class= "flex flex-col space-y-2 items-center pt-2">
                     <Card title= "Classes" link= "class" />
-                    <Card title= "Spellbook" link= "/coming-soon" />
+                    <Card title= "Spellbook" link= "/spellbook" />
                     <Card title= "Combat" link= "/combat" />
                     <Card title= "Adventuring" link= "/adventuring" />
                     <Card title= "Spellcasting" link= "/spellcasting" />
