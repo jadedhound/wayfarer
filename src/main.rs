@@ -5,6 +5,7 @@ use router::*;
 mod class;
 mod errors;
 mod home;
+mod login;
 mod render_page;
 mod router;
 mod spellbook;
@@ -18,6 +19,6 @@ pub fn main() {
     }
 
     mount_to_body(|cx| {
-        view! { cx, <AppRouter /> }
+        view! { cx, <RouterScout /> }
     });
 }

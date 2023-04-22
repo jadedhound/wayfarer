@@ -14,8 +14,9 @@ module.exports = {
       'mono': ['ui-monospace'],
     },
     extend: {
-      spacing: {
-        '128': '32rem',
+      colors: {
+        wfbrown: '#92400e',
+        wfblue: '#0369a1'
       },
       animation: {
         "fade": "fadeIn .5s ease-in",

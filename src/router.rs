@@ -1,14 +1,16 @@
+use gloo::storage::{LocalStorage, Storage};
 use leptos::*;
 use leptos_router::*;
 
 use crate::class::{details::*, list::*};
 use crate::errors::*;
 use crate::home::*;
+use crate::login::*;
 use crate::render_page::*;
 use crate::spellbook::*;
 
 #[component]
-pub fn AppRouter(cx: Scope) -> impl IntoView {
+fn MainRouter(cx: Scope) -> impl IntoView {
     view! {
         cx,
         <Router>
@@ -29,5 +31,27 @@ pub fn AppRouter(cx: Scope) -> impl IntoView {
                 <Route path= "/*any" view=|cx| view! { cx, <NotFound/> }/>
             </Routes>
         </Router>
+    }
+}
+
+#[derive(Clone)]
+pub struct LoginStatus(Option<Login>);
+
+#[component]
+pub fn RouterScout(cx: Scope) -> impl IntoView {
+    let status = LoginStatus(LocalStorage::get::<Login>("login").ok());
+    let (get_login, set_login) = create_signal(cx, status);
+    provide_context(cx, set_login);
+    view! {
+        cx,
+        {match get_login.get().0 {
+            Some(login) => {
+                provide_context(cx, login);
+                view!{ cx, <MainRouter /> }.into_view(cx)
+            },
+            None => {
+                view!{ cx, <LoginPg /> }.into_view(cx)
+            }
+        }}
     }
 }
