@@ -5,6 +5,7 @@ use crate::class::{details::*, list::*};
 use crate::errors::*;
 use crate::render_page::*;
 use crate::roster::*;
+use crate::settings::*;
 use crate::spellbook::*;
 
 #[component]
@@ -14,6 +15,7 @@ pub fn MainRouter(cx: Scope) -> impl IntoView {
         <Router>
             <Routes>
                 <Route path= "" view=move |cx| view! { cx, <Roster /> }/>
+                <Route path= "/settings" view=move |cx| view! { cx, <Settings /> }/>
                 <Route path= "/creation-guide" view=move |cx| view! { cx, <RenderPage page="creation_guide" /> }/>
                 <Route path= "/faq" view=move |cx| view! { cx, <RenderPage page="faq" /> }/>
                 <Route path= "/class" view=move |cx| view! { cx, <ClassList /> }>

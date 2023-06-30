@@ -8,6 +8,7 @@ mod login;
 mod render_page;
 mod roster;
 mod router;
+mod settings;
 mod spellbook;
 mod utils;
 
