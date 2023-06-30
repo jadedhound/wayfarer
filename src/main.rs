@@ -4,9 +4,9 @@ use router::*;
 
 mod class;
 mod errors;
-mod home;
 mod login;
 mod render_page;
+mod roster;
 mod router;
 mod spellbook;
 mod utils;
@@ -19,6 +19,6 @@ pub fn main() {
     }
 
     mount_to_body(|cx| {
-        view! { cx, <RouterScout /> }
+        view! { cx, <MainRouter /> }
     });
 }

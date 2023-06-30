@@ -15,6 +15,8 @@ module.exports = {
     },
     extend: {
       colors: {
+        wfbutton: '#450a0a',
+        wfborder: '#d4d4d8',
         wfbrown: '#92400e',
         wfblue: '#0369a1'
       },
