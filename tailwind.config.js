@@ -15,10 +15,8 @@ module.exports = {
     },
     extend: {
       colors: {
-        wfbutton: '#450a0a',
-        wfborder: '#d4d4d8',
-        wfbrown: '#92400e',
-        wfblue: '#0369a1'
+        btn: '#450a0a',
+        btnborder: '#d4d4d8',
       },
       animation: {
         "fade": "fadeIn .5s ease-in",

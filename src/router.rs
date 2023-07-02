@@ -1,12 +1,35 @@
 use leptos::*;
 use leptos_router::*;
 
-use crate::class::{details::*, list::*};
 use crate::errors::*;
-use crate::render_page::*;
 use crate::roster::*;
 use crate::settings::*;
-use crate::spellbook::*;
+
+#[derive(Clone)]
+pub struct IsLoaded(bool);
+
+#[component]
+pub fn RouterScout(cx: Scope) -> impl IntoView {
+    let (get_loaded, set_loaded) = create_signal(cx, IsLoaded(false));
+    provide_context(cx, set_loaded);
+    view! {
+        cx,
+        {if get_loaded.get().0 {
+            view!{ cx, <MainRouter /> }.into_view(cx)
+        } else {
+            view!{ cx, <LoadingPg /> }.into_view(cx)
+        }
+        }
+    }
+}
+
+#[component]
+fn LoadingPg(cx: Scope) -> impl IntoView {
+    view! {
+        cx,
+        <h1 class= "flex items-center justify-center h-cover"> "Loading" </h1>
+    }
+}
 
 #[component]
 pub fn MainRouter(cx: Scope) -> impl IntoView {
@@ -16,18 +39,6 @@ pub fn MainRouter(cx: Scope) -> impl IntoView {
             <Routes>
                 <Route path= "" view=move |cx| view! { cx, <Roster /> }/>
                 <Route path= "/settings" view=move |cx| view! { cx, <Settings /> }/>
-                <Route path= "/creation-guide" view=move |cx| view! { cx, <RenderPage page="creation_guide" /> }/>
-                <Route path= "/faq" view=move |cx| view! { cx, <RenderPage page="faq" /> }/>
-                <Route path= "/class" view=move |cx| view! { cx, <ClassList /> }>
-                    <Route path= "" view=move |cx| view! { cx, <NoClassDetails /> } />
-                    <Route path= ":name" view=move |cx| view! { cx, <ClassDetails /> }/>
-                </Route>
-                <Route path= "/spellbook" view=|cx| view! { cx, <Spellbook /> }/>
-                <Route path= "/spellbook/:school" view=|cx| view! { cx, <Spellbook /> }/>
-                <Route path= "/combat" view=move |cx| view! { cx, <RenderPage page="combat" /> }/>
-                <Route path= "/adventuring" view=move |cx| view! { cx, <RenderPage page="adventuring" /> }/>
-                <Route path= "/spellcasting" view=move |cx| view! { cx, <RenderPage page="spellcasting" /> }/>
-                <Route path= "/coming-soon" view=|cx| view! { cx, <ComingSoon /> }/>
                 <Route path= "/*any" view=|cx| view! { cx, <NotFound/> }/>
             </Routes>
         </Router>

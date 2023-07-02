@@ -20,6 +20,6 @@ pub fn main() {
     }
 
     mount_to_body(|cx| {
-        view! { cx, <MainRouter /> }
+        view! { cx, <RouterScout /> }
     });
 }
