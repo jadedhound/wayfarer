@@ -10,6 +10,7 @@ mod roster;
 mod router;
 mod settings;
 mod spellbook;
+mod state;
 mod utils;
 
 pub fn main() {

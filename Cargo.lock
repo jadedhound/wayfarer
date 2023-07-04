@@ -2351,6 +2351,7 @@ checksum = "ca6ad05a4870b2bf5fe995117d3728437bd27d7cd5f06f13c17443ef369775a1"
 name = "wayfarer"
 version = "0.1.0"
 dependencies = [
+ "bincode",
  "console_error_panic_hook",
  "console_log",
  "gloo",
