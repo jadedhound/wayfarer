@@ -2,16 +2,11 @@
 use leptos::*;
 use router::*;
 
-mod class;
-mod errors;
-mod login;
-mod render_page;
+mod error;
 mod roster;
 mod router;
 mod settings;
-mod spellbook;
 mod state;
-mod utils;
 
 pub fn main() {
     #[cfg(debug_assertions)]

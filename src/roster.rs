@@ -1,8 +1,21 @@
-use leptos::*;
+use leptos::{ev::MouseEvent, *};
 use leptos_router::*;
+
+use crate::state::{PCState, PClass};
 
 #[component]
 pub fn Roster(cx: Scope) -> impl IntoView {
+    let read_pcs = use_context::<ReadSignal<PCState>>(cx).unwrap();
+    let pc_list = move || {
+        read_pcs.get().0.into_iter().map(|pc| {
+            view!{ cx,
+                <button class= "rounded bg-btn border-btnborder border-2 aspect-square flex items-center justify-center">
+                    <div> {pc.name} </div>
+                </button>
+            }
+        }).collect_view(cx)
+    };
+
     view! { cx,
         <div class= "px-2 py-4 flex border-b-2 border-btnborder">
             <h3 class= "grow"> "WAYFARER" </h3>
@@ -15,17 +28,27 @@ pub fn Roster(cx: Scope) -> impl IntoView {
         </div>
         <div class= "h-full grid grid-cols-2 gap-6 p-6">
             <CreatePC />
+            {pc_list()}
         </div>
     }
+}
+
+fn create_pc(cx: Scope, _ev: MouseEvent) {
+    let mut p = use_context::<ReadSignal<PCState>>(cx).unwrap().get();
+    p.0.push(PClass {
+        name: "Test".into(),
+    });
+    let set_p = use_context::<WriteSignal<PCState>>(cx).unwrap();
+    set_p.set(p);
 }
 
 #[component]
 fn CreatePC(cx: Scope) -> impl IntoView {
     view! { cx,
-        <div class= "rounded bg-btn border-btnborder border-2 aspect-square flex items-center justify-center">
+        <button on:click=move |ev| create_pc(cx, ev) class= "rounded bg-btn border-btnborder border-2 aspect-square flex items-center justify-center">
             <svg viewBox="0 0 24 24" stroke-width="1.5" class="w-12 h-12 stroke-btnborder">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
             </svg>
-        </div>
+        </button>
     }
 }
