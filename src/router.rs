@@ -4,11 +4,11 @@ use console_log::log;
 use leptos::*;
 use leptos_router::*;
 use serde::Serialize;
+use simple_index::Database;
 
 use crate::errors::*;
 use crate::roster::*;
 use crate::settings::*;
-use crate::state::from_db;
 use crate::state::to_db;
 use crate::state::AppState;
 use crate::state::PCState;
@@ -38,7 +38,7 @@ where
         use_context::<ReadSignal<T>>(cx).unwrap().track();
         spawn_local(async move {
             let val = use_context::<ReadSignal<T>>(cx).unwrap()();
-            let db = use_context::<Rc<indxdb::Db>>(cx).unwrap();
+            let db = use_context::<Rc<Database>>(cx).unwrap();
             match to_db(db, key, &val).await {
                 Ok(_) => (),
                 Err(e) => log::error!("unable to save: {key}\n{e}"),
@@ -47,12 +47,12 @@ where
     });
 }
 
-async fn get_state_from_db(cx: Scope, db: indxdb::Db) -> Result<(), indxdb::Error> {
+async fn get_state_from_db(cx: Scope, db: Database) -> Result<(), simple_index::Error> {
     // Read state from db
-    let mut tx = db.begin(false).await?;
-    let pc_state = from_db::<PCState>(&mut tx, "pc_state").await?;
-    let app_state = from_db::<AppState>(&mut tx, "app_state").await?;
-    tx.cancel().await?;
+    let mut tx = db.begin(true)?;
+    let pc_state: PCState = tx.get("pc_state").await.unwrap_or_default();
+    let app_state: AppState = tx.get("app_state").await.unwrap_or_default();
+    tx.close().await?;
     // When state changes save to db
     provide_context(cx, Rc::new(db));
     save_on_change(cx, "pc_state", pc_state);
@@ -66,7 +66,7 @@ pub fn RouterScout(cx: Scope) -> impl IntoView {
         cx,
         || (),
         move |_| async move {
-            match indxdb::new("wf").await {
+            match simple_index::new().await {
                 Ok(db) => match get_state_from_db(cx, db).await {
                     Ok(_) => true,
                     Err(e) => {
