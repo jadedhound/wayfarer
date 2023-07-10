@@ -1,5 +1,8 @@
 use serde::{Deserialize, Serialize};
 
+mod pchar;
+pub use pchar::*;
+
 #[derive(Serialize, Deserialize, Default, Clone)]
 pub struct AppState {}
 
@@ -7,9 +10,4 @@ pub struct AppState {}
 pub struct SessionState {}
 
 #[derive(Serialize, Deserialize, Default, Clone)]
-pub struct PCState(pub Vec<PClass>);
-
-#[derive(Serialize, Deserialize, Clone)]
-pub struct PClass {
-    pub name: String,
-}
+pub struct PCState(pub Vec<PChar>);

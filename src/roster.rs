@@ -1,7 +1,7 @@
 use leptos::{ev::MouseEvent, *};
 use leptos_router::*;
 
-use crate::state::{PCState, PClass};
+use crate::state::{PCState, PChar};
 
 #[component]
 pub fn Roster(cx: Scope) -> impl IntoView {
@@ -28,16 +28,14 @@ pub fn Roster(cx: Scope) -> impl IntoView {
         </div>
         <div class= "h-full grid grid-cols-2 gap-6 p-6">
             <CreatePC />
-            {pc_list()}
+            {move || pc_list()}
         </div>
     }
 }
 
 fn create_pc(cx: Scope, _ev: MouseEvent) {
     let mut p = use_context::<ReadSignal<PCState>>(cx).unwrap().get();
-    p.0.push(PClass {
-        name: "Test".into(),
-    });
+    p.0.push(PChar::new());
     let set_p = use_context::<WriteSignal<PCState>>(cx).unwrap();
     set_p.set(p);
 }

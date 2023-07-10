@@ -1,7 +1,9 @@
 #![allow(clippy::let_with_type_underscore)]
+#![allow(clippy::redundant_closure)]
 use leptos::*;
 use router::*;
 
+mod assets;
 mod error;
 mod roster;
 mod router;
