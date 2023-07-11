@@ -56,20 +56,16 @@ fn CreatePCModal(
     hidden: ReadSignal<bool>,
     set_hidden: WriteSignal<bool>,
 ) -> impl IntoView {
-    let create_pc = move |_: MouseEvent| {
+    let create_pc = move |name: String| {
         write_context::<PCState>(cx).update(|state| {
-            state.0.push(PChar::new());
+            state.0.push(PChar::new(name));
         });
         write_context::<AppState>(cx).update(|state| {
-            state.new_char_timeout = 900020.0 + js_sys::Date::now();
+            state.new_char_timeout = (15.2 * 60000.0) + js_sys::Date::now();
         });
+        set_hidden.set(true);
     };
-    let rand_name = move || {
-        let mut wyrand = WyRand::from_context(cx);
-        let name = wyrand.from_arr(&NAMES);
-        wyrand.to_context(cx);
-        name.to_string()
-    };
+    let rand_name = move || wyrand_context(cx, |rng| rng.from_arr(&NAMES).to_string());
     let (name, set_name) = create_signal(cx, rand_name());
 
     view! {
@@ -81,17 +77,29 @@ fn CreatePCModal(
                 </svg>
             </button>
             <div class= "mt-2">
-                <div class= "flex flex-col items-center justify-center p-4">
+                <div class= "flex flex-col items-center justify-center p-4 gap-4">
                     <h4> "Create Character" </h4>
-                    <label class="flex">
+                    <label class="flex gap-2">
                         <span class=""> "Name" </span>
-                        <input type="text" class="text-slate-900" spellcheck="false" prop:value=move || name.get() />
+                        <input
+                            type="text"
+                            class="text-slate-900"
+                            spellcheck="false"
+                            prop:value=move || name.get()
+                            on:input=move |ev| set_name.set(event_target_value(&ev))
+                        />
                         <div on:click=move |_| set_name.set(rand_name())>
                             <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
                             </svg>
                         </div>
                     </label>
+                    <button
+                        class= "w-full py-2 bg-slate-900"
+                        on:click=move |_| create_pc(name.get())
+                    >
+                        "Create"
+                    </button>
                 </div>
             </div>
         </MiddleModal>
@@ -99,7 +107,7 @@ fn CreatePCModal(
 }
 #[component]
 fn CreatePCButton(cx: Scope) -> impl IntoView {
-    let (hidden_modal, set_modal) = create_signal(cx, false);
+    let (hidden_modal, set_modal) = create_signal(cx, true);
     let is_timed_out = move || {
         read_context::<AppState>(cx).with(|state| {
             let dif = state.new_char_timeout - js_sys::Date::now();

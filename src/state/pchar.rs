@@ -1,13 +1,15 @@
 use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Clone)]
 pub struct PChar {
+    pub id: u64,
     pub name: String,
 }
 
 impl PChar {
-    pub fn new() -> Self {
+    pub fn new(name: String) -> Self {
         Self {
-            name: "Test".to_string(),
+            id: js_sys::Date::now() as u64,
+            name,
         }
     }
 }
