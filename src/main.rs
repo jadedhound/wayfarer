@@ -9,6 +9,7 @@ mod roster;
 mod router;
 mod settings;
 mod state;
+mod utils;
 
 pub fn main() {
     #[cfg(debug_assertions)]

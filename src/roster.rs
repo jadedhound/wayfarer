@@ -1,19 +1,31 @@
 use leptos::{ev::MouseEvent, *};
 use leptos_router::*;
 
-use crate::state::{PCState, PChar};
+use crate::{
+    state::{AppState, PCState, PChar},
+    utils::{read_context, write_context},
+};
+
+const BOX_CSS: &str =
+    "rounded border-btnborder border-2 aspect-square flex items-center justify-center ";
 
 #[component]
 pub fn Roster(cx: Scope) -> impl IntoView {
     let read_pcs = use_context::<ReadSignal<PCState>>(cx).unwrap();
     let pc_list = move || {
-        read_pcs.get().0.into_iter().map(|pc| {
-            view!{ cx,
-                <button class= "rounded bg-btn border-btnborder border-2 aspect-square flex items-center justify-center">
-                    <div> {pc.name} </div>
-                </button>
-            }
-        }).collect_view(cx)
+        read_pcs.with(|state| {
+            state
+                .0
+                .iter()
+                .map(|pc| {
+                    view! { cx,
+                        <div class= BOX_CSS.to_string() + "bg-btn">
+                            <div> {pc.name.clone()} </div>
+                        </div>
+                    }
+                })
+                .collect_view(cx)
+        })
     };
 
     view! { cx,
@@ -27,26 +39,50 @@ pub fn Roster(cx: Scope) -> impl IntoView {
             </A>
         </div>
         <div class= "h-full grid grid-cols-2 gap-6 p-6">
-            <CreatePC />
             {move || pc_list()}
+            <CreatePC />
         </div>
     }
 }
 
-fn create_pc(cx: Scope, _ev: MouseEvent) {
-    let mut p = use_context::<ReadSignal<PCState>>(cx).unwrap().get();
-    p.0.push(PChar::new());
-    let set_p = use_context::<WriteSignal<PCState>>(cx).unwrap();
-    set_p.set(p);
-}
-
 #[component]
 fn CreatePC(cx: Scope) -> impl IntoView {
+    let create_pc = move |_: MouseEvent| {
+        write_context::<PCState>(cx).update(|state| {
+            state.0.push(PChar::new());
+        });
+        write_context::<AppState>(cx).update(|state| {
+            state.new_char_timeout = 900020.0 + js_sys::Date::now();
+        });
+    };
+    let is_timed_out = move || {
+        read_context::<AppState>(cx).with(|state| {
+            let dif = state.new_char_timeout - js_sys::Date::now();
+            if dif > 0.0 {
+                let mins = (dif / 60000.0) as u8;
+                Some(mins)
+            } else {
+                None
+            }
+        })
+    };
+
     view! { cx,
-        <button on:click=move |ev| create_pc(cx, ev) class= "rounded bg-btn border-btnborder border-2 aspect-square flex items-center justify-center">
-            <svg viewBox="0 0 24 24" stroke-width="1.5" class="w-12 h-12 stroke-btnborder">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
-        </button>
+        {move || match is_timed_out() {
+            Some(timeout) => view!{
+                cx,
+                <div class=BOX_CSS.to_string() + "bg-zinc-900">
+                    "Please wait " {timeout} " mins"
+                </div>
+            }.into_view(cx),
+            None => view!{
+                cx,
+                <div on:click=create_pc class=BOX_CSS.to_string() + "bg-btn">
+                    <svg viewBox="0 0 24 24" stroke-width="1.5" class="w-12 h-12 stroke-btnborder">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                    </svg>
+                </div>
+            }.into_view(cx)
+        }}
     }
 }
