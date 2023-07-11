@@ -1,3 +1,9 @@
+use crate::{
+    assets::NAMES,
+    modal::*,
+    utils::wyrand_context,
+    wyrand::{self, WyRand},
+};
 use leptos::{ev::MouseEvent, *};
 use leptos_router::*;
 
@@ -11,9 +17,8 @@ const BOX_CSS: &str =
 
 #[component]
 pub fn Roster(cx: Scope) -> impl IntoView {
-    let read_pcs = use_context::<ReadSignal<PCState>>(cx).unwrap();
     let pc_list = move || {
-        read_pcs.with(|state| {
+        read_context::<PCState>(cx).with(|state| {
             state
                 .0
                 .iter()
@@ -40,13 +45,17 @@ pub fn Roster(cx: Scope) -> impl IntoView {
         </div>
         <div class= "h-full grid grid-cols-2 gap-6 p-6">
             {move || pc_list()}
-            <CreatePC />
+            <CreatePCButton />
         </div>
     }
 }
 
 #[component]
-fn CreatePC(cx: Scope) -> impl IntoView {
+fn CreatePCModal(
+    cx: Scope,
+    hidden: ReadSignal<bool>,
+    set_hidden: WriteSignal<bool>,
+) -> impl IntoView {
     let create_pc = move |_: MouseEvent| {
         write_context::<PCState>(cx).update(|state| {
             state.0.push(PChar::new());
@@ -55,6 +64,42 @@ fn CreatePC(cx: Scope) -> impl IntoView {
             state.new_char_timeout = 900020.0 + js_sys::Date::now();
         });
     };
+    let rand_name = move || {
+        let mut wyrand = WyRand::from_context(cx);
+        let name = wyrand.from_arr(&NAMES);
+        wyrand.to_context(cx);
+        name.to_string()
+    };
+    let (name, set_name) = create_signal(cx, rand_name());
+
+    view! {
+        cx,
+        <MiddleModal hidden=hidden>
+            <button on:click=move |_| set_hidden.set(true) class= "absolute top-2 right-2">
+                <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+            <div class= "mt-2">
+                <div class= "flex flex-col items-center justify-center p-4">
+                    <h4> "Create Character" </h4>
+                    <label class="flex">
+                        <span class=""> "Name" </span>
+                        <input type="text" class="text-slate-900" spellcheck="false" prop:value=move || name.get() />
+                        <div on:click=move |_| set_name.set(rand_name())>
+                            <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                            </svg>
+                        </div>
+                    </label>
+                </div>
+            </div>
+        </MiddleModal>
+    }
+}
+#[component]
+fn CreatePCButton(cx: Scope) -> impl IntoView {
+    let (hidden_modal, set_modal) = create_signal(cx, false);
     let is_timed_out = move || {
         read_context::<AppState>(cx).with(|state| {
             let dif = state.new_char_timeout - js_sys::Date::now();
@@ -77,12 +122,13 @@ fn CreatePC(cx: Scope) -> impl IntoView {
             }.into_view(cx),
             None => view!{
                 cx,
-                <div on:click=create_pc class=BOX_CSS.to_string() + "bg-btn">
+                <div on:click=move |_| { set_modal.set(false) } class=BOX_CSS.to_string() + "bg-btn">
                     <svg viewBox="0 0 24 24" stroke-width="1.5" class="w-12 h-12 stroke-btnborder">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                     </svg>
                 </div>
             }.into_view(cx)
         }}
+        <CreatePCModal hidden=hidden_modal set_hidden=set_modal />
     }
 }

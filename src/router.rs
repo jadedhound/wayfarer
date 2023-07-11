@@ -1,3 +1,4 @@
+use std::cell::Cell;
 use std::rc::Rc;
 
 use leptos::*;
@@ -10,6 +11,7 @@ use crate::roster::*;
 use crate::settings::*;
 use crate::state::AppState;
 use crate::state::PCState;
+use crate::wyrand::WyRand;
 
 #[component]
 pub fn MainRouter(cx: Scope) -> impl IntoView {
@@ -55,6 +57,8 @@ where
 
 async fn init_assets(cx: Scope) -> Result<(), Error> {
     let db = simple_index::new().await?;
+
+    provide_context(cx, Rc::new(Cell::new(WyRand::new())));
 
     // Read state from db
     let mut tx = db.begin(true)?;
