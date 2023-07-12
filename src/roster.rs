@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use crate::{
     assets::NAMES,
     modal::*,
@@ -105,6 +107,7 @@ fn CreatePCModal(
         </MiddleModal>
     }
 }
+
 #[component]
 fn CreatePCButton(cx: Scope) -> impl IntoView {
     let (hidden_modal, set_modal) = create_signal(cx, true);
@@ -112,6 +115,12 @@ fn CreatePCButton(cx: Scope) -> impl IntoView {
         read_context::<AppState>(cx).with(|state| {
             let dif = state.new_char_timeout - js_sys::Date::now();
             if dif > 0.0 {
+                spawn_local(async move {
+                    gloo::timers::future::sleep(Duration::from_secs(60)).await;
+                    write_context::<AppState>(cx).update(|state| {
+                        state.new_char_timeout += 1.0;
+                    });
+                });
                 let mins = (dif / 60000.0) as u8;
                 Some(mins)
             } else {
