@@ -1,17 +1,15 @@
-use std::cell::Cell;
 use std::rc::Rc;
 
 use leptos::*;
 use leptos_router::*;
-use serde::Serialize;
-use simple_index::Database;
 
 use crate::error::*;
-use crate::roster::*;
+use crate::lobby::*;
+use crate::pc::*;
+use crate::rand::init_rand;
 use crate::settings::*;
-use crate::state::AppState;
-use crate::state::PCState;
-use crate::wyrand::WyRand;
+use crate::state::PCList;
+use crate::utils::provide_saved;
 
 #[component]
 pub fn MainRouter(cx: Scope) -> impl IntoView {
@@ -19,58 +17,29 @@ pub fn MainRouter(cx: Scope) -> impl IntoView {
         cx,
         <Router>
             <Routes>
-                <Route path= "" view=move |cx| view! { cx, <Roster /> }/>
+                <Route path= "" view=move |cx| view! { cx, <Lobby /> }/>
                 <Route path= "/settings" view=move |cx| view! { cx, <Settings /> }/>
+                <Route path= "/pc/:id" view=move |cx| view! { cx, <PCScout /> }>
+                    <Route path="" view=|cx| view! {cx, <Basics /> }/>
+                    <Route path= "/basics" view=|cx| view! {cx, <Basics /> }/>
+                    <Route path= "/crafting" view=|cx| view! { cx, <Crafting /> }/>
+                    <Route path= "/inventory" view=|cx| view! { cx, <InvNavbar /> }>
+                        <Route path= "" view=|cx| view! { cx, <Inventory /> }/>
+                        <Route path= "/vault" view=|cx| view! { cx, <Vault /> }/>
+                    </Route>
+                    <Route path= "/journal" view=|cx| view! {cx,<div> "Journal!" </div> }/>
+                </Route>
                 <Route path= "/*any" view=|cx| view! { cx, <NotFound /> }/>
             </Routes>
         </Router>
     }
 }
 
-async fn to_db<T: Serialize>(
-    db: Rc<Database>,
-    key: &str,
-    val: &T,
-) -> Result<(), simple_index::Error> {
-    let mut tx = db.begin(false)?;
-    tx.set(key, val).await?;
-    tx.commit().await
-}
-
-fn save_on_change<T>(cx: Scope, key: &'static str, val: T)
-where
-    T: Serialize + Clone + 'static,
-{
-    let (rs, ws) = create_signal(cx, val);
-    provide_context(cx, rs);
-    provide_context(cx, ws);
-    create_effect(cx, move |_| {
-        let val = rs.get();
-        let db = use_context::<Rc<Database>>(cx).unwrap();
-        spawn_local(async move {
-            to_db(db, key, &val)
-                .await
-                .unwrap_or_else(|e| log::error!("unable to save: {key}\n{e}"));
-        });
-    });
-}
-
 async fn init_assets(cx: Scope) -> Result<(), Error> {
+    init_rand(cx);
     let db = simple_index::new().await?;
-
-    provide_context(cx, Rc::new(Cell::new(WyRand::new())));
-
-    // Read state from db
-    let mut tx = db.begin(true)?;
-    let pc_state: PCState = tx.get("pc_state").await.unwrap_or_default();
-    let app_state: AppState = tx.get("app_state").await.unwrap_or_default();
-    tx.close().await?;
-
-    // When state changes save to db
     provide_context(cx, Rc::new(db));
-    save_on_change(cx, "pc_state", pc_state);
-    save_on_change(cx, "app_state", app_state);
-
+    provide_saved(cx, "pc_list", PCList::default()).await;
     Ok(())
 }
 

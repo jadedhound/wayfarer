@@ -133,3 +133,7 @@ td {
 .h-cover {
   @apply h-full min-h-screen;
 }
+
+.flex-centered {
+  @apply flex items-center justify-center;
+}

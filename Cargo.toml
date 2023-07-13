@@ -17,3 +17,6 @@ serde = "1.0.159"
 serde_json = "1.0.95"
 thiserror = "1.0.40"
 simple_index = { path = "../simple_index"}
+once_cell = "1.18.0"
+nanorand = { git = "https://github.com/Absolucy/nanorand-rs.git" }
+strum = { version = "0.25", features = ["derive"] }

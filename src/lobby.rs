@@ -1,34 +1,33 @@
 use std::time::Duration;
 
-use crate::{
-    assets::NAMES,
-    modal::*,
-    utils::wyrand_context,
-    wyrand::{self, WyRand},
-};
-use leptos::{ev::MouseEvent, *};
+use leptos::*;
 use leptos_router::*;
 
-use crate::{
-    state::{AppState, PCState, PChar},
-    utils::{read_context, write_context},
-};
+use crate::assets::NAMES;
+use crate::modal::*;
+use crate::rand::rand_context;
+use crate::state::{NewPCTimeout, PCList};
+use crate::svg;
+use crate::utils::{provide_saved, read_context, write_context, StrPlus};
 
+const LOCKOUT_MINS: f64 = 0.0 * 60000.0;
 const BOX_CSS: &str =
     "rounded border-btnborder border-2 aspect-square flex items-center justify-center ";
 
 #[component]
-pub fn Roster(cx: Scope) -> impl IntoView {
+pub fn Lobby(cx: Scope) -> impl IntoView {
     let pc_list = move || {
-        read_context::<PCState>(cx).with(|state| {
-            state
-                .0
-                .iter()
+        read_context::<PCList>(cx).with(|list| {
+            list.get_all()
                 .map(|pc| {
+                    let link = format!("/pc/{}", pc.id);
+                    let name = pc.name.clone();
                     view! { cx,
-                        <div class= BOX_CSS.to_string() + "bg-btn">
-                            <div> {pc.name.clone()} </div>
-                        </div>
+                        <A href=link>
+                            <div class= BOX_CSS.plus("bg-btn")>
+                                <div> {name} </div>
+                            </div>
+                        </A>
                     }
                 })
                 .collect_view(cx)
@@ -59,15 +58,16 @@ fn CreatePCModal(
     set_hidden: WriteSignal<bool>,
 ) -> impl IntoView {
     let create_pc = move |name: String| {
-        write_context::<PCState>(cx).update(|state| {
-            state.0.push(PChar::new(name));
+        write_context::<PCList>(cx).update(|list| {
+            list.add(name);
         });
-        write_context::<AppState>(cx).update(|state| {
-            state.new_char_timeout = (15.2 * 60000.0) + js_sys::Date::now();
+        write_context::<NewPCTimeout>(cx).update(|time| {
+            // 10 secs of padding is needed due to rounding after division
+            time.0 = LOCKOUT_MINS + js_sys::Date::now() + 10000.0;
         });
         set_hidden.set(true);
     };
-    let rand_name = move || wyrand_context(cx, |rng| rng.from_arr(&NAMES).to_string());
+    let rand_name = move || rand_context(cx, |rng| rng.pick(&NAMES).to_string());
     let (name, set_name) = create_signal(cx, rand_name());
 
     view! {
@@ -82,19 +82,19 @@ fn CreatePCModal(
                 <div class= "flex flex-col items-center justify-center p-4 gap-4">
                     <h4> "Create Character" </h4>
                     <label class="flex gap-2">
-                        <span class=""> "Name" </span>
                         <input
                             type="text"
-                            class="text-slate-900"
+                            class="text-slate-900 text-center w-full"
                             spellcheck="false"
                             prop:value=move || name.get()
                             on:input=move |ev| set_name.set(event_target_value(&ev))
                         />
-                        <div on:click=move |_| set_name.set(rand_name())>
-                            <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-                            </svg>
-                        </div>
+                        <button
+                            class= "bg-slate-900 rounded-full p-2 flex flex-centered"
+                            on:click=move |_| set_name.set(rand_name())
+                        >
+                            <div class= "w-8 h-8" inner_html=svg::DIE />
+                        </button>
                     </label>
                     <button
                         class= "w-full py-2 bg-slate-900"
@@ -110,18 +110,23 @@ fn CreatePCModal(
 
 #[component]
 fn CreatePCButton(cx: Scope) -> impl IntoView {
+    let loading = create_resource(
+        cx,
+        || (),
+        move |_| async move { provide_saved(cx, "new_pc_timeout", NewPCTimeout(0.0)).await },
+    );
     let (hidden_modal, set_modal) = create_signal(cx, true);
     let is_timed_out = move || {
-        read_context::<AppState>(cx).with(|state| {
-            let dif = state.new_char_timeout - js_sys::Date::now();
-            if dif > 0.0 {
+        read_context::<NewPCTimeout>(cx).with(|time| {
+            let diff = time.0 - js_sys::Date::now();
+            let mins = (diff / 60000.0) as u8;
+            if mins > 0 {
                 spawn_local(async move {
-                    gloo::timers::future::sleep(Duration::from_secs(60)).await;
-                    write_context::<AppState>(cx).update(|state| {
-                        state.new_char_timeout += 1.0;
+                    gloo::timers::future::sleep(Duration::from_secs(30)).await;
+                    write_context::<NewPCTimeout>(cx).update(|time| {
+                        time.0 += 1.0;
                     });
                 });
-                let mins = (dif / 60000.0) as u8;
                 Some(mins)
             } else {
                 None
@@ -130,20 +135,25 @@ fn CreatePCButton(cx: Scope) -> impl IntoView {
     };
 
     view! { cx,
-        {move || match is_timed_out() {
-            Some(timeout) => view!{
-                cx,
-                <div class=BOX_CSS.to_string() + "bg-zinc-900">
-                    "Please wait " {timeout} " mins"
-                </div>
-            }.into_view(cx),
-            None => view!{
-                cx,
-                <div on:click=move |_| { set_modal.set(false) } class=BOX_CSS.to_string() + "bg-btn">
-                    <svg viewBox="0 0 24 24" stroke-width="1.5" class="w-12 h-12 stroke-btnborder">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                    </svg>
-                </div>
+        {move || match loading.read(cx) {
+            None => view!{cx,}.into_view(cx),
+            Some(_) => view!{cx,
+                {move || match is_timed_out() {
+                    Some(timeout) => view!{
+                        cx,
+                        <div class=BOX_CSS.plus("bg-zinc-900")>
+                            "Please wait " {timeout} " mins"
+                        </div>
+                    }.into_view(cx),
+                    None => view!{
+                        cx,
+                        <div on:click=move |_| { set_modal.set(false) } class=BOX_CSS.plus("bg-btn")>
+                            <svg viewBox="0 0 24 24" stroke-width="1.5" class="w-12 h-12 stroke-btnborder">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                            </svg>
+                        </div>
+                    }.into_view(cx)
+                }}
             }.into_view(cx)
         }}
         <CreatePCModal hidden=hidden_modal set_hidden=set_modal />

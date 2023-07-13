@@ -5,13 +5,16 @@ use router::*;
 
 mod assets;
 mod error;
+mod items;
+mod lobby;
 mod modal;
-mod roster;
+mod pc;
+mod rand;
 mod router;
 mod settings;
 mod state;
+mod svg;
 mod utils;
-mod wyrand;
 
 pub fn main() {
     #[cfg(debug_assertions)]

@@ -6,6 +6,8 @@ pub enum Error {
     NotFound,
     #[error(transparent)]
     SimpleIndex(#[from] simple_index::Error),
+    #[error("ID not found in lobby list")]
+    PCNotFound,
 }
 
 #[derive(Clone)]
@@ -20,14 +22,21 @@ impl FatalErr {
     }
 }
 
+/// Prints the given error to browser console
+pub fn log<E>(e: E)
+where
+    E: std::error::Error,
+{
+    log::error!("{e}")
+}
+
 #[component]
 pub fn FatalPg(cx: Scope) -> impl IntoView {
     let e = use_context::<FatalErr>(cx).unwrap();
     view! { cx,
         <div class="flex flex-col items-center justify-center h-cover space-y-4 text-center px-4">
             <h1 class= "text-red-800"> "Fatal" </h1>
-            <h3> {e.0} </h3>
-            <h3> {e.1} </h3>
+            <h3> {e.0}: {e.1} </h3>
         </div>
     }
 }
