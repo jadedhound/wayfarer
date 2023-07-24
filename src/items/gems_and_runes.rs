@@ -4,15 +4,11 @@ use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 
 use super::enhancement::Enhancement;
-use crate::utils::{cmphash_from_hash, CharHash, LazyHash};
+use crate::utils::LazyHash;
 
 pub static GEMS: LazyHash<Gem> = Lazy::new(|| HashMap::new());
 
-pub static GEMS_CMPHASH: LazyHash<CharHash> = Lazy::new(|| cmphash_from_hash(&GEMS));
-
 pub static RUNES: LazyHash<Rune> = Lazy::new(|| HashMap::new());
-
-pub static RUNES_CMPHASH: LazyHash<CharHash> = Lazy::new(|| cmphash_from_hash(&RUNES));
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Gem {

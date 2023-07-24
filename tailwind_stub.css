@@ -47,7 +47,29 @@ main {
   @apply animate-fade overflow-y-auto h-full;
 }
 
-/*               ---  TEXT ---                 */
+.svg {
+  @apply stroke-zinc-200 fill-zinc-200;
+}
+
+/* 
+-------------------------------------------
+INPUT
+------------------------------------------- 
+*/
+
+input[type=range].vert-slider {
+  @apply -rotate-90;
+}
+
+input[type=range].no-appearance {
+  -webkit-appearance: none;
+}
+
+/* 
+-------------------------------------------
+TEXT
+------------------------------------------- 
+*/
 
 h1 {
   @apply text-7xl mb-6;

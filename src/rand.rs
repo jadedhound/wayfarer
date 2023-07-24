@@ -31,14 +31,8 @@ impl Rand {
         arr[i].clone()
     }
 
-    /// Rolls from 0 to 100, returning `Some` if the number is below the
-    /// `threshold`
-    pub fn percentile(&mut self, threshold: usize) -> Option<()> {
-        let val = self.inner.generate_range(1..100_usize);
-        if val < threshold {
-            Some(())
-        } else {
-            None
-        }
+    /// Random number `from` to `to`.
+    pub fn range(&mut self, from: u32, to: u32) -> u32 {
+        self.inner.generate_range(from..to)
     }
 }

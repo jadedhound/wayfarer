@@ -15,6 +15,7 @@ mod settings;
 mod state;
 mod svg;
 mod utils;
+mod views;
 
 pub fn main() {
     #[cfg(debug_assertions)]

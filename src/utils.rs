@@ -2,75 +2,21 @@ use std::collections::HashMap;
 use std::fmt::Display;
 use std::rc::Rc;
 
+mod str_op;
+pub mod toast;
+
 use leptos::*;
 use once_cell::sync::Lazy;
 use serde::de::DeserializeOwned;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use simple_index::Database;
-
-mod fuzzy_match;
-
-pub use fuzzy_match::*;
-use strum::EnumCount;
+pub use str_op::*;
 
 pub type LazyHash<T> = Lazy<HashMap<String, T>>;
-
-#[derive(Serialize, Deserialize, Clone)]
-pub struct EnumMap<V>(pub Vec<V>);
-impl<V> EnumMap<V>
-where
-    V: Clone,
-{
-    pub fn new<K>(v: V) -> Self
-    where
-        K: EnumCount,
-    {
-        EnumMap(vec![v; K::COUNT])
-    }
-
-    pub fn get<K>(&self, key: K) -> &V
-    where
-        K: EnumIndex,
-    {
-        &self.0[key.index()]
-    }
-
-    pub fn get_mut<K>(&mut self, key: K) -> &mut V
-    where
-        K: EnumIndex,
-    {
-        &mut self.0[key.index()]
-    }
-}
-
-pub trait EnumIndex {
-    fn index(&self) -> usize;
-}
 
 // -----------------------------------
 // SIMPLE FUNCTIONS
 // -----------------------------------
-
-/// Joins an array of optional strings.
-pub fn concat_some_str(arr: Vec<Option<String>>, join: &'static str) -> String {
-    arr.into_iter()
-        .flatten()
-        .reduce(|mut acc, e| {
-            acc.push_str(join);
-            acc.push_str(&e);
-            acc
-        })
-        .unwrap_or_default()
-}
-
-/// Captilises the first letter in s.
-pub fn capitalise(s: &str) -> String {
-    let mut c = s.chars();
-    match c.next() {
-        None => String::new(),
-        Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
-    }
-}
 
 /// Get a read signal that has already been provided
 pub fn read_context<T>(cx: Scope) -> ReadSignal<T> {
@@ -138,20 +84,6 @@ where
                 .unwrap_or_else(crate::error::log);
         });
     });
-}
-
-// -----------------------------------
-// STRING HELPERS
-// -----------------------------------
-
-pub trait StrPlus {
-    fn plus(&self, s: &str) -> String;
-}
-
-impl StrPlus for str {
-    fn plus(&self, s: &str) -> String {
-        format!("{self} {s}")
-    }
 }
 
 // -----------------------------------

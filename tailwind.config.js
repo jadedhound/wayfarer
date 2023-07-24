@@ -14,10 +14,6 @@ module.exports = {
       'mono': ['ui-monospace'],
     },
     extend: {
-      colors: {
-        btn: '#450a0a',
-        btnborder: '#d4d4d8',
-      },
       animation: {
         "fade": "fadeIn .5s ease-in",
       },

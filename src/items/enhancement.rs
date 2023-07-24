@@ -52,7 +52,9 @@ pub mod stat {
     use super::{Enhancement as Enh, StatIncrease as Inc};
     use crate::pc::PCStat as Ps;
 
-    pub const DAMAGE_1: Enh = Enh::StatInc(Inc::new(Ps::Damage, 1));
+    pub const DAMAGE_1: Enh = Enh::StatInc(Inc::new(Ps::Might, 1));
+    pub const DAMAGE_2: Enh = Enh::StatInc(Inc::new(Ps::Might, 2));
+    pub const DAMAGE_3: Enh = Enh::StatInc(Inc::new(Ps::Might, 3));
     pub const HP_1: Enh = Enh::StatInc(Inc::new(Ps::HP, 2));
 }
 

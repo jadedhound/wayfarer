@@ -20,6 +20,10 @@ pub fn gen_warrior_inv(rand: &mut Rand) -> Vec<Item> {
     // Weapons and armour
     inv.extend_from_slice(&[
         create_held("sword"),
+        create_held("crossbow"),
+        create_held("crowsbeak"),
+        create_held("bow"),
+        create_held("handaxe"),
         create_held("shield"),
         create_armour("brigandine"),
         create_armour("chausses"),

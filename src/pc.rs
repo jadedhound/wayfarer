@@ -1,67 +1,64 @@
 use leptos::*;
-mod basics;
 mod crafting;
+mod description;
+mod followers;
 mod generators;
 mod inventory;
+mod journal;
 mod navbar;
+mod overview;
 mod scout;
 
-pub use basics::Basics;
 pub use crafting::Crafting;
+pub use followers::Followers;
 use generators::*;
 pub use inventory::{InvNavbar, Inventory, Vault};
+pub use journal::Journal;
+pub use overview::Overview;
 pub use scout::PCScout;
 use serde::{Deserialize, Serialize};
 use strum::{Display, EnumCount, EnumIter, IntoEnumIterator};
 
+use self::description::gen_description;
 use crate::assets::ABILITY_MOD;
 use crate::items::enhancement::{self as enh, Enhancement, Feature};
 use crate::items::{Armour, GearType, Held, Item};
 use crate::rand::{rand_context, Rand};
-use crate::utils::{read_context, EnumIndex, EnumMap};
+use crate::utils::{read_context, VecStrOps};
 
-/// Gives the damage die to be used for a given `power`.
-/// Defaults to maximum die size if power is too large (or small).
-pub fn damage_die(power: usize) -> String {
-    const DAMAGE_DICE: [&str; 10] = [
-        "1", "1d4", "1d6", "1d8", "1d10", "1d12", "2d6", "2d8", "2d10", "2d12",
-    ];
-    DAMAGE_DICE
-        .get(power)
-        .unwrap_or(&DAMAGE_DICE[9])
-        .to_string()
-}
+pub const MAX_CAPACITY: u8 = 10;
 
 #[derive(Serialize, Deserialize, Clone)]
-struct PC {
+pub struct PC {
     pub name: String,
     pub description: String,
     pub curr_hp: i32,
+    pub wounds: i32,
+    pub supply: u32,
     pub inventory: Vec<Item>,
-    pub equipment: EnumMap<Option<usize>>,
-    pub base_stats: EnumMap<i32>,
+    pub equipment: [Option<Item>; EquipSlot::COUNT],
+    pub base_stats: [i32; PCStat::COUNT],
+    pub days: u32,
 }
 
 impl PC {
     pub fn new(cx: Scope, name: String) -> Self {
         rand_context(cx, |rand| {
-            let inventory = gen_warrior_inv(rand);
-            let equipment = equip_items(&inventory);
+            let mut inventory = gen_warrior_inv(rand);
+            let equipment = equip_items(&mut inventory);
             Self {
                 name,
-                description: "TODO: Generate random description.".into(),
-                curr_hp: 5,
+                description: gen_description(rand),
+                curr_hp: 2,
+                wounds: 0,
+                // Somewhere between 10 silver and 20 silver
+                supply: rand.range(10, 20) * 10,
                 inventory,
                 equipment,
                 base_stats: gen_base_stats(rand),
+                days: 0,
             }
         })
-    }
-
-    /// Fetchs the item in the slot given.
-    pub fn get_equip(&self, slot: EquipSlot) -> Option<Item> {
-        let i = (*self.equipment.get(slot))?;
-        self.inventory.get(i).cloned()
     }
 }
 
@@ -75,29 +72,29 @@ pub enum PCStat {
     HP,
     Speed,
     Sorcery,
-    Damage,
+    Might,
     STR,
     DEX,
     INT,
     CHA,
 }
 
-impl EnumIndex for PCStat {
+impl PCStat {
     fn index(&self) -> usize {
         *self as usize
     }
 }
 
-fn gen_base_stats(rand: &mut Rand) -> EnumMap<i32> {
-    let mut arr = EnumMap::new::<PCStat>(0);
-    *arr.get_mut(PCStat::HP) = 5;
-    *arr.get_mut(PCStat::Speed) = 30;
-    *arr.get_mut(PCStat::Sorcery) = 0;
-    *arr.get_mut(PCStat::Damage) = 0;
-    *arr.get_mut(PCStat::STR) = rand.pick(&ABILITY_MOD);
-    *arr.get_mut(PCStat::DEX) = rand.pick(&ABILITY_MOD);
-    *arr.get_mut(PCStat::INT) = rand.pick(&ABILITY_MOD);
-    *arr.get_mut(PCStat::CHA) = rand.pick(&ABILITY_MOD);
+fn gen_base_stats(rand: &mut Rand) -> [i32; PCStat::COUNT] {
+    let mut arr = [0; PCStat::COUNT];
+    arr[PCStat::HP.index()] = 5;
+    arr[PCStat::Speed.index()] = 30;
+    arr[PCStat::Sorcery.index()] = 0;
+    arr[PCStat::Might.index()] = 0;
+    arr[PCStat::STR.index()] = rand.pick(&ABILITY_MOD);
+    arr[PCStat::DEX.index()] = rand.pick(&ABILITY_MOD);
+    arr[PCStat::INT.index()] = rand.pick(&ABILITY_MOD);
+    arr[PCStat::CHA.index()] = rand.pick(&ABILITY_MOD);
     arr
 }
 
@@ -107,7 +104,7 @@ fn gen_base_stats(rand: &mut Rand) -> EnumMap<i32> {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct PCSession {
-    stats: EnumMap<i32>,
+    stats: [i32; PCStat::COUNT],
     features: Vec<Feature>,
 }
 
@@ -116,31 +113,45 @@ impl PCSession {
     /// Relies on `PC` to have been provided already.
     pub fn new(cx: Scope) -> Self {
         read_context::<PC>(cx).with_untracked(|pc| {
-            let stats = pc.base_stats.clone();
+            let stats = pc.base_stats;
             let features = Vec::new();
             let mut result = Self { stats, features };
             EquipSlot::iter()
                 .filter_map(|slot| {
-                    let i = (*pc.equipment.get(slot))?;
-                    let item = pc.inventory.get(i)?;
+                    let item = pc.equipment.as_ref()[slot.index()].clone()?;
                     Some((slot, item))
                 })
-                .for_each(|(slot, item)| add_item(slot, item, &mut |enh| result.add_enh(enh)));
+                .for_each(|(slot, item)| {
+                    filter_appliable_enh(slot, &item, &mut |enh| result.add_enh(enh))
+                });
             result
         })
     }
 
-    fn add_enh(&mut self, enh: Enhancement) {
+    pub fn add_enh(&mut self, enh: Enhancement) {
         match enh {
             Enhancement::StatInc(si) => {
-                *self.stats.get_mut(si.stat) += si.add;
+                self.stats[si.stat.index()] += si.add;
             }
             Enhancement::Feature(f) => self.features.push(f),
         }
     }
+
+    pub fn remove_enh(&mut self, enh: Enhancement) {
+        match enh {
+            Enhancement::StatInc(si) => {
+                self.stats[si.stat.index()] -= si.add;
+            }
+            Enhancement::Feature(f) => {
+                if let Some(pos) = self.features.iter().position(|p| p.name == f.name) {
+                    self.features.remove(pos);
+                }
+            }
+        }
+    }
 }
 
-fn add_item<F>(slot: EquipSlot, item: &Item, f: &mut F)
+pub fn filter_appliable_enh<F>(slot: EquipSlot, item: &Item, f: &mut F)
 where
     F: FnMut(Enhancement),
 {
@@ -173,7 +184,7 @@ where
                 match e {
                     Enhancement::StatInc(si) => match si.stat {
                         // Dual wielding should max increase damage by 1 regardless of weapon
-                        PCStat::Damage => Some(enh::stat::DAMAGE_1),
+                        PCStat::Might => Some(enh::stat::DAMAGE_1),
                         _ => Some(orig),
                     },
                     _ => None,
@@ -234,27 +245,61 @@ pub enum EquipSlot {
     Legs,
 }
 
-impl EnumIndex for EquipSlot {
+impl EquipSlot {
     fn index(&self) -> usize {
         *self as usize
     }
 }
 
-fn equip_items(inv: &[Item]) -> EnumMap<Option<usize>> {
-    let mut arr = EnumMap::new::<EquipSlot>(None);
+/// Takes and equips items to an appropriate slot.
+fn equip_items(inv: &mut Vec<Item>) -> [Option<Item>; EquipSlot::COUNT] {
+    let mut to_delete = Vec::new();
+    let mut arr = [None, None, None, None, None];
+    let mut assign = |slot: EquipSlot, i, item: &Item| {
+        arr[slot.index()] = Some(item.clone());
+        to_delete.push(i);
+    };
+    // Assign items by cloning
     inv.iter().enumerate().for_each(|(i, item)| match item {
         Item::Held(held) => match held.base {
-            Held::Shield => *arr.get_mut(EquipSlot::OffHand) = Some(i),
-            _ => *arr.get_mut(EquipSlot::MainHand) = Some(i),
+            Held::Shield => assign(EquipSlot::OffHand, i, item),
+            _ => assign(EquipSlot::MainHand, i, item),
         },
-        Item::Head(_) => *arr.get_mut(EquipSlot::Head) = Some(i),
+        Item::Head(_) => assign(EquipSlot::Head, i, item),
         Item::Armour(armour) => match armour.base {
             Armour::Leggings | Armour::Chausses | Armour::Greaves => {
-                *arr.get_mut(EquipSlot::Legs) = Some(i)
+                assign(EquipSlot::Legs, i, item)
             }
-            _ => *arr.get_mut(EquipSlot::Body) = Some(i),
+            _ => assign(EquipSlot::Body, i, item),
         },
         _ => (),
     });
+    // Remove from inventory
+    to_delete.sort_unstable();
+    for i in to_delete.into_iter().rev() {
+        inv.remove(i);
+    }
     arr
+}
+
+fn format_funds(f: u32) -> String {
+    let above_zero = |val, s| {
+        if val > 0 {
+            Some(format!("{val}{s}"))
+        } else {
+            None
+        }
+    };
+    let mut f = f;
+    let c = f % 10;
+    f /= 10;
+    let s = f % 100;
+    f /= 100;
+    vec![
+        above_zero(f, "gp"),
+        above_zero(s, "sp"),
+        above_zero(c, "cp"),
+    ]
+    .flat_concat(" ")
+    .unwrap_or("0cp".to_string())
 }

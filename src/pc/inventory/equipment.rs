@@ -1,10 +1,10 @@
 use leptos::*;
 
-use crate::items::{Armour, Item};
-use crate::pc::inventory::inv_item::InvItem;
-use crate::pc::{EquipSlot, PC};
+use crate::items::{Armour, GearType, Item};
+use crate::pc::{filter_appliable_enh, EquipSlot, PCSession, PC};
 use crate::svg;
 use crate::utils::{read_context, rw_context, write_context, Modal, StrPlus};
+use crate::views::InvItem;
 
 /// The state of the choose equipment modal: (is hidden, which slot)
 struct ModalState(bool, EquipSlot);
@@ -32,8 +32,10 @@ fn EqSlot(cx: Scope, svg: &'static str, eq_slot: EquipSlot) -> impl IntoView {
     let pc = read_context::<PC>(cx);
     let item = move || {
         pc.with(|pc| {
-            pc.get_equip(eq_slot)
+            pc.equipment[eq_slot.index()]
+                .as_ref()
                 .map(|item| {
+                    let item = item.clone();
                     view! {
                         cx,
                         <InvItem item />
@@ -48,7 +50,7 @@ fn EqSlot(cx: Scope, svg: &'static str, eq_slot: EquipSlot) -> impl IntoView {
     view! {
         cx,
         <div class= "rounded border-2 border-purple-900 h-12 flex-centered">
-            <div class= "w-6" inner_html=svg/>
+            <div class= "w-6 svg" inner_html=svg/>
         </div>
         <button
             class= "col-span-6 rounded bg-zinc-800 gap-2"
@@ -62,32 +64,23 @@ fn EqSlot(cx: Scope, svg: &'static str, eq_slot: EquipSlot) -> impl IntoView {
     }
 }
 
-/// Filters out equiped items and gives their index in the original list.
-fn not_equiped_with_index(pc: &PC) -> Vec<(usize, Item)> {
-    let mut result = Vec::new();
-    let equiped: Vec<&usize> = pc.equipment.0.iter().flatten().collect();
-    for (i, item) in pc.inventory.iter().enumerate() {
-        if !equiped.contains(&&i) {
-            result.push((i, item.clone()))
-        }
-    }
-    result
-}
-
 /// Fliters the inventory by the `slot` given and give the associated
 /// original inventory index.
 fn filter_by_slot(pc: &PC, slot: EquipSlot) -> Vec<(usize, Item)> {
-    not_equiped_with_index(pc)
-        .into_iter()
+    pc.inventory
+        .iter()
+        .enumerate()
         .filter(|(_, x)| match slot {
             EquipSlot::Head => matches!(x, Item::Head(_)),
             EquipSlot::MainHand => matches!(x, Item::Held(_)),
-            EquipSlot::OffHand => matches!(x, Item::Held(_)),
+            EquipSlot::OffHand => match x {
+                Item::Held(h) => h.base.weight() < 2,
+                _ => false,
+            },
             EquipSlot::Body => match x {
-                Item::Armour(y) => matches!(
-                    y.base,
-                    Armour::Robe | Armour::Gambeson | Armour::Brigandine | Armour::Plate
-                ),
+                Item::Armour(y) => {
+                    matches!(y.base, Armour::Robe | Armour::Gambeson | Armour::Brigandine)
+                }
                 _ => false,
             },
             EquipSlot::Legs => match x {
@@ -98,6 +91,7 @@ fn filter_by_slot(pc: &PC, slot: EquipSlot) -> Vec<(usize, Item)> {
                 _ => false,
             },
         })
+        .map(|(i, x)| (i, x.clone()))
         .collect()
 }
 
@@ -107,9 +101,26 @@ fn ChangeEqModal(cx: Scope) -> impl IntoView {
     let chg_modal = rw_context::<ModalState>(cx);
     let hidden = move || chg_modal.with(|c| c.0);
     let close_modal = move || chg_modal.update(|c| c.0 = true);
-    let set_slot = move |i| {
+    let set_slot = move |maybe_i: Option<usize>| {
         chg_modal.with_untracked(|ModalState(_, slot)| {
-            write_context::<PC>(cx).update(|pc| *pc.equipment.get_mut(*slot) = i)
+            write_context::<PC>(cx).update(|pc| {
+                let sesh = write_context::<PCSession>(cx);
+                // Removing enhancements from removed item and then
+                // adding back into inventory
+                if let Some(item) = &pc.equipment[slot.index()] {
+                    filter_appliable_enh(*slot, item, &mut |enh| {
+                        sesh.update(|sesh| sesh.remove_enh(enh))
+                    });
+                    pc.inventory.push(item.clone());
+                };
+                pc.equipment[slot.index()] = maybe_i.map(|i| pc.inventory.remove(i));
+                // Adding enhancements from new item
+                if let Some(item) = &pc.equipment[slot.index()] {
+                    filter_appliable_enh(*slot, item, &mut |enh| {
+                        sesh.update(|sesh| sesh.add_enh(enh))
+                    })
+                };
+            })
         });
         close_modal();
     };
@@ -141,7 +152,7 @@ fn ChangeEqModal(cx: Scope) -> impl IntoView {
             <div class= "flex-centered h-cover px-4">
                 <div class= "relative flex flex-col bg-zinc-800 w-full p-4 rounded">
                     <button
-                        class= "w-10 absolute top-0 right-0"
+                        class= "svg w-10 absolute top-1 right-1"
                         on:click= move |_| close_modal()
                         inner_html=svg::CROSS
                     />

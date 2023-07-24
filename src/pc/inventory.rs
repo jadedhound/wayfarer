@@ -3,7 +3,7 @@ use leptos_router::*;
 
 mod backpack;
 mod equipment;
-mod inv_item;
+mod search;
 mod vault;
 
 use backpack::*;

@@ -20,14 +20,15 @@ pub fn MainRouter(cx: Scope) -> impl IntoView {
                 <Route path= "" view=move |cx| view! { cx, <Lobby /> }/>
                 <Route path= "/settings" view=move |cx| view! { cx, <Settings /> }/>
                 <Route path= "/pc/:id" view=move |cx| view! { cx, <PCScout /> }>
-                    <Route path="" view=|cx| view! {cx, <Basics /> }/>
-                    <Route path= "/basics" view=|cx| view! {cx, <Basics /> }/>
+                    <Route path="" view=|cx| view! {cx, <Overview /> }/>
+                    <Route path= "/basics" view=|cx| view! {cx, <Overview /> }/>
                     <Route path= "/crafting" view=|cx| view! { cx, <Crafting /> }/>
                     <Route path= "/inventory" view=|cx| view! { cx, <InvNavbar /> }>
                         <Route path= "" view=|cx| view! { cx, <Inventory /> }/>
                         <Route path= "/vault" view=|cx| view! { cx, <Vault /> }/>
                     </Route>
-                    <Route path= "/journal" view=|cx| view! {cx,<div> "Journal!" </div> }/>
+                    <Route path= "/journal" view=|cx| view! {cx, <Journal /> }/>
+                    <Route path= "/followers" view=|cx| view! {cx, <Followers /> }/>
                 </Route>
                 <Route path= "/*any" view=|cx| view! { cx, <NotFound /> }/>
             </Routes>
