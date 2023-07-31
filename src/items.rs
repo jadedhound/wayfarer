@@ -1,184 +1,138 @@
-use std::fmt::Display;
-use std::str::FromStr;
-
-use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 
-mod armour;
-pub mod craft;
-pub mod enhancement;
-mod fuzzy_match;
-mod gems_and_runes;
-mod held;
-mod reagents;
-mod search;
-mod simple_items;
+pub mod armour;
+pub mod attachable;
+pub mod buffs;
+pub mod features;
+pub mod item_specs;
+pub mod potions;
+pub mod reagents;
+pub mod recipes;
+pub mod search;
+pub mod simple;
+pub mod tome;
+pub mod weapons;
 
-pub use armour::*;
-use enhancement::Enhancement;
-pub use gems_and_runes::*;
-pub use held::*;
-pub use reagents::*;
-pub use search::search;
-pub use simple_items::*;
+use strum::{Display, EnumCount, FromRepr, IntoEnumIterator};
 
-use self::craft::enchanter_base;
-use crate::utils::VecStrOps;
+use self::item_specs::{ItemSpec, ItemSpecRef};
+use self::simple::ERROR_ITEM;
+use crate::pc::PCStat;
+use crate::utils::add_operator;
 
-#[derive(Serialize, Deserialize, Clone)]
-pub enum Item {
-    Held(Gear<Held>),
-    Head(HeadItem),
-    Armour(Gear<Armour>),
-    Simple(SimpleItem),
-    Fatigue,
+#[derive(Serialize, Deserialize, Copy, Clone, Display, FromRepr, Default)]
+pub enum ItemQuality {
+    #[default]
+    Common,
+    Uncommon,
+    Rare,
+    Wondrous,
+    Mythical,
 }
 
-impl Item {
-    pub fn name(&self) -> String {
+impl ItemQuality {
+    pub fn colour(&self) -> &'static str {
         match self {
-            Item::Held(a) => a.name(),
-            Item::Armour(a) => a.name(),
-            Item::Simple(a) => a.name.clone(),
-            Item::Head(a) => a.name.clone(),
-            Item::Fatigue => "Fatigue".into(),
+            ItemQuality::Common => "text-zinc-200",
+            ItemQuality::Uncommon => "text-green-500",
+            ItemQuality::Rare => "text-blue-500",
+            ItemQuality::Wondrous => "text-purple-500",
+            ItemQuality::Mythical => "text-orange-500",
         }
     }
+}
 
-    pub fn weight(&self) -> u8 {
-        match self {
-            Item::Held(a) => a.base.weight(),
-            Item::Armour(a) => a.base.weight(),
-            Item::Simple(a) => a.weight,
-            Item::Head(_) => 1,
-            Item::Fatigue => 1,
-        }
-    }
-
-    pub fn price(&self) -> u32 {
-        match self {
-            Item::Held(a) => a.price(),
-            Item::Armour(a) => a.price(),
-            Item::Simple(a) => a.price,
-            Item::Head(_) => 0,
-            Item::Fatigue => 0,
-        }
-    }
-
-    /// The quality rate of the item,
-    /// ranging from lowest (0) to highest (3).
-    pub fn quality(&self) -> u8 {
-        match self {
-            Item::Held(a) => a.quality,
-            Item::Armour(a) => a.quality,
-            Item::Head(_) => 3,
-            Item::Simple(_) => todo!(),
-            _ => 0,
-        }
-    }
-
-    pub fn as_held(&self) -> Option<Gear<Held>> {
-        match self {
-            Item::Held(h) => Some(h.clone()),
-            _ => None,
-        }
-    }
+#[derive(Serialize, Deserialize, Clone)]
+pub struct Item {
+    pub id: u32,
+    pub name: String,
+    pub spec: ItemSpec,
+    pub quality: ItemQuality,
+    pub weight: u8,
+    pub price: u32,
+    pub attached: Option<(u32, Box<Item>)>,
 }
 
 impl Default for Item {
     fn default() -> Self {
-        Self::Simple(SimpleItem::new("Error", 0))
+        ERROR_ITEM.into()
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
-pub struct Gear<T> {
-    pub quality: u8,
-    pub base: T,
-    pub gem: Option<Gem>,
-    pub rune: Option<Rune>,
+impl PartialEq for Item {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name && self.quality as usize == other.quality as usize
+    }
 }
 
-impl<T> Gear<T>
-where
-    T: FromStr + Display + GearType,
-{
-    pub fn price(&self) -> u32 {
-        let n = self.quality as u32;
-        // To ensure a standard item has the base price only
-        self.base.price() + (enchanter_base(n) - enchanter_base(0))
+impl From<ItemRef> for Item {
+    fn from(value: ItemRef) -> Self {
+        Self {
+            id: 0,
+            name: value.name.into(),
+            spec: value.specs.into(),
+            weight: value.weight,
+            price: value.price,
+            quality: value.quality,
+            attached: None,
+        }
     }
+}
 
-    pub fn create(
-        gem: Option<String>,
-        base: String,
-        rune: Option<String>,
-        quality: u8,
-    ) -> Option<Self> {
-        let gem = gem.as_ref().and_then(|n| GEMS.get(n).cloned());
-        let rune = rune.as_ref().and_then(|n| RUNES.get(n).cloned());
-        let base = T::from_str(&base).ok()?;
-        Some(Self {
-            quality,
-            base,
-            gem,
-            rune,
+/// Static components of an item.
+#[derive(Clone, Copy)]
+pub struct ItemRef {
+    name: &'static str,
+    specs: ItemSpecRef,
+    weight: u8,
+    price: u32,
+    quality: ItemQuality,
+}
+
+#[derive(Serialize, Deserialize, Clone, Copy)]
+pub struct StatArr(pub [i32; PCStat::COUNT]);
+
+#[allow(dead_code)]
+impl StatArr {
+    /// Formats any stats that aren't 0 into stat and number.
+    /// E.g. HP +2.
+    pub fn string_iter(&self) -> impl Iterator<Item = String> + '_ {
+        PCStat::iter().zip(self.0.iter()).flat_map(|(stat, num)| {
+            if *num != 0 {
+                let num = add_operator(*num);
+                Some(format!("{stat} {num}"))
+            } else {
+                None
+            }
         })
     }
 
-    pub fn name(&self) -> String {
-        vec![
-            self.gem.as_ref().map(|g| g.prefix.clone()),
-            Some(self.base.to_string()),
-            self.rune.as_ref().map(|r| r.suffix.clone()),
-        ]
-        .flat_concat(" ")
-        // Name is some, so will always succeed
-        .unwrap()
+    const fn new() -> Self {
+        Self([0; PCStat::COUNT])
     }
 
-    /// Gives a word associated with the quality tier given,
-    /// measured from 0 (lowest) to 3 (highest).
-    pub fn quality_str(&self) -> &'static str {
-        match self.quality {
-            0 => "Standard",
-            1 => "Fine",
-            2 => "Superb",
-            3 => "Flawless",
-            _ => "Error",
-        }
+    const fn hp(mut self, x: i32) -> Self {
+        self.0[PCStat::HP.index()] += x;
+        self
     }
-}
-
-pub trait GearType {
-    fn weight(&self) -> u8;
-    fn enhancements(&self) -> Vec<Enhancement>;
-    fn price(&self) -> u32;
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-pub struct HeadItem {
-    name: String,
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-pub struct SimpleItem {
-    pub name: String,
-    pub weight: u8,
-    pub price: u32,
-}
-
-impl SimpleItem {
-    pub fn new(name: &'static str, sp: u32) -> Self {
-        Self {
-            name: name.to_string(),
-            weight: 1,
-            price: sp * 10,
-        }
+    const fn str(mut self, x: i32) -> Self {
+        self.0[PCStat::STR.index()] += x;
+        self
     }
-
-    pub fn weight(mut self, weight: u8) -> Self {
-        self.weight = weight;
+    const fn dex(mut self, x: i32) -> Self {
+        self.0[PCStat::DEX.index()] += x;
+        self
+    }
+    const fn int(mut self, x: i32) -> Self {
+        self.0[PCStat::INT.index()] += x;
+        self
+    }
+    const fn cha(mut self, x: i32) -> Self {
+        self.0[PCStat::CHA.index()] += x;
+        self
+    }
+    const fn sorc(mut self, x: i32) -> Self {
+        self.0[PCStat::Sorcery.index()] += x;
         self
     }
 }

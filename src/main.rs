@@ -1,19 +1,21 @@
-#![allow(clippy::let_with_type_underscore)]
-#![allow(clippy::redundant_closure)]
+// Happens when leptos::components take arguements with lifetimes.
+#![allow(clippy::needless_lifetimes)]
+
 use leptos::*;
 use router::*;
 
 mod assets;
+mod css;
 mod error;
 mod items;
 mod lobby;
-mod modal;
 mod pc;
 mod rand;
 mod router;
 mod settings;
 mod state;
 mod svg;
+mod tables;
 mod utils;
 mod views;
 

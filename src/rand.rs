@@ -26,9 +26,9 @@ pub struct Rand {
 
 impl Rand {
     /// Picks an element from a given array
-    pub fn pick<T: Clone>(&mut self, arr: &[T]) -> T {
+    pub fn pick<T: Copy>(&mut self, arr: &[T]) -> T {
         let i = self.inner.generate_range(0_usize..arr.len());
-        arr[i].clone()
+        arr[i]
     }
 
     /// Random number `from` to `to`.

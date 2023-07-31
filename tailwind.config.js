@@ -8,20 +8,30 @@ module.exports = {
   ],
   theme: {
     fontFamily: {
-      'sans': ['Open Sans','ui-sans-serif'],
-      'sans-condensed': ['Open Sans Condensed','ui-sans-serif'],
+      'sans': ['Open Sans Condensed', 'Open Sans','ui-sans-serif'],
       'serif': ['EB Garamond', 'ui-serif'],
       'mono': ['ui-monospace'],
     },
     extend: {
       animation: {
         "fade": "fadeIn .5s ease-in",
+        "popin": "popIn .3s ease-out"
       },
       keyframes: {
         fadeIn: {
           '0%': {
             opacity: '.2',
             transform: 'translateY(2%)'
+          },
+        },
+        popIn: {
+          '0%': {
+            opacity: '.2',
+            transform: 'scale(0.8)',
+          },
+          '100%': {
+            opacity: '1',
+            transform: 'scale(1)',
           },
         },
       }

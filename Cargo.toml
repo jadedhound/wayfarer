@@ -20,3 +20,4 @@ simple_index = { path = "../simple_index"}
 once_cell = "1.18.0"
 nanorand = { git = "https://github.com/Absolucy/nanorand-rs.git" }
 strum = { version = "0.25", features = ["derive"] }
+const_format = "0.2.31"

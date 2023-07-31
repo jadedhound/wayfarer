@@ -1,36 +1,36 @@
-use std::collections::HashMap;
 use std::fmt::Display;
 use std::rc::Rc;
 
-mod str_op;
-pub mod toast;
-
 use leptos::*;
-use once_cell::sync::Lazy;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use simple_index::Database;
-pub use str_op::*;
-
-pub type LazyHash<T> = Lazy<HashMap<String, T>>;
 
 // -----------------------------------
 // SIMPLE FUNCTIONS
 // -----------------------------------
 
-/// Get a read signal that has already been provided
-pub fn read_context<T>(cx: Scope) -> ReadSignal<T> {
-    use_context::<ReadSignal<T>>(cx).unwrap()
-}
-
-/// Get a write signal that has already been provided
-pub fn write_context<T>(cx: Scope) -> WriteSignal<T> {
-    use_context::<WriteSignal<T>>(cx).unwrap()
-}
-
 /// Get a read/write signal that has already been provided
 pub fn rw_context<T>(cx: Scope) -> RwSignal<T> {
     use_context::<RwSignal<T>>(cx).unwrap()
+}
+
+/// Capitalises the first letter of a given string.
+pub fn capitalise(s: &str) -> String {
+    let mut c = s.chars();
+    match c.next() {
+        None => String::new(),
+        Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
+    }
+}
+
+/// Flattens and joins a `vec` of string into a single string.
+pub fn flat_concat(v: Vec<Option<String>>, join: &'static str) -> Option<String> {
+    v.into_iter().flatten().reduce(|mut acc, e| {
+        acc.push_str(join);
+        acc.push_str(&e);
+        acc
+    })
 }
 
 // -----------------------------------
@@ -60,48 +60,37 @@ where
 
 /// Creates read and write signals for given value and
 /// commits it to indexeddb when the value changes.
-pub async fn provide_saved<K, T>(cx: Scope, key: K, default: T)
+pub async fn provide_saved<K, F, T>(cx: Scope, key: K, default: F)
 where
     K: Display,
+    F: Fn() -> T,
     T: Serialize + DeserializeOwned + Clone + 'static,
 {
     let key = key.to_string();
     let db = use_context::<Rc<Database>>(cx).unwrap();
-    let val = from_db(db, &key).await.unwrap_or(default);
+    let val = from_db(db, &key).await.unwrap_or_else(|_| default());
     // Create signals to change values
-    let (rs, ws) = create_signal(cx, val);
-    provide_context(cx, rs);
-    provide_context(cx, ws);
+    let rw = create_rw_signal(cx, val);
+    provide_context(cx, rw);
 
     // Save to indexeddb when value is changed
     create_effect(cx, move |_| {
-        let key = key.clone();
-        let val = rs.get();
+        let key = key.to_string();
+        let val = rw.get();
         spawn_local(async move {
             let db = use_context::<Rc<Database>>(cx).unwrap();
             to_db(db, &key, &val)
                 .await
-                .unwrap_or_else(crate::error::log);
+                .unwrap_or_else(|e| log::error!("{e}"));
         });
     });
 }
 
-// -----------------------------------
-// VIEWS
-// -----------------------------------
-
-#[component]
-pub fn Modal<F>(cx: Scope, children: Children, hidden: F) -> impl IntoView
-where
-    F: Fn() -> bool + 'static,
-{
-    view! {
-        cx,
-        <div class="relative z-10" hidden=move || hidden()>
-            <div class="fixed inset-0 bg-zinc-700/75 transition-opacity"></div>
-            <div class="fixed inset-0 z-10 overflow-y-auto">
-                {children(cx)}
-            </div>
-        </div>
+/// Adds a `+` to positive values.
+pub fn add_operator(x: i32) -> String {
+    if x > -1 {
+        format!("+{x}")
+    } else {
+        x.to_string()
     }
 }

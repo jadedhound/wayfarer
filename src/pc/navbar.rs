@@ -7,7 +7,7 @@ use crate::svg;
 pub fn NavBarWithOutlet(cx: Scope) -> impl IntoView {
     view! {
         cx,
-        <div class="fixed flex w-full justify-between p-4 bg-zinc-950">
+        <div class="fixed flex w-full justify-between p-4 bg-zinc-950 z-[5]">
             <A href= "followers">
                 <div class= "w-10 svg" inner_html=svg::FOLLOWERS />
             </A>
@@ -22,7 +22,7 @@ pub fn NavBarWithOutlet(cx: Scope) -> impl IntoView {
             <A href= "inventory">
                 <div class= "w-10 svg" inner_html=svg::BACKPACK />
             </A>
-            <A href= "crafting">
+            <A href= "craft">
                 <div class= "w-10 svg" inner_html=svg::ANVIL />
             </A>
         </div>

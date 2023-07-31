@@ -1,23 +1,26 @@
 use leptos::*;
 use leptos_router::*;
 
-use super::{PCSession, PC};
+use super::session::PCSession;
+use super::PC;
 use crate::error::{Error, FatalErr, FatalPg};
 use crate::pc::navbar::NavBarWithOutlet;
 use crate::state::PCList;
-use crate::utils::{provide_saved, read_context};
+use crate::utils::{provide_saved, rw_context};
 
 async fn get_pc(cx: Scope) -> Option<()> {
     let brief = use_params_map(cx).with_untracked(|params| {
         params.get("id").and_then(|id| {
             let id = id.parse::<u64>().ok()?;
-            read_context::<PCList>(cx).with_untracked(|list| list.get(id).cloned())
+            rw_context::<PCList>(cx).with_untracked(|list| list.get(id).cloned())
         })
     })?;
-    provide_saved(cx, brief.id, PC::new(cx, brief.name)).await;
-    let (session, session_set) = create_signal(cx, PCSession::new(cx));
-    provide_context(cx, session);
-    provide_context(cx, session_set);
+    let new_pc = || {
+        let key = brief.name.clone();
+        PC::new(cx, key)
+    };
+    provide_saved(cx, brief.id, new_pc).await;
+    PCSession::provide(cx);
     Some(())
 }
 

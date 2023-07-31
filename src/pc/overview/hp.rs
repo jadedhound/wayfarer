@@ -1,11 +1,13 @@
+use const_format::concatcp;
 use leptos::*;
 
 use super::PC;
-use crate::items::Item;
-use crate::pc::{PCSession, PCStat};
+use crate::items::simple::FATIGUE;
+use crate::pc::session::PCSession;
+use crate::pc::PCStat;
 use crate::svg;
-use crate::utils::toast::{Toast, ToastNotif};
-use crate::utils::{read_context, write_context};
+use crate::utils::rw_context;
+use crate::views::toast::{Toast, ToastNotif};
 
 fn apply_damage(pc: &mut PC, dmg: i32) {
     if dmg > pc.curr_hp {
@@ -45,35 +47,35 @@ fn hp_number_or_dc(cx: Scope, pc: &PC, max: i32) -> View {
 
 #[component]
 pub fn HP(cx: Scope) -> impl IntoView {
-    let pc = read_context::<PC>(cx);
-    let pc_write = write_context::<PC>(cx);
-    let max_hp = move || read_context::<PCSession>(cx).with(|s| s.stats[PCStat::HP.index()]);
+    const DISABLED_BTN: &str =
+        "border-2 border-emerald-800 disabled:bg-inherit disabled:border-zinc-700";
+    let pc = rw_context::<PC>(cx);
+    let max_hp = move || rw_context::<PCSession>(cx).with(|s| s.stats[PCStat::HP.index()]);
     let (hp_dmg, hp_dmg_set) = create_signal(cx, 1_i32);
-    let toast = Toast::provide(cx);
 
     view! {
         cx,
-        <ToastNotif state=toast />
+        <ToastNotif />
         <div class= "flex gap-1 py-4">
             <div class= "flex flex-col gap-1">
                 <button
-                    class= "rounded p-4 bg-emerald-800 flex-centered disabled:bg-zinc-900"
+                    class=concatcp!("rounded p-4 bg-emerald-800 flex-centered ", DISABLED_BTN)
                     on:click=move |_| {
                         // Reset HP and add fatigue
-                        pc_write.update(|pc| {
+                        pc.update(|pc| {
                             pc.curr_hp = max_hp();
-                            pc.inventory.push(Item::Fatigue);
+                            pc.inventory.push(FATIGUE.into());
                         });
-                        toast.update(|t| t.show("Fatigue added to inventory"));
+                        Toast::show(cx, "Fatigue added to inventory");
                     }
                     disabled=move || pc.with(|pc| pc.curr_hp == max_hp())
                 >
                     <div class= "w-8 svg" inner_html=svg::CAMPFIRE />
                 </button>
                 <button
-                    class= "rounded p-4 bg-emerald-800 flex-centered disabled:bg-zinc-900"
+                    class=concatcp!("rounded p-4 bg-emerald-800 flex-centered ", DISABLED_BTN)
                     on:click=move |_| {
-                        pc_write.update(|pc| {
+                        pc.update(|pc| {
                            if pc.wounds > 0 {
                                 pc.wounds -= 1
                             }
@@ -107,7 +109,7 @@ pub fn HP(cx: Scope) -> impl IntoView {
             <button
                 class= "rounded bg-red-800 w-14 row-span-2 flex-centered"
                 on:click=move |_| {
-                    pc_write.update(|pc| apply_damage(pc, hp_dmg.get_untracked()));
+                    pc.update(|pc| apply_damage(pc, hp_dmg.get_untracked()));
                     hp_dmg_set.set(1);
                 }
             >

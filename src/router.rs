@@ -5,11 +5,15 @@ use leptos_router::*;
 
 use crate::error::*;
 use crate::lobby::*;
+use crate::pc::craft::Craft;
 use crate::pc::*;
 use crate::rand::init_rand;
 use crate::settings::*;
 use crate::state::PCList;
 use crate::utils::provide_saved;
+use crate::views::modal::ModalState;
+use crate::views::revealer::Revealer;
+use crate::views::toast::Toast;
 
 #[component]
 pub fn MainRouter(cx: Scope) -> impl IntoView {
@@ -21,8 +25,7 @@ pub fn MainRouter(cx: Scope) -> impl IntoView {
                 <Route path= "/settings" view=move |cx| view! { cx, <Settings /> }/>
                 <Route path= "/pc/:id" view=move |cx| view! { cx, <PCScout /> }>
                     <Route path="" view=|cx| view! {cx, <Overview /> }/>
-                    <Route path= "/basics" view=|cx| view! {cx, <Overview /> }/>
-                    <Route path= "/crafting" view=|cx| view! { cx, <Crafting /> }/>
+                    <Route path= "/craft" view=|cx| view! { cx, <Craft /> } />
                     <Route path= "/inventory" view=|cx| view! { cx, <InvNavbar /> }>
                         <Route path= "" view=|cx| view! { cx, <Inventory /> }/>
                         <Route path= "/vault" view=|cx| view! { cx, <Vault /> }/>
@@ -37,10 +40,19 @@ pub fn MainRouter(cx: Scope) -> impl IntoView {
 }
 
 async fn init_assets(cx: Scope) -> Result<(), Error> {
+    // Random generator
     init_rand(cx);
+    // IndexedDB
     let db = simple_index::new().await?;
     provide_context(cx, Rc::new(db));
-    provide_saved(cx, "pc_list", PCList::default()).await;
+    provide_saved(cx, "pc_list", PCList::default).await;
+    // Popup modals
+    let modal = create_rw_signal(cx, ModalState::new());
+    provide_context(cx, modal);
+    let toast = create_rw_signal(cx, Toast::new());
+    provide_context(cx, toast);
+    let revealer = create_rw_signal(cx, Revealer(None));
+    provide_context(cx, revealer);
     Ok(())
 }
 
