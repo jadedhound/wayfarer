@@ -45,10 +45,10 @@ enum HasIngredients {
 fn num_in_inv(cx: Scope, item: &Item) -> u8 {
     rw_context::<PC>(cx).with_untracked(|pc| {
         pc.inventory
-            .iter()
+            .values()
             .filter(|x| *x == item)
             .fold(0_u8, |acc, e| {
-                let stack = e.spec.as_stackable().map(|(curr, _)| *curr);
+                let stack = e.stacks.map(|(curr, _)| curr);
                 acc + stack.unwrap_or(1)
             })
     })

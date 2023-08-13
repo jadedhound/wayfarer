@@ -2,11 +2,11 @@ use std::collections::HashMap;
 
 use once_cell::sync::Lazy;
 
-use super::armour::{ITEMS_BODY, ITEMS_HELD_ARMOUR, ITEMS_LEG};
-use super::attachable::ITEMS_ATTACH;
+use super::consumables::ITEMS_BOMB;
+use super::food::ITEMS_FOOD;
 use super::potions::ITEMS_POTION;
 use super::reagents::ITEMS_REAGENT;
-use super::simple::{ITEMS_META, ITEMS_SIMPLE, ITEMS_TOOLS};
+use super::simple::{ITEMS_META, ITEMS_SIMPLE};
 use super::tome::ITEMS_SPELLBOOK;
 use super::weapons::ITEMS_WEAP;
 use super::{Item, ItemRef};
@@ -14,18 +14,15 @@ use super::{Item, ItemRef};
 type CharCount = Vec<(char, f32)>;
 type LazyCmp = Lazy<Vec<(&'static ItemRef, CharCount)>>;
 
-const ITEM_ARR: [&[&ItemRef]; 11] = [
-    &ITEMS_BODY,
-    &ITEMS_LEG,
-    &ITEMS_HELD_ARMOUR,
+const ITEM_ARR: [&[&ItemRef]; 8] = [
     &ITEMS_WEAP,
     &ITEMS_REAGENT,
     &ITEMS_META,
     &ITEMS_POTION,
     &ITEMS_SIMPLE,
-    &ITEMS_TOOLS,
     &ITEMS_SPELLBOOK,
-    &ITEMS_ATTACH,
+    &ITEMS_BOMB,
+    &ITEMS_FOOD,
 ];
 
 static ITEMS_CMP: LazyCmp = Lazy::new(|| {

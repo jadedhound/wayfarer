@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::item_specs::ItemSpecRef;
+use super::item_spec::ItemSpecRef;
 use super::{ItemQuality, ItemRef};
 use crate::pc::PCStat;
 
@@ -48,6 +48,7 @@ const fn weapons(name: &'static str, weapon: Weapon, quality: ItemQuality) -> It
         weight,
         price: SP_PRICES[quality as usize] * 10 * weight as u32,
         quality: ItemQuality::Common,
+        stacks: None,
     }
 }
 

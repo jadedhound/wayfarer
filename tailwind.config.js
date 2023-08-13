@@ -8,8 +8,8 @@ module.exports = {
   ],
   theme: {
     fontFamily: {
-      'sans': ['Open Sans Condensed', 'Open Sans','ui-sans-serif'],
-      'serif': ['EB Garamond', 'ui-serif'],
+      'sans': ['Open Sans Condensed', 'ui-sans-serif'],
+      'serif': ['PTSans', 'ui-serif'],
       'mono': ['ui-monospace'],
     },
     extend: {

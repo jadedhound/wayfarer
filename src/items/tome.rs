@@ -1,8 +1,30 @@
 use const_format::concatcp;
+use serde::{Deserialize, Serialize};
 
-use super::item_specs::{ItemSpecRef, TomeRef};
+use super::item_spec::ItemSpecRef;
 use super::{ItemQuality, ItemRef};
 use crate::pc::PCStat;
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct Tome {
+    pub stat: PCStat,
+    pub effect: String,
+}
+
+impl From<TomeRef> for Tome {
+    fn from(value: TomeRef) -> Self {
+        Self {
+            stat: value.stat,
+            effect: value.effect.into(),
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct TomeRef {
+    pub stat: PCStat,
+    pub effect: &'static str,
+}
 
 pub const DC_BY_QUALITY: [u8; 5] = [0, 0, 10, 15, 20];
 const SP_PRICE: [u32; 5] = [0, 0, 50, 150, 300];
@@ -19,6 +41,7 @@ const fn tome(
         weight: 2,
         price: SP_PRICE[quality as usize],
         quality,
+        stacks: None,
     }
 }
 

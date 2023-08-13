@@ -1,10 +1,13 @@
+use std::write;
+
+use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 
-pub mod armour;
-pub mod attachable;
 pub mod buffs;
-pub mod features;
-pub mod item_specs;
+pub mod consumables;
+pub mod effects;
+pub mod food;
+pub mod item_spec;
 pub mod potions;
 pub mod reagents;
 pub mod recipes;
@@ -15,10 +18,10 @@ pub mod weapons;
 
 use strum::{Display, EnumCount, FromRepr, IntoEnumIterator};
 
-use self::item_specs::{ItemSpec, ItemSpecRef};
+use self::item_spec::{ItemSpec, ItemSpecRef};
 use self::simple::ERROR_ITEM;
 use crate::pc::PCStat;
-use crate::utils::add_operator;
+use crate::utils::split_operator;
 
 #[derive(Serialize, Deserialize, Copy, Clone, Display, FromRepr, Default)]
 pub enum ItemQuality {
@@ -44,18 +47,25 @@ impl ItemQuality {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Item {
-    pub id: u32,
     pub name: String,
     pub spec: ItemSpec,
     pub quality: ItemQuality,
     pub weight: u8,
     pub price: u32,
-    pub attached: Option<(u32, Box<Item>)>,
+    pub stacks: Option<(u8, u8)>,
 }
 
 impl Default for Item {
     fn default() -> Self {
         ERROR_ITEM.into()
+    }
+}
+
+static EITEM: Lazy<Item> = Lazy::new(|| ERROR_ITEM.into());
+
+impl Default for &Item {
+    fn default() -> Self {
+        &EITEM
     }
 }
 
@@ -68,13 +78,12 @@ impl PartialEq for Item {
 impl From<ItemRef> for Item {
     fn from(value: ItemRef) -> Self {
         Self {
-            id: 0,
             name: value.name.into(),
             spec: value.specs.into(),
             weight: value.weight,
             price: value.price,
             quality: value.quality,
-            attached: None,
+            stacks: value.stacks.map(|x| (1, x)),
         }
     }
 }
@@ -87,24 +96,20 @@ pub struct ItemRef {
     weight: u8,
     price: u32,
     quality: ItemQuality,
+    stacks: Option<u8>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy)]
-pub struct StatArr(pub [i32; PCStat::COUNT]);
+pub struct StatArr([i32; PCStat::COUNT]);
 
 #[allow(dead_code)]
 impl StatArr {
-    /// Formats any stats that aren't 0 into stat and number.
-    /// E.g. HP +2.
-    pub fn string_iter(&self) -> impl Iterator<Item = String> + '_ {
-        PCStat::iter().zip(self.0.iter()).flat_map(|(stat, num)| {
-            if *num != 0 {
-                let num = add_operator(*num);
-                Some(format!("{stat} {num}"))
-            } else {
-                None
-            }
-        })
+    pub fn iter(&self) -> impl Iterator<Item = &i32> + '_ {
+        self.0.iter()
+    }
+
+    pub fn iter_with_stat(&self) -> impl Iterator<Item = (PCStat, &i32)> + '_ {
+        PCStat::iter().zip(self.0.iter())
     }
 
     const fn new() -> Self {
@@ -131,8 +136,26 @@ impl StatArr {
         self.0[PCStat::CHA.index()] += x;
         self
     }
-    const fn sorc(mut self, x: i32) -> Self {
-        self.0[PCStat::Sorcery.index()] += x;
-        self
+}
+
+/// Adjusts a given base price by quality. All items
+/// scale exponentially from the base price.
+const fn adj_price(base: u32, quality: ItemQuality) -> u32 {
+    base * 2_u32.pow(quality as u32)
+}
+
+impl std::fmt::Display for StatArr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let result =
+            PCStat::iter()
+                .zip(self.0.iter())
+                .fold(String::new(), |mut acc, (stat, num)| {
+                    if *num != 0 {
+                        let (op, num) = split_operator(*num);
+                        acc.push_str(&format!(", {stat} {op}{num}"))
+                    }
+                    acc
+                });
+        write!(f, "{result}")
     }
 }

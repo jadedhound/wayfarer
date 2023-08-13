@@ -1,13 +1,14 @@
-use super::item_specs::ItemSpecRef;
+use super::item_spec::ItemSpecRef;
 use super::{ItemQuality as IQ, ItemRef};
 
 const fn reagent(name: &'static str, price: u32, quality: IQ) -> ItemRef {
     ItemRef {
         name,
-        specs: ItemSpecRef::Stackable(5),
         weight: 1,
         price,
         quality,
+        stacks: Some(5),
+        specs: ItemSpecRef::Simple,
     }
 }
 

@@ -13,7 +13,6 @@ mod pc;
 mod rand;
 mod router;
 mod settings;
-mod state;
 mod svg;
 mod tables;
 mod utils;
@@ -26,7 +25,5 @@ pub fn main() {
         console_error_panic_hook::set_once();
     }
 
-    mount_to_body(|cx| {
-        view! { cx, <RouterScout /> }
-    });
+    mount_to_body(router_scout);
 }

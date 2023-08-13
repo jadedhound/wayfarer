@@ -1,4 +1,4 @@
-use super::item_specs::ItemSpecRef;
+use super::item_spec::ItemSpecRef;
 use super::{ItemQuality, ItemRef};
 
 const fn simple(name: &'static str, price: u32) -> ItemRef {
@@ -8,16 +8,7 @@ const fn simple(name: &'static str, price: u32) -> ItemRef {
         weight: 1,
         price,
         quality: ItemQuality::Common,
-    }
-}
-
-const fn tool(name: &'static str, quality: ItemQuality) -> ItemRef {
-    ItemRef {
-        name,
-        specs: ItemSpecRef::Tool,
-        weight: 2,
-        price: (quality as u32 + 1) * 500,
-        quality,
+        stacks: None,
     }
 }
 
@@ -45,10 +36,6 @@ const GRAPPLING_HOOK: ItemRef = simple("grappling hook", 10);
 const BELL: ItemRef = simple("bell", 20);
 const IRON_FILE: ItemRef = simple("iron file", 10);
 const BUCKET: ItemRef = simple("bucket", 5);
-
-// TOOLS
-
-pub const TOOLS_T1: ItemRef = tool("novice slayer's tools", ItemQuality::Common);
 
 // META
 
@@ -105,5 +92,4 @@ pub const SUNDRIES: [&ItemRef; 22] = [
     &IRON_FILE,
     &BUCKET,
 ];
-pub const ITEMS_TOOLS: [&ItemRef; 1] = [&TOOLS_T1];
 pub const ITEMS_META: [&ItemRef; 1] = [&FATIGUE];

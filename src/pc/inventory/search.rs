@@ -48,10 +48,7 @@ fn Item(cx: Scope, item: Item) -> impl IntoView {
             class= "rounded bg-zinc-800 col-span-6 py-1"
             on:click=move |_| {
                 rw_context::<PC>(cx).update(|pc|{
-                    let mut item = item.clone();
-                    item.id = pc.inv_count;
-                    pc.inv_count += 1;
-                    pc.inventory.push(item)
+                    pc.inventory.push(item.clone())
                 });
                 state.update(|s| {
                     s.found = None;

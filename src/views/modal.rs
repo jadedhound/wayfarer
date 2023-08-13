@@ -18,6 +18,10 @@ impl ModalState {
     pub fn dismiss(cx: Scope) {
         rw_context::<ModalState>(cx).update(|state| state.0 = None)
     }
+
+    pub fn get(cx: Scope) -> Option<u8> {
+        rw_context::<ModalState>(cx).with(|x| x.0)
+    }
 }
 
 #[component]

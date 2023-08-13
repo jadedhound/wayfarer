@@ -2,9 +2,9 @@ use leptos::*;
 use leptos_router::*;
 
 use crate::svg;
+use crate::views::revealer::RevealerScreen;
 
-#[component]
-pub fn NavBarWithOutlet(cx: Scope) -> impl IntoView {
+pub fn pc_navbar(cx: Scope) -> impl IntoView {
     view! {
         cx,
         <div class="fixed flex w-full justify-between p-4 bg-zinc-950 z-[5]">
@@ -27,6 +27,7 @@ pub fn NavBarWithOutlet(cx: Scope) -> impl IntoView {
             </A>
         </div>
         <div class= "psuedo h-24" />
+        <RevealerScreen />
         <Outlet />
     }
 }

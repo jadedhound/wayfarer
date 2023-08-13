@@ -1,11 +1,9 @@
 use const_format::concatcp;
 use leptos::*;
 
-use crate::items::item_specs::ItemSpec;
 use crate::items::recipes::Recipe;
 use crate::items::Item;
 use crate::pc::craft::recipebook::Recipebook;
-use crate::pc::equip_slot::EquipSlot;
 use crate::pc::session::PCSession;
 use crate::pc::PC;
 use crate::svg;
@@ -62,10 +60,10 @@ fn Ingredient(cx: Scope, item: Item, num: u8) -> impl IntoView {
     let pc = rw_context::<PC>(cx);
     let inv_num = pc.with_untracked(|pc| {
         pc.inventory
-            .iter()
+            .values()
             .filter(|x| **x == item)
             .fold(0_u8, |acc, e| {
-                let stack = e.spec.as_stackable().map(|(curr, _)| *curr);
+                let stack = e.stacks.map(|(curr, _)| curr);
                 acc + stack.unwrap_or(1)
             })
     });
@@ -113,19 +111,10 @@ fn ChooseRecipeBtn<'a>(cx: Scope, item: &'a Item) -> impl IntoView {
 
 #[component]
 fn DC<'a>(cx: Scope, item: &'a Item) -> impl IntoView {
-    let pc = rw_context::<PC>(cx);
-    let tool_dc = move || {
-        pc.with(|pc| {
-            pc.equipment[EquipSlot::Tools.index()]
-                .as_ref()
-                .map(|x| (x.quality as u8 + 1) * 5)
-                .unwrap_or(0)
-        })
-    };
     let craft_dc = 10 + (item.quality as u8 * 5);
     view! {
         cx,
-        <div> { move || craft_dc - tool_dc() } </div>
+        <div> { move || craft_dc } </div>
     }
 }
 
@@ -144,19 +133,17 @@ fn remove_stacks(cx: Scope, item: &Item, num: u8) {
         let inv_clone = pc.inventory.clone();
         let filtered = inv_clone
             .iter()
-            .enumerate()
-            .rev()
-            .filter(|(_, x)| *x == item);
+            .filter(|(_, x)| x == &item);
         for (i, item) in filtered {
-            if let Some((curr, max)) = item.spec.as_stackable() {
+            if let Some((curr, _max)) = item.stacks {
                 // Remove entire stack.
-                if num >= *curr {
+                if num >= curr {
                     pc.inventory.remove(i);
                     num -= curr;
                 // Remove only the required amount of stacks.
                 } else {
-                    let item = &mut pc.inventory[i];
-                    item.spec = ItemSpec::Stackable(curr - num, *max);
+                    let item = pc.inventory.get_mut(i).unwrap();
+                    item.stacks = item.stacks.map(|(curr, max)| (curr - num, max));
                     num = 0;
                 }
             } else {
@@ -189,7 +176,7 @@ fn commit_recipe(cx: Scope, outcome: Outcome) {
         Outcome::Failure => failure,
     };
     Toast::show(cx, format!("Added {} to inventory!", item.name));
-    pc.update(|pc| pc.add_inv_item(&item));
+    pc.update(|pc| pc.inventory.push(item));
 }
 
 #[component]

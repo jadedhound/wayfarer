@@ -1,39 +1,38 @@
 use leptos::*;
-use leptos_router::*;
 
 mod backpack;
-mod equipment;
 mod funds;
+mod quick_access;
 mod search;
+mod stack_btn;
 mod vault;
 
-use backpack::*;
-pub use equipment::*;
-pub use vault::*;
-
-use crate::pc::inventory::funds::EditableFunds;
-use crate::pc::inventory::search::Search;
+use self::backpack::Backpack;
+use self::funds::EditableFunds;
+use self::quick_access::QuickAccess;
+use self::search::Search;
+use crate::views::modal::ModalState;
 
 #[component]
 pub fn Inventory(cx: Scope) -> impl IntoView {
+    let limit_scroll = move || {
+        if ModalState::get(cx).is_some() {
+            "px-4 overflow-y-hidden h-[85vh]"
+        } else {
+            "px-4"
+        }
+    };
+
     view! {
         cx,
-        <div class= "px-4">
-            <h4 class= "border-b-2 border-purple-900 mb-4 text-center"> "Equipment" </h4>
-            <Equipment />
-            <h4 class= "border-b-2 border-sky-900 text-center"> "Backpack" </h4>
+        <div class=limit_scroll>
+            <h5 class= "border-b-2 border-purple-900 mb-4 text-center"> "QUICK ACCESS" </h5>
+            <QuickAccess />
+            <h5 class= "border-b-2 border-sky-900 text-center mt-6"> "BACKPACK" </h5>
             <EditableFunds />
             <Backpack />
             <Search />
             <div class= "psuedo h-6" />
         </div>
-    }
-}
-
-#[component]
-pub fn InvNavbar(cx: Scope) -> impl IntoView {
-    view! {
-        cx,
-        <Outlet />
     }
 }

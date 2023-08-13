@@ -1,42 +1,27 @@
 use leptos::*;
+use serde::{Deserialize, Serialize};
 
-#[derive(thiserror::Error, Debug)]
+#[derive(thiserror::Error, Debug, Serialize, Deserialize, Clone)]
 pub enum Error {
     #[error("page not found")]
     NotFound,
-    #[error(transparent)]
-    SimpleIndex(#[from] simple_index::Error),
+    #[error("IndexedDB error: {0}")]
+    SimpleIndex(String),
     #[error("ID not found in lobby list")]
     PCNotFound,
 }
 
-#[derive(Clone)]
-pub struct FatalErr(String, String);
-
-impl FatalErr {
-    pub fn provide<T>(cx: Scope, origin: T, err: Error)
-    where
-        T: std::fmt::Display,
-    {
-        provide_context(cx, FatalErr(origin.to_string(), err.to_string()))
+impl From<simple_index::Error> for Error {
+    fn from(value: simple_index::Error) -> Self {
+        Self::SimpleIndex(value.to_string())
     }
 }
 
-#[component]
-pub fn FatalPg(cx: Scope) -> impl IntoView {
-    let e = use_context::<FatalErr>(cx).unwrap();
+pub fn fatal_pg(cx: Scope, err: Error) -> impl IntoView {
     view! { cx,
         <div class="h-32 grow flex-centered flex-col space-y-4 text-center px-4">
             <h1 class= "text-red-800"> "Fatal" </h1>
-            <h3> {e.0}: {e.1} </h3>
+            <h5> { err.to_string().to_uppercase() } </h5>
         </div>
-    }
-}
-
-#[component]
-pub fn NotFound(cx: Scope) -> impl IntoView {
-    FatalErr::provide(cx, "router", Error::NotFound);
-    view! { cx,
-        <FatalPg />
     }
 }
