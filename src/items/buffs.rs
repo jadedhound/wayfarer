@@ -1,24 +1,22 @@
-use leptos::*;
 use serde::{Deserialize, Serialize};
 
 use super::effects::{Effect, EffectRef};
-use super::StatArr;
+use crate::pc::pc_stat::StatArray;
 use crate::pc::PC;
-use crate::utils::rw_context;
+use crate::utils::time::Turns;
+use crate::utils::RwProvided;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Buff {
     pub name: String,
-    pub duration: u64,
-    pub stats: Option<StatArr>,
+    pub duration: Turns,
+    pub stats: Option<StatArray>,
     pub effect: Option<Effect>,
 }
 
 impl Buff {
-    pub fn set_duration(mut self, cx: Scope) -> Self {
-        let curr = rw_context::<PC>(cx).with(|pc| pc.turns);
-        self.duration += curr;
-        self
+    pub fn set_duration(&mut self) {
+        self.duration.set(&PC::with(|pc| pc.turns));
     }
 }
 
@@ -46,11 +44,6 @@ impl std::fmt::Display for Buff {
             .as_ref()
             .map(|x| format!(" {x}."))
             .unwrap_or_default();
-        let duration = if duration > &24 {
-            format!("{duration} turns")
-        } else {
-            format!("{} days", duration / (24 * 60 * 6))
-        };
         write!(f, "{name}:{stats}{effect} Lasts for {duration}.")
     }
 }
@@ -58,7 +51,7 @@ impl std::fmt::Display for Buff {
 #[derive(Clone, Copy)]
 pub(super) struct BuffRef {
     pub name: &'static str,
-    pub duration: u64,
-    pub stats: Option<StatArr>,
+    pub duration: Turns,
+    pub stats: Option<StatArray>,
     pub effect: Option<EffectRef>,
 }

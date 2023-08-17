@@ -13,6 +13,9 @@ module.exports = {
       'mono': ['ui-monospace'],
     },
     extend: {
+      colors: {
+        black: '#000000'
+      },
       animation: {
         "fade": "fadeIn .5s ease-in",
         "popin": "popIn .3s ease-out"

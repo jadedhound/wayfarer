@@ -5,7 +5,7 @@ const fn simple(name: &'static str, price: u32) -> ItemRef {
     ItemRef {
         name,
         specs: ItemSpecRef::Simple,
-        weight: 1,
+        is_bulky: false,
         price,
         quality: ItemQuality::Common,
         stacks: None,
@@ -39,33 +39,8 @@ const BUCKET: ItemRef = simple("bucket", 5);
 
 // META
 
-pub const ERROR_ITEM: ItemRef = simple("Error", 0);
-pub const FATIGUE: ItemRef = simple("Fatigue", 0);
-
-pub(super) const ITEMS_SIMPLE: [&ItemRef; 22] = [
-    &ROPE,
-    &IRON_CHAIN,
-    &MANACLES,
-    &LANTERN,
-    &MARBLES,
-    &TENT,
-    &SACK,
-    &CROWBAR,
-    &HAMMER,
-    &CHISEL,
-    &LOCKPICK,
-    &HORN,
-    &NEEDLE,
-    &THREAD,
-    &SHOVEL,
-    &HOURGLASS,
-    &MIRROR,
-    &FISHNET,
-    &GRAPPLING_HOOK,
-    &BELL,
-    &IRON_FILE,
-    &BUCKET,
-];
+pub const ERROR_ITEM: ItemRef = simple("error", 0);
+pub const FATIGUE: ItemRef = simple("fatigue", 0);
 
 /// Starting adventuring items.
 pub const SUNDRIES: [&ItemRef; 22] = [
@@ -92,4 +67,5 @@ pub const SUNDRIES: [&ItemRef; 22] = [
     &IRON_FILE,
     &BUCKET,
 ];
-pub const ITEMS_META: [&ItemRef; 1] = [&FATIGUE];
+
+pub const META: [&ItemRef; 1] = [&FATIGUE];

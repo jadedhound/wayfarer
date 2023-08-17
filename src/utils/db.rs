@@ -28,12 +28,12 @@ where
 }
 
 /// Remove an array of keys from the db.
-pub async fn remove<T, K>(cx: Scope, key_arr: T) -> Result<(), SIError>
+pub async fn remove<T, K>(key_arr: T) -> Result<(), SIError>
 where
     T: Iterator<Item = K>,
     K: Display,
 {
-    let db = use_context::<Rc<Database>>(cx).unwrap();
+    let db = use_context::<Rc<Database>>().unwrap();
     let mut tx = db.begin(false)?;
     tx.remove_many(key_arr).await?;
     tx.commit().await
@@ -41,25 +41,25 @@ where
 
 /// Creates read and write signals for given value and
 /// commits it to indexeddb when the value changes.
-pub async fn provide_saved<K, F, T>(cx: Scope, key: K, default: F)
+pub async fn provide_saved<K, F, T>(key: K, default: F)
 where
     K: Display,
     F: FnOnce() -> T,
     T: Serialize + DeserializeOwned + Clone + 'static,
 {
     let key = key.to_string();
-    let db = use_context::<Rc<Database>>(cx).unwrap();
+    let db = use_context::<Rc<Database>>().unwrap();
     let val = get(db, &key).await.unwrap_or_else(|_| default());
     // Create signals to change values
-    let rw = create_rw_signal(cx, val);
-    provide_context(cx, rw);
+    let rw = create_rw_signal(val);
+    provide_context(rw);
 
     // Save to indexeddb when value is changed
-    create_effect(cx, move |_| {
+    create_effect(move |_| {
         let key = key.to_string();
         let val = rw.get();
         spawn_local(async move {
-            let db = use_context::<Rc<Database>>(cx).unwrap();
+            let db = use_context::<Rc<Database>>().unwrap();
             set(db, &key, &val)
                 .await
                 .unwrap_or_else(|e| log::error!("{e}"));

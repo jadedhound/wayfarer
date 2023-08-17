@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use leptos::*;
 
-use crate::utils::rw_context;
+use crate::utils::expect_rw;
 
 pub struct ModalState(Option<u8>);
 
@@ -11,50 +11,49 @@ impl ModalState {
         Self(None)
     }
 
-    pub fn open(cx: Scope, id: u8) {
-        rw_context::<ModalState>(cx).update(|state| state.0 = Some(id))
+    pub fn open(id: u8) {
+        expect_rw::<ModalState>().update(|state| state.0 = Some(id))
     }
 
-    pub fn dismiss(cx: Scope) {
-        rw_context::<ModalState>(cx).update(|state| state.0 = None)
+    pub fn dismiss() {
+        expect_rw::<ModalState>().update(|state| state.0 = None)
     }
 
-    pub fn get(cx: Scope) -> Option<u8> {
-        rw_context::<ModalState>(cx).with(|x| x.0)
+    pub fn get() -> Option<u8> {
+        expect_rw::<ModalState>().with(|x| x.0)
     }
 }
 
-#[component]
-fn GreyScreen(cx: Scope, children: Children, id: u8) -> impl IntoView {
-    let hidden = move || rw_context::<ModalState>(cx).with(|state| state.0 != Some(id));
+pub fn modal_grey_screen() -> impl IntoView {
+    let hidden = move || expect_rw::<ModalState>().with(|state| state.0.is_none());
+
     view! {
-        cx,
-        <div class= "fixed inset-0 z-50" hidden=hidden>
+        <div class= "fixed inset-0 z-30" hidden=hidden>
             <div class= "h-full bg-zinc-800 bg-opacity-75"/>
-                { children(cx) }
         </div>
     }
 }
 
 #[component]
-pub fn ModalCentered<F, S>(cx: Scope, children: Children, title: F, id: u8) -> impl IntoView
+pub fn ModalCentered<F, S>(children: Children, title: F, id: u8) -> impl IntoView
 where
     F: Fn() -> S + 'static,
     S: Display,
 {
+    let hidden = move || !expect_rw::<ModalState>().with(|state| state.0 == Some(id));
+
     view! {
-        cx,
-        <GreyScreen id=id>
-            <div class= "absolute inset-0 w-full flex flex-col">
-                <div class= "h-12 grow" on:click=move |_| ModalState::dismiss(cx) />
+        <div class="relative z-40" hidden=hidden>
+            <div class= "fixed inset-0 w-full flex flex-col">
+                <div class= "h-[15vh] grow" on:click=move |_| ModalState::dismiss() />
                 <div class= "w-full px-2 animate-popin overflow-auto">
-                    <div class= "bg-zinc-800 rounded shadow-sm shadow-zinc-900 h-full w-full text-center flex flex-col p-4 gap-2 overflow-auto">
-                        <h4 class= "border-b-2 border-purple-700 mb-2"> { move || title().to_string() } </h4>
-                        { children(cx) }
+                    <div class= "bg-zinc-800 rounded border-2 border-zinc-600 h-full w-full text-center flex flex-col p-4 gap-4 overflow-auto">
+                        <h5 class= "uppercase"> { move || title().to_string() } </h5>
+                        { children() }
                     </div>
                 </div>
-                <div class= "h-12 grow" on:click=move |_| ModalState::dismiss(cx) />
+                <div class= "h-[15vh] grow" on:click=move |_| ModalState::dismiss() />
             </div>
-        </GreyScreen>
+        </div>
     }
 }

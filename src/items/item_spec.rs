@@ -4,9 +4,10 @@ use strum::AsRefStr;
 use super::buffs::{Buff, BuffRef};
 use super::effects::{Effect, EffectRef};
 use super::food::{Food, FoodRef};
+use super::reagents::Reagent;
 use super::tome::{Tome, TomeRef};
 use super::weapons::Weapon;
-use super::StatArr;
+use crate::pc::pc_stat::StatArray;
 
 #[derive(Serialize, Deserialize, Clone, AsRefStr)]
 pub enum ItemSpec {
@@ -15,11 +16,12 @@ pub enum ItemSpec {
     Buff(Buff),
     Consumable(Effect),
     Food(Food),
+    Reagent(Reagent),
     Simple,
 }
 
 impl ItemSpec {
-    pub fn as_stat_arr(&self) -> Option<&StatArr> {
+    pub fn as_stat_arr(&self) -> Option<&StatArray> {
         None
     }
 
@@ -57,6 +59,13 @@ impl ItemSpec {
             _ => None,
         }
     }
+
+    pub fn as_reagent(&self) -> Option<&Reagent> {
+        match self {
+            ItemSpec::Reagent(e) => Some(e),
+            _ => None,
+        }
+    }
 }
 
 impl From<ItemSpecRef> for ItemSpec {
@@ -68,6 +77,7 @@ impl From<ItemSpecRef> for ItemSpec {
             ItemSpecRef::Tome(x) => Self::Tome(x.into()),
             ItemSpecRef::Consumable(x) => Self::Consumable(x.into()),
             ItemSpecRef::Food(x) => Self::Food(x.into()),
+            ItemSpecRef::Reagent(x) => Self::Reagent(x),
         }
     }
 }
@@ -79,5 +89,6 @@ pub(super) enum ItemSpecRef {
     Potion(BuffRef),
     Consumable(EffectRef),
     Food(FoodRef),
+    Reagent(Reagent),
     Simple,
 }

@@ -1,27 +1,24 @@
-mod usable;
-
-use const_format::concatcp;
 use leptos::*;
 
+use crate::items::buffs::Buff;
 use crate::items::Item;
-use crate::pc::inventory::stack_btn::StackBtnInvScout;
-use crate::pc::session::PCSession;
-use crate::pc::{MAX_CAPACITY, PC};
+use crate::pc::inventory::stack_btn::stack_btn;
+use crate::pc::pc_stat::PCStat;
+use crate::pc::session::{PCSession, SlotRange};
+use crate::pc::PC;
 use crate::svg;
-use crate::utils::rw_context;
+use crate::utils::{expect_rw, some_if, RwProvided};
 use crate::views::revealer::Revealer;
 
 #[derive(Clone, Copy)]
 struct DeleteState(Option<usize>);
 
-#[component]
-pub fn Backpack(cx: Scope) -> impl IntoView {
-    let delete = create_rw_signal(cx, DeleteState(None));
-    provide_context(cx, delete);
+pub fn backpack() -> impl IntoView {
+    let delete = create_rw_signal( DeleteState(None));
+    provide_context( delete);
 
-    view! {
-        cx,
-        <BackpackListView />
+    view! { 
+        { list_view() }
         <div
             class= "psuedo fixed h-cover w-full z-10 top-0 right-0"
             hidden=move || delete.with(|d| d.0.is_none())
@@ -30,104 +27,158 @@ pub fn Backpack(cx: Scope) -> impl IntoView {
     }
 }
 
-#[component]
-fn BackpackListView(cx: Scope) -> impl IntoView {
+fn list_view() -> impl IntoView {
     let id_list = move || {
-        rw_context::<PC>(cx).with(|pc| {
-            pc.inventory
-                .iter()
-                .map(|(id, item)| (*id, item.clone()))
-                .collect::<Vec<(usize, Item)>>()
+        PC::with( |pc| {
+            pc.inventory.clone_iter().collect::<Vec<(usize, Item)>>()
         })
     };
-    view! { cx,
-        <div class= "flex flex-col gap-y-2 mt-4">
+
+    view! { 
+        <div class= "flex flex-col shaded-table">
             <For
                 each=id_list
                 key=|(id, _)| *id
-                view=move |cx, (id, item)| { view!{ cx, <BackpackItem id item /> } }
+                view=move | (id, item)| item_view( id, item)
             />
+            { empty_slots() }
         </div>
+    }
+}
+
+/// Shows empty slots for a PC.
+fn empty_slots() -> impl IntoView {
+    move || {
+        PCSession::with( |sesh| {
+            let max = sesh.stats.get(PCStat::Inventory) as usize;
+            let curr = sesh
+                .inv_slots
+                .values()
+                .last()
+                .map(|x| match x {
+                    SlotRange::Single(x) => *x,
+                    SlotRange::Double(x) => *x + 1,
+                    SlotRange::Encumbered => max,
+                })
+                .unwrap_or(max);
+            some_if(curr <= max).map(|_| {
+                (curr + 1..max + 1)
+                    .map(|i| {
+                        view! { 
+                            <div class= "flex">
+                                <div class= "w-12 flex-centered"> { i } </div>
+                                <div class= "psuedo h-20 w-12 grow" />
+                            </div>
+                        }
+                    })
+                    .collect_view()
+            })
+        })
     }
 }
 
 /// Renders the item with the `id` given.
-#[component]
-fn BackpackItem(cx: Scope, id: usize, item: Item) -> impl IntoView {
-    const NORMAL: &str = "bg-zinc-800 w-full ";
-    const NO_STACKS: &str = "rounded-r";
-    let delete = move || {
-        rw_context::<PC>(cx).update(|pc| {
-            pc.inventory.remove(&id);
-            Revealer::dismiss(cx);
+fn item_view( id: usize, item: Item) -> impl IntoView {
+    let range = move || {
+        PCSession::with( |sesh| match sesh.inv_slots.get(id) {
+            Some(x) => *x,
+            None => SlotRange::Single(0),
         })
     };
-
-    let class = match item.stacks {
-        Some(_) => NORMAL,
-        None => concatcp!(NORMAL, NO_STACKS),
-    };
+    let stacks = some_if(item.stacks.is_some()).map(|_| stack_btn(id, true));
 
     view! {
-        cx,
-        <div class= "relative">
-            <button
-                class= "flex items-stretch w-full"
-                on:contextmenu=move |_| {
-                    Revealer::open(cx, 'd', &id);
-                }
-            >
-                <WeightView id />
-                <div class=class>
-                    { item.into_view(cx) }
-                </div>
-                <StackBtnInvScout id />
-            </button>
-            <button
-                class= "absolute inset-0 bg-red-800 z-50 rounded w-full"
-                on:click=move |_| delete()
-                hidden=move || !Revealer::state(cx, 'd', &id)
-            >
-                <div class= "flex-centered gap-x-2">
-                    <div class= "svg w-6" inner_html=svg::TRASH />
-                    <div> { format!("Delete {}?", item.name) } </div>
-                </div>
-            </button>
+        <div class= "flex gap-2">
+            <div class= "w-12 flex-centered"> { range } </div>
+            <div class= "py-2 w-12 grow"> { item.into_view() } </div>
+            { stacks }
+            { more_btn( id) }
         </div>
     }
 }
 
-#[component]
-fn WeightView(cx: Scope, id: usize) -> impl IntoView {
-    let inv_slots = create_memo(cx, move |_| {
-        rw_context::<PCSession>(cx).with(|sesh| sesh.inv_slots.get(&id).cloned().unwrap_or((0, 0)))
-    });
-    let text = move || {
-        let (start, end) = inv_slots.get();
-        if start != end {
-            view! { cx,
-                <div class= "flex flex-col text-center">
-                    <span> {start} </span>
-                    <span> {end} </span>
+fn more_btn( id: usize) -> impl IntoView {
+    let pc = expect_rw::<PC>();
+    let show_menu = move || Revealer::state( 'm', id);
+    let delete = move || {
+        Revealer::dismiss();
+        pc.update(|pc| {
+            pc.inventory.remove(id);
+        });
+    };
+    let to_quick = move || {
+        Revealer::dismiss();
+        pc.update(|pc| {
+            pc.inventory.remove(id).and_then(|item| {
+                let i = pc.quick_access.iter().position(|x| x.is_none())?;
+                pc.quick_access[i] = Some(item);
+                Some(())
+            });
+        });
+    };
+    let add_buff = move |mut buff: Buff| {
+        Revealer::dismiss();
+        PC::update( |pc| {
+            buff.duration.set(&pc.turns);
+            pc.buffs.add(buff);
+            pc.inventory.remove(id);
+        })
+    };
+    let popup = move || {
+        const BTN_CSS: &str = "w-24 py-2 disabled:text-zinc-500";
+        let to_quick_disabled = move || {
+            pc.with(|pc| {
+                let curr = pc.quick_access.iter().flatten().count();
+                curr >= pc.quick_access.len()
+            })
+        };
+        let use_item = move || {
+            let maybe_buff = PC::with( |pc| {
+                let item = pc.inventory.get(id).unwrap();
+                item.spec.as_buff().cloned()
+            });
+            maybe_buff.map(|b| {
+                view! {
+                    <button
+                        class=BTN_CSS
+                        on:click=move |_| add_buff(b.clone())
+                    >
+                        "USE"
+                    </button>
+                }
+            })
+        };
+        some_if(show_menu()).map(|_| {
+            view! { 
+                <div class= "rounded bg-zinc-800 border-2 border-zinc-600 absolute font-sans z-40 flex flex-col divide-y divide-dashed px-2 translate-y-1 -translate-x-[5.5rem]">
+                    <button
+                        class=BTN_CSS
+                        on:click=move |_| delete()
+                    >
+                        "DELETE"
+                    </button>
+                    <button
+                        class=BTN_CSS
+                        on:click=move |_| to_quick()
+                        disabled=to_quick_disabled
+                    >
+                        "QUICK ACCESS"
+                    </button>
+                    { use_item }
                 </div>
             }
-            .into_view(cx)
-        } else {
-            start.into_view(cx)
-        }
+        })
     };
-    let css = move || {
-        let (start, end) = inv_slots.get();
-        if start > MAX_CAPACITY || end > MAX_CAPACITY {
-            ("bg-red-800", "")
-        } else {
-            ("bg-zinc-800", "border-r-2 border-sky-700")
-        }
-    };
-    view! {
-        cx,
-        <div class=move || format!("rounded-l w-10 pr-0.5 -mr-0.5 flex items-center {}", css().0)>
-            <div class=move || format!("{} w-full h-10 flex-centered", css().1)> { text } </div>
-        </div>
+
+    view! { 
+        <button
+            class= "flex-centered w-8"
+            on:click=move |_| Revealer::open( 'm', id)
+        >
+            <div class= "relative">
+                <div class= "w-6 svg" inner_html=svg::VERT_ELLIPS />
+                { popup }
+            </div>
+        </button>
     }
 }

@@ -39,7 +39,7 @@ const fn food(name: &'static str, food: FoodRef, quality: ItemQuality) -> ItemRe
     ItemRef {
         name,
         specs: ItemSpecRef::Food(food),
-        weight: 1,
+        is_bulky: false,
         price: PRICES[quality as usize],
         quality,
         stacks: Some(4),
@@ -48,4 +48,4 @@ const fn food(name: &'static str, food: FoodRef, quality: ItemQuality) -> ItemRe
 
 const FOOD_TACK: ItemRef = food("hard tack", FoodRef::fatigue(1), ItemQuality::Common);
 
-pub(super) const ITEMS_FOOD: [&ItemRef; 1] = [&FOOD_TACK];
+pub(super) const ALL: [&ItemRef; 1] = [&FOOD_TACK];

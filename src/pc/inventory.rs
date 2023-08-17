@@ -5,33 +5,29 @@ mod funds;
 mod quick_access;
 mod search;
 mod stack_btn;
-mod vault;
 
-use self::backpack::Backpack;
-use self::funds::EditableFunds;
-use self::quick_access::QuickAccess;
-use self::search::Search;
+use self::backpack::backpack;
+use self::quick_access::quick_access;
+use self::search::search_view;
+use crate::pc::inventory::funds::editable_funds;
 use crate::views::modal::ModalState;
 
-#[component]
-pub fn Inventory(cx: Scope) -> impl IntoView {
+pub fn inventory() -> impl IntoView {
+    // TODO: Remove if no popup modal is used in the future.
     let limit_scroll = move || {
-        if ModalState::get(cx).is_some() {
-            "px-4 overflow-y-hidden h-[85vh]"
-        } else {
-            "px-4"
-        }
+        ModalState::get()
+            .map(|_| "overflow-y-hidden h-[85vh]")
+            .unwrap_or_default()
     };
 
     view! {
-        cx,
-        <div class=limit_scroll>
-            <h5 class= "border-b-2 border-purple-900 mb-4 text-center"> "QUICK ACCESS" </h5>
-            <QuickAccess />
-            <h5 class= "border-b-2 border-sky-900 text-center mt-6"> "BACKPACK" </h5>
-            <EditableFunds />
-            <Backpack />
-            <Search />
+        <div class=move || format!("flex flex-col gap-4 px-2 {}", limit_scroll())>
+            <h5 class= "text-center"> "QUICK ACCESS" </h5>
+            { quick_access() }
+            <h5 class= "text-center"> "BACKPACK" </h5>
+            { editable_funds() }
+            { search_view() }
+            { backpack() }
             <div class= "psuedo h-6" />
         </div>
     }

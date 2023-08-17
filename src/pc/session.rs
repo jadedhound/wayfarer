@@ -1,83 +1,64 @@
-use std::collections::HashMap;
-
 use leptos::*;
-use strum::EnumCount;
 
-use super::{PCStat, PC};
-use crate::items::buffs::Buff;
-use crate::items::StatArr;
-use crate::utils::rw_context;
+use super::PC;
+use crate::pc::pc_stat::StatArray;
+use crate::svg;
+use crate::utils::index_map::IndexMap;
+use crate::utils::RwProvided;
 
 #[derive(Clone)]
 pub(super) struct PCSession {
-    pub stats: [i32; PCStat::COUNT],
-    pub rcp_index: usize,
-    pub inv_slots: HashMap<usize, (usize, usize)>,
+    pub stats: StatArray,
+    pub recipe_index: usize,
+    pub inv_slots: IndexMap<SlotRange>,
+    pub open_notes: Vec<usize>,
 }
 
 impl PCSession {
-    /// Calculates modified stats from the PC's state.
-    /// Relies on `PC` to have been provided already.
-    pub fn provide(cx: Scope) {
-        let pc = rw_context::<PC>(cx);
-        // Create base session
-        let sesh = pc.with_untracked(|pc| Self {
+    /// Relies on `PC` to have been provided already to base itself on.
+    pub fn new() -> Self {
+        PC::untracked(|pc| Self {
             stats: pc.base_stats,
-            rcp_index: 0,
-            inv_slots: HashMap::new(),
-        });
-        let sesh = create_rw_signal(cx, sesh);
-        provide_context(cx, sesh);
-
-        update_inv_slots(cx);
-        pc.with_untracked(|pc| {
-            pc.buffs
-                .values()
-                .for_each(|x| sesh.update(|sesh| sesh.add_buff(x)));
-        });
+            recipe_index: 0,
+            inv_slots: Vec::new().into(),
+            open_notes: Vec::new(),
+        })
     }
 
-    fn modify_stats(&mut self, arr: StatArr, modify: i32) {
-        for (stat, ele) in arr.iter_with_stat() {
-            self.stats[stat.index()] += ele * modify;
-        }
-    }
-
-    /// Adds stats provided by buffs.
-    pub fn add_buff(&mut self, buff: &Buff) {
-        if let Some(stats) = buff.stats {
-            self.modify_stats(stats, 1);
-        }
-    }
-
-    /// Remvoes stats provided by buffs.
-    pub fn rm_buff(&mut self, buff: &Buff) {
-        if let Some(stats) = buff.stats {
-            self.modify_stats(stats, -1);
-        }
+    pub fn with_pc<F, T>(f: F) -> T
+    where
+        F: FnOnce(&Self, &PC) -> T,
+    {
+        PC::with(|pc| Self::with(|sesh| f(sesh, pc)))
     }
 }
 
-/// Every time the length of the pc.inventory changes, the slots
-/// each item occupies is also updated.
-fn update_inv_slots(cx: Scope) {
-    let pc = rw_context::<PC>(cx);
-    let len = create_memo(cx, move |_| pc.with(|pc| pc.inventory.len()));
-    create_effect(cx, move |_| {
-        let _ = len.get();
-        let weights: HashMap<usize, (usize, usize)> = pc.with(|pc| {
-            let mut last = 0;
-            pc.inventory
-                .iter()
-                .map(|(id, item)| {
-                    let result = (*id, (last + 1, last + item.weight as usize));
-                    last = result.1 .1;
-                    result
-                })
-                .collect()
-        });
-        rw_context::<PCSession>(cx).update(|sesh| {
-            sesh.inv_slots = weights;
-        })
-    })
+impl RwProvided for PCSession {
+    type Item = Self;
+}
+
+#[derive(Clone, Copy)]
+pub(super) enum SlotRange {
+    Single(usize),
+    Double(usize),
+    Encumbered,
+}
+
+impl Default for SlotRange {
+    fn default() -> Self {
+        Self::Single(0)
+    }
+}
+
+impl IntoView for SlotRange {
+    fn into_view(self) -> View {
+        match self {
+            SlotRange::Single(x) => x.into_view(),
+            SlotRange::Double(x) => format!("{x} - {}", x + 1).into_view(),
+            SlotRange::Encumbered => view! {
+                <div class= "fill-red-800 w-4" inner_html=svg::WEIGHT />
+            }
+            .into_view(),
+        }
+    }
 }

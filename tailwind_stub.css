@@ -30,55 +30,40 @@
   font-display: swap;
 }
 
-.svg {
-  @apply stroke-zinc-200 fill-zinc-200;
-}
-
-/* 
--------------------------------------------
-INPUT
-------------------------------------------- 
-*/
-
-input[type=range].vert-slider {
-  @apply -rotate-90;
-}
-
-input[type=range].no-appearance {
-  -webkit-appearance: none;
-}
-
 /* 
 -------------------------------------------
 TEXT
 ------------------------------------------- 
 */
 
-h1, h2, h3, h4, h5, h6, h7 {
+h1, h2, h3, h4, h5, h6, h7, .title {
   font-family: 'EB Garamond';
 }
 
 h1 {
   @apply text-7xl;
 }
-
 h2 {
   @apply text-6xl;
 }
-
 h3 {
   @apply text-4xl;
 }
-
 h4 {
   @apply text-3xl;
 }
-
 h5 {
   @apply text-2xl;
 }
+h6 {
+  @apply text-xl;
+}
 
-/*               ---  HEADINGS ---                 */
+/* 
+-------------------------------------------
+HEADINGS
+------------------------------------------- 
+*/
 
 .pseudo {
   content: "\200C"; 
@@ -91,3 +76,102 @@ h5 {
 .flex-centered {
   @apply flex items-center justify-center;
 }
+
+/* 
+-------------------------------------------
+UNIQUE
+------------------------------------------- 
+*/
+
+.hp-dmg-range::-webkit-slider-thumb{
+  -webkit-appearance: none;
+  width: 0;
+  box-shadow: -20rem 0 0 20rem #991b1b;
+}
+.hp-dmg-range::-moz-range-thumb {
+  border: none;
+  width: 0;
+  box-shadow: -20rem 0 0 20rem #991b1b;
+}
+.hp-dmg-range{
+  @apply bg-red-950 rounded absolute w-[132px] h-[56px];
+  transform: translate(0%, 68%) rotate(-90deg);
+  overflow: hidden;
+  appearance: none;
+  cursor: row-resize;
+}
+.dc-score-slider::-webkit-slider-thumb{
+  -webkit-appearance: none;
+  width: 0;
+  box-shadow: -20rem 0 0 20rem #16a34a;
+}
+.dc-score-slider::-moz-range-thumb {
+  border: none;
+  width: 0;
+  box-shadow: -20rem 0 0 20rem #16a34a;
+}
+.dc-score-slider{
+  @apply bg-green-950 w-full rounded h-2.5;
+  overflow: hidden;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.dc-score-markers {
+  @apply flex justify-between absolute w-full inset-0;
+}
+.dc-score-markers span {
+  @apply flex justify-center w-1 h-full bg-black;
+}
+.dc-score-markers :first-child, .dc-score-markers :last-child {
+  @apply w-0;
+}
+
+/* 
+-------------------------------------------
+CUSTOM
+------------------------------------------- 
+*/
+.svg {
+  @apply stroke-zinc-200 fill-zinc-200;
+}
+.zinc { 
+  @apply bg-zinc-800 disabled:border-zinc-800; 
+}
+.zinc-light { 
+  @apply bg-zinc-700 disabled:border-zinc-700; 
+}
+.red { 
+  @apply bg-red-800 disabled:border-red-800; 
+}
+.input { 
+  @apply rounded outline-none bg-inherit px-2 py-1 border-sky-700 border-2;
+}
+.disabled-btn {
+  @apply disabled:bg-inherit disabled:border-2;
+}
+.btn { 
+  @apply disabled-btn rounded min-h-[3rem];
+}
+.btn-rounded-l { 
+  @apply disabled-btn rounded-l min-h-[3rem];
+}
+.btn-rounded-r { 
+  @apply disabled-btn rounded-r min-h-[3rem];
+}
+.btn-zinc { 
+  @apply disabled-btn zinc rounded min-h-[3rem];
+}
+
+.shaded-table {
+  @apply border-2 border-zinc-800 rounded;  
+}
+.shaded-table > :is(div,button):nth-child(even) {
+  @apply bg-zinc-800;
+}
+.shaded-table-light {
+  @apply border-2 border-zinc-700 rounded;  
+}
+.shaded-table-light > :is(div,button):nth-child(even) {
+  @apply bg-zinc-700;
+}
+

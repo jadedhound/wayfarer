@@ -5,67 +5,65 @@ use leptos_router::*;
 
 use crate::error::*;
 use crate::lobby::{lobby, PCList};
-use crate::pc::craft::Craft;
-use crate::pc::followers::Followers;
-use crate::pc::inventory::Inventory;
+use crate::pc::craft::craft;
+use crate::pc::followers::followers;
+use crate::pc::inventory::inventory;
 use crate::pc::journal::journal;
-use crate::pc::overview::Overview;
+use crate::pc::overview::overview;
 use crate::pc::scout::pc_scout;
-use crate::rand::init_rand;
-use crate::settings::*;
+use crate::rand::provide_rand;
 use crate::utils::db::provide_saved;
 use crate::views::modal::ModalState;
 use crate::views::revealer::Revealer;
 use crate::views::toast::Toast;
 
-fn main_router(cx: Scope) -> impl IntoView {
+pub fn main_router() -> impl IntoView {
     view! {
-        cx,
         <Router>
             <Routes>
-                <Route path= "" view=lobby />
-                <Route path= "/settings" view=move |cx| view! { cx, <Settings /> }/>
-                <Route path= "/pc/:id" view=pc_scout >
-                    <Route path="" view=|cx| view! {cx, <Overview /> }/>
-                    <Route path= "/craft" view=|cx| view! { cx, <Craft /> } />
-                    <Route path= "/inventory" view=|cx| view! { cx, <Inventory /> } />
-                    <Route path= "/journal" view=journal />
-                    <Route path= "/followers" view=|cx| view! {cx, <Followers /> }/>
+                <Route path= "/" view=load_assets_view>
+                    <Route path= "" view=lobby />
+                    <Route path= "/pc/:id" view=pc_scout >
+                        <Route path="" view=overview />
+                        <Route path= "/craft" view=craft />
+                        <Route path= "/inventory" view=inventory />
+                        <Route path= "/journal" view=journal />
+                        <Route path= "/followers" view=followers />
+                    </Route>
                 </Route>
-                <Route path= "/*any" view=|cx| fatal_pg(cx, Error::NotFound) />
+                <Route path= "/*any" view=|| fatal_pg(Error::NotFound) />
             </Routes>
         </Router>
     }
 }
 
-async fn init_assets(cx: Scope) -> Result<(), Error> {
+async fn init_assets() -> Result<(), Error> {
     // Random generator
-    init_rand(cx);
+    provide_rand();
     // IndexedDB
     let db = simple_index::new().await?;
-    provide_context(cx, Rc::new(db));
-    provide_saved(cx, "pc_list", PCList::default).await;
+    provide_context(Rc::new(db));
+    provide_saved("pc_list", PCList::default).await;
 
     // Popup modals
-    let modal = create_rw_signal(cx, ModalState::new());
-    provide_context(cx, modal);
-    let toast = create_rw_signal(cx, Toast::new());
-    provide_context(cx, toast);
-    let revealer = create_rw_signal(cx, Revealer(None));
-    provide_context(cx, revealer);
+    let modal = create_rw_signal(ModalState::new());
+    provide_context(modal);
+    let toast = create_rw_signal(Toast::new());
+    provide_context(toast);
+    let revealer = create_rw_signal(Revealer(None));
+    provide_context(revealer);
     Ok(())
 }
 
-pub fn router_scout(cx: Scope) -> impl IntoView {
-    let load_assets = create_resource(cx, || (), move |_| async move { init_assets(cx).await });
-
+fn load_assets_view() -> impl IntoView {
+    let load_assets = create_resource(|| (), move |_| async move { init_assets().await });
     move || {
         load_assets
-            .read(cx)
+            .get()
             .map(|load_result| match load_result {
-                Ok(_) => main_router(cx).into_view(cx),
-                Err(e) => fatal_pg(cx, e).into_view(cx),
+                Ok(_) => Outlet().into_view(),
+                Err(e) => fatal_pg(e).into_view(),
             })
-            .into_view(cx)
+            .into_view()
     }
 }

@@ -1,236 +1,68 @@
-use const_format::concatcp;
 use leptos::*;
 
-use crate::items::recipes::Recipe;
-use crate::items::Item;
-use crate::pc::craft::recipebook::Recipebook;
-use crate::pc::session::PCSession;
-use crate::pc::PC;
-use crate::svg;
-use crate::utils::rw_context;
-use crate::views::modal::ModalState;
-use crate::views::toast::{Toast, ToastNotif};
+use crate::pc::craft::recipebook::choose_recipe_btn;
+use crate::utils::expect_rw;
 
-struct HasIngredients(bool);
+use super::commit_btn::{commit_btn, craft_item_modal};
+use super::recipebook::recipebook;
+use super::substance_btn::{modal_substance_filter, substance_view};
+use super::CraftState;
 
-#[component]
-pub(super) fn CraftRecipe(cx: Scope, recipe: Recipe) -> impl IntoView {
-    let has_ingredients = create_rw_signal(cx, HasIngredients(true));
-    provide_context(cx, has_ingredients);
-
-    let ingredients = 
-        // TODO: Try remove this clone
-        recipe.ingredients.map(|x| {
-            if let Some((item, num)) = x {
-                view! { cx,
-                    <Ingredient item=item num />
-                }
-                .into_view(cx)
-            } else {
-                ().into_view(cx)
-            }
-        })
-    ;
+pub(super) fn craft_recipe() -> impl IntoView {
+    let state = expect_rw::<CraftState>();
 
     view! {
-        cx,
-        <div class= "flex flex-col gap-2 px-2">
-            <h5 class= "border-b border-yellow-500 text-center"> "CRAFTING" </h5>
-            <ChooseRecipeBtn item=&recipe.success />
-            <h5 class= "grid grid-cols-2 gap-x-4 my-4">
-                <div class= "text-right"> "DC" </div>
-                <DC item=&recipe.success />
-                <div class= "text-right"> "Time" </div>
-                <div> "N/A" </div>
-            </h5>
-            <h5 class= "border-b border-yellow-500 text-center"> "RESOURCES" </h5>
-            <div class= "grid grid-cols-2 gap-x-2">
-                { ingredients }
+        <div class= "flex flex-col gap-4 px-2">
+            <h5 class= "text-center"> "RESOURCES" </h5>
+            <div class= "flex flex-col shaded-table">
+                { choose_recipe_btn() }
+                { substance_view( true) }
+                { substance_view( false) }
             </div>
-            <CommitBtn />
-            <div class= "pseudo h-6" />
-        </div>
-        <ToastNotif />
-        <Recipebook />
-    }
-}
-
-#[component]
-fn Ingredient(cx: Scope, item: Item, num: u8) -> impl IntoView {
-    let pc = rw_context::<PC>(cx);
-    let inv_num = pc.with_untracked(|pc| {
-        pc.inventory
-            .values()
-            .filter(|x| **x == item)
-            .fold(0_u8, |acc, e| {
-                let stack = e.stacks.map(|(curr, _)| curr);
-                acc + stack.unwrap_or(1)
-            })
-    });
-
-    view! {
-        cx,
-        <div>
-            { if inv_num >= num {
-                view!{ cx,
-                    <div class= "rounded border-green-700 border-2 relative">
-                        { item.into_view(cx) }
-                        <div class= "absolute w-6 h-6 -translate-y-1 translate-x-1 top-0 right-0 rounded-full bg-green-700 flex-centered">
-                            <div class= "svg w-3" inner_html=svg::TICK />
-                        </div>
+            <h5 class= "text-center"> "RESULT" </h5>
+            <div class= "flex flex-col gap-2">
+                <div class= "flex">
+                    <div class= "w-28">
+                        "Quality"
                     </div>
-                }
-            } else {
-                rw_context::<HasIngredients>(cx).update(|x| x.0 = false);
-                view!{ cx,
-                    <div class= "rounded border-2 border-red-700 relative">
-                        { item.into_view(cx) }
-                        <div class= "absolute w-6 h-6 -translate-y-1 translate-x-1 top-0 right-0 rounded-full bg-red-700 flex-centered">
-                            <div class= "svg w-3" inner_html=svg::CROSS />
-                        </div>
+                    { dc_slider() }
+                </div>
+                <div class= "flex">
+                    <div class= "w-28">
+                        "Difficulty"
                     </div>
-                }
-            }}
-            <div class= "text-center font-sans"> { format!("{inv_num} / {num}") } </div>
+                    <div class= "w-full text-center font-sans">
+                        "DC " { move || state.with(|state| state.dc()) }
+                    </div>
+                </div>
+            </div>
+            <div class= "border-y border-yellow-600 py-2">
+                { move || state.with(|state| state.results().0.into_view()) }
+            </div>
+            { commit_btn() }
+            <div class= "psuedo h-6" />
         </div>
+        { recipebook() }
+        { modal_substance_filter() }
+        { craft_item_modal() }
     }
 }
 
-#[component]
-fn ChooseRecipeBtn<'a>(cx: Scope, item: &'a Item) -> impl IntoView {
+fn dc_slider() -> impl IntoView {
+    let val = move || expect_rw::<CraftState>().with(|state| state.dc_points());
+
     view! {
-        cx,
-        <button 
-            class= "bg-zinc-800 rounded"
-            on:click=move |_| ModalState::open(cx, 0)
-        >
-            { item.into_view(cx) }
-        </button>
-    }
-}
-
-#[component]
-fn DC<'a>(cx: Scope, item: &'a Item) -> impl IntoView {
-    let craft_dc = 10 + (item.quality as u8 * 5);
-    view! {
-        cx,
-        <div> { move || craft_dc } </div>
-    }
-}
-
-enum Outcome {
-    CritSuccess,
-    Success,
-    Failure,
-}
-
-/// Removes the number of stacks indicated by `num`. Removes
-/// multiple items if the item in question doesn't stack.
-fn remove_stacks(cx: Scope, item: &Item, num: u8) {
-    let pc = rw_context::<PC>(cx);
-    let mut num = num;
-    pc.update(|pc| {
-        let inv_clone = pc.inventory.clone();
-        let filtered = inv_clone
-            .iter()
-            .filter(|(_, x)| x == &item);
-        for (i, item) in filtered {
-            if let Some((curr, _max)) = item.stacks {
-                // Remove entire stack.
-                if num >= curr {
-                    pc.inventory.remove(i);
-                    num -= curr;
-                // Remove only the required amount of stacks.
-                } else {
-                    let item = pc.inventory.get_mut(i).unwrap();
-                    item.stacks = item.stacks.map(|(curr, max)| (curr - num, max));
-                    num = 0;
-                }
-            } else {
-                pc.inventory.remove(i);
-                num -= 1;
-            }
-            // Early stop if ammount has been deducted.
-            if num < 1 {
-                break;
-            }
-        }
-    })
-}
-
-fn commit_recipe(cx: Scope, outcome: Outcome) {
-    let pc = rw_context::<PC>(cx);
-    let Recipe {
-        ingredients,
-        success,
-        failure,
-    } = rw_context::<PCSession>(cx)
-        .with(|sesh| pc.with(|pc| pc.recipes[sesh.rcp_index].clone()))
-        .unwrap();
-    for (item, num) in ingredients.into_iter().flatten() {
-        remove_stacks(cx, &item, num)
-    }
-    let item = match outcome {
-        Outcome::CritSuccess => success,
-        Outcome::Success => success,
-        Outcome::Failure => failure,
-    };
-    Toast::show(cx, format!("Added {} to inventory!", item.name));
-    pc.update(|pc| pc.inventory.push(item));
-}
-
-#[component]
-fn CommitBtn(cx: Scope) -> impl IntoView {
-    const NORMAL: &str = " bg-zinc-700";
-    const DISABLED: &str = " disabled:border-2 disabled:border-zinc-700 disabled:bg-inherit";
-    const COMMON: &str = "h-12 font-sans rounded w-full";
-
-    let popup_hidden = create_rw_signal(cx, true);
-
-    view! { cx,
-        <div class= "relative mt-6">
-            <button
-                class=concatcp!(COMMON, NORMAL, DISABLED)
-                on:click=move |_| {
-                    popup_hidden.set(false);
-                }
-                disabled=move || {
-                    rw_context::<HasIngredients>(cx).with(|x| !x.0)
-                }
-                hidden=move || !popup_hidden.get()
-            >
-                "COMMIT"
-            </button>
-            <div
-                class= "pseudo cursor-pointer fixed inset-0"
-                on:click=move |_| {
-                    popup_hidden.set(true);
-                }
-                hidden=move || popup_hidden.get()
+        <div class= "relative w-full">
+            <input
+                class= "dc-score-slider"
+                type= "range"
+                disabled=true
+                value=val
+                min=0
+                max=59
             />
-            <div 
-                class= "absolute inset-0 space-y-4 z-10"
-                hidden=move || popup_hidden.get()
-            >
-                <button
-                    class=concatcp!(COMMON, " bg-red-700")
-                    on:click=move |_| { commit_recipe(cx, Outcome::Failure) }
-                >
-                    "FAILURE"
-                </button>
-                <button
-                    class=concatcp!(COMMON, NORMAL)
-                    on:click=move |_| { commit_recipe(cx, Outcome::Success) }
-                >
-                    "SUCCESS"
-                </button>
-                <button
-                    class=concatcp!(COMMON, NORMAL)
-                    on:click=move |_| { commit_recipe(cx, Outcome::CritSuccess) }
-                >
-                    "CRITICAL SUCCESS"
-                </button>
-                <div class= "pseudo h-6" />
+            <div class= "dc-score-markers">
+              <span /><span /><span /><span />
             </div>
         </div>
     }

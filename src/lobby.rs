@@ -1,19 +1,19 @@
 use std::time::Duration;
 
-use const_format::concatcp;
+use const_format::formatcp;
 use gloo::timers::future::sleep;
 use leptos::*;
 use leptos_router::*;
 use serde::{Deserialize, Serialize};
 
 use crate::assets::NAMES;
-use crate::rand::rand_context;
+use crate::rand::Rand;
+use crate::svg;
 use crate::utils::db::{self, provide_saved};
+use crate::utils::expect_rw;
 use crate::utils::index_map::IndexMap;
-use crate::utils::rw_context;
-use crate::views::modal::{ModalCentered, ModalState};
+use crate::views::modal::{modal_grey_screen, ModalCentered, ModalState};
 use crate::views::revealer::{Revealer, RevealerScreen};
-use crate::{css, svg};
 
 const LOCKOUT_MINS: f64 = 0.0 * 60000.0;
 
@@ -29,71 +29,75 @@ pub struct PCList(pub IndexMap<String>);
 struct Name(String);
 
 impl Name {
-    fn reroll(&mut self, cx: Scope) {
-        self.0 = rand_context(cx, |rng| rng.pick(&NAMES).to_string());
+    fn reroll(&mut self) {
+        self.0 = Rand::with(|rand| rand.pick(&NAMES)).to_string();
     }
 }
 
 /// PC overview and management.
-pub fn lobby(cx: Scope) -> impl IntoView {
+pub fn lobby() -> impl IntoView {
     let pc_list = move || {
-        rw_context::<PCList>(cx).with(|pc_list| {
+        expect_rw::<PCList>().with(|pc_list| {
             pc_list
                 .0
                 .iter()
-                .map(|(id, name)| pc_btn(cx, *id, name.clone()))
-                .collect_view(cx)
+                .map(|(id, name)| view! { <PCBtn id name=name.clone() /> })
+                .collect_view()
         })
     };
 
-    view! { cx,
+    view! {
         <div class= "px-2 py-4 flex border-b-2 border-red-900">
             <h3 class= "grow"> "WAYFARER" </h3>
         </div>
-        <div class= "h-full grid grid-cols-2 gap-6 p-6">
+        <div class= "grid grid-cols-2 gap-6 p-6">
             { pc_list }
-            { create_pc_btn(cx) }
+            { create_pc_btn() }
         </div>
-        { create_pc_modal(cx) }
+        <div class= "psuedo h-px grow" />
+        { build_info() }
+        { create_pc_modal() }
+        { modal_grey_screen() }
         <RevealerScreen />
     }
 }
 
 /// Deletes all records of a PC.
-fn delete_pc(cx: Scope, id: usize) {
+fn delete_pc(id: usize) {
     // Remove from pc list.
-    rw_context::<PCList>(cx).update(|pc_list| {
-        pc_list.0.remove(&id);
+    expect_rw::<PCList>().update(|pc_list| {
+        pc_list.0.remove(id);
     });
     spawn_local(async move {
         let rm_db_ids = [id.to_string(), format!("{id}_journals")];
-        if let Err(e) = db::remove(cx, rm_db_ids.iter()).await {
+        if let Err(e) = db::remove(rm_db_ids.iter()).await {
             log::error!("{e}")
         }
     })
 }
 
 /// Displays a PC created by the user.
-fn pc_btn(cx: Scope, id: usize, name: String) -> impl IntoView {
+#[component]
+fn PCBtn(id: usize, name: String) -> impl IntoView {
     let del_name = name.clone();
 
-    view! { cx,
+    view! {
         <div class= "relative">
             <A
                 href=format!("/pc/{id}")
-                on:contextmenu=move |_| Revealer::open(cx, 'p', &id)
+                on:contextmenu=move |_| Revealer::open('p', id)
             >
-                <div class= concatcp!(css::BTN, " flex-centered aspect-square")>
+                <div class= "btn-zinc flex-centered aspect-square">
                     <div> { name } </div>
                 </div>
             </A>
             <button
                 class= "absolute inset-0 z-40"
                 on:click=move |_| {
-                    delete_pc(cx, id);
-                    Revealer::dismiss(cx)
+                    delete_pc(id);
+                    Revealer::dismiss()
                 }
-                hidden=move || !Revealer::state(cx, 'p', &id)
+                hidden=move || !Revealer::state('p', id)
             >
                 <div class= "flex-centered bg-red-800 h-full rounded gap-x-2">
                     <div class= "w-6 svg" inner_html=svg::TRASH />
@@ -105,8 +109,8 @@ fn pc_btn(cx: Scope, id: usize, name: String) -> impl IntoView {
 }
 
 /// Returns the wait time before another PC can be created.
-fn cannot_create_pc(cx: Scope) -> Option<u8> {
-    let pc_timeout = rw_context::<NewPCTimeout>(cx);
+fn cannot_create_pc() -> Option<u8> {
+    let pc_timeout = expect_rw::<NewPCTimeout>();
     let time = pc_timeout.with(|time| time.0);
     let diff = time - js_sys::Date::now();
     let mins = (diff / 60000.0) as u8;
@@ -124,36 +128,35 @@ fn cannot_create_pc(cx: Scope) -> Option<u8> {
     }
 }
 
-fn create_pc_btn(cx: Scope) -> impl IntoView {
-    let name = create_rw_signal(cx, Name(String::new()));
-    provide_context(cx, name);
+fn create_pc_btn() -> impl IntoView {
+    let name = create_rw_signal(Name(String::new()));
+    provide_context(name);
 
     let loading = create_resource(
-        cx,
         || (),
-        move |_| async move { provide_saved(cx, "new_pc_timeout", || NewPCTimeout(0.0)).await },
+        move |_| async move { provide_saved("new_pc_timeout", || NewPCTimeout(0.0)).await },
     );
 
     move || {
-        loading.read(cx).map(|_| {
-            let cannot_create = cannot_create_pc(cx);
+        loading.get().map(|_| {
+            let cannot_create = cannot_create_pc();
             let inner_text = match cannot_create {
-                Some(timeout) => view! { cx,
+                Some(timeout) => view! {
                     <span> "Please wait" </span>
                     <span> { format!("{timeout} mins") } </span>
                 }
-                .into_view(cx),
-                None => view! { cx,
+                .into_view(),
+                None => view! {
                     <div class= "w-12 svg" inner_html=svg::PLUS />
                 }
-                .into_view(cx),
+                .into_view(),
             };
-            view! { cx,
+            view! {
                 <button
-                    class=concatcp!(css::BTN, " flex-centered flex-col aspect-square")
+                    class="btn-zinc flex-centered flex-col aspect-square"
                     on:click=move |_| {
-                        name.update(|name| { name.reroll(cx); });
-                        ModalState::open(cx, 0)
+                        name.update(|name| { name.reroll(); });
+                        ModalState::open(0)
                     }
                     disabled=move || cannot_create.is_some()
                 >
@@ -164,19 +167,18 @@ fn create_pc_btn(cx: Scope) -> impl IntoView {
     }
 }
 
-fn create_pc_modal(cx: Scope) -> impl IntoView {
-    let name = rw_context::<Name>(cx);
+fn create_pc_modal() -> impl IntoView {
+    let name = expect_rw::<Name>();
     let create_pc = move |name: String| {
-        rw_context::<PCList>(cx).update(|list| list.0.push(name));
-        rw_context::<NewPCTimeout>(cx).update(|time| {
+        expect_rw::<PCList>().update(|list| list.0.add(name));
+        expect_rw::<NewPCTimeout>().update(|time| {
             // 10 secs of padding is needed due to rounding after division
             time.0 = LOCKOUT_MINS + js_sys::Date::now() + 10000.0;
         });
-        ModalState::dismiss(cx);
+        ModalState::dismiss();
     };
 
     view! {
-        cx,
         <ModalCentered title=|| "Create PC" id=0>
             <div class= "flex gap-2 w-full">
                 <input
@@ -188,7 +190,7 @@ fn create_pc_modal(cx: Scope) -> impl IntoView {
                 />
                 <button
                     class= "bg-slate-900 rounded-full h-12 w-12 flex flex-centered"
-                    on:click=move |_| name.update(|name| name.reroll(cx))
+                    on:click=move |_| name.update(|name| name.reroll())
                 >
                     <div class= "w-8 svg" inner_html=svg::DIE />
                 </button>
@@ -200,5 +202,19 @@ fn create_pc_modal(cx: Scope) -> impl IntoView {
                 "Create"
             </button>
         </ModalCentered>
+    }
+}
+
+fn build_info() -> impl IntoView {
+    const VERSION: &str = formatcp!("v{}", env!("CARGO_PKG_VERSION"));
+
+    view! {
+        <a href="https://codeberg.org/jadehound/wayfarer" target="_blank">
+            <div class= "flex-centered font-sans gap-2 py-2">
+                <div> { VERSION } </div>
+                <div class= "w-4" inner_html=svg::CODEBERG />
+                <div> "SOURCE" </div>
+            </div>
+        </a>
     }
 }

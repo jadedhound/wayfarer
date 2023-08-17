@@ -1,45 +1,60 @@
 use serde::{Deserialize, Serialize};
 
-use super::potions::{POT_AWKND_SHRUB, POT_SAGE};
-use super::reagents::SAGEROOT;
+use super::reagents::Substance;
 use super::{Item, ItemRef};
+pub use rcp::*;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Recipe {
-    pub ingredients: [Option<(Item, u8)>; 2],
-    pub success: Item,
-    pub failure: Item,
+    pub name: String,
+    pub substances: [Substance; 2],
+    pub products: [Item; 4],
+}
+
+impl PartialEq for Recipe {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name
+    }
 }
 
 impl From<RecipeRef> for Recipe {
     fn from(value: RecipeRef) -> Self {
         Self {
-            ingredients: value
-                .ingredients
-                .map(|x| x.map(|(item, y)| ((*item).into(), y))),
-            success: (*value.success).into(),
-            failure: (*value.failure).into(),
+            name: value.name.into(),
+            substances: value.substances,
+            products: value.products.map(|x| x.into()),
         }
     }
 }
 
 pub struct RecipeRef {
-    pub ingredients: [Option<(&'static ItemRef, u8)>; 2],
-    success: &'static ItemRef,
-    failure: &'static ItemRef,
+    pub name: &'static str,
+    pub substances: [Substance; 2],
+    pub products: [ItemRef; 4],
 }
 
-const fn rcp_1(
-    item: &'static ItemRef,
-    ammount: u8,
-    success: &'static ItemRef,
-    failure: &'static ItemRef,
-) -> RecipeRef {
-    RecipeRef {
-        ingredients: [Some((item, ammount)), None],
-        success,
-        failure,
+impl RecipeRef {
+    pub const fn new(
+        name: &'static str,
+        substances: [Substance; 2],
+        products: [ItemRef; 4],
+    ) -> Self {
+        Self {
+            name,
+            substances,
+            products,
+        }
     }
 }
 
-pub const RCP_SAGE: RecipeRef = rcp_1(&SAGEROOT, 2, &POT_SAGE, &POT_AWKND_SHRUB);
+#[rustfmt::skip]
+mod rcp {
+    use super::*;
+    use crate::items::potions::stat_incr;
+    
+    pub const CUNNING: RecipeRef = RecipeRef::new(
+        "potion of cunning",
+        [Substance::Solvent, Substance::Arcane], 
+        [stat_incr::INT_T1, stat_incr::INT_T2, stat_incr::INT_T3, stat_incr::INT_T4]
+    );
+}

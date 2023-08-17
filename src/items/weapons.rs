@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 
 use super::item_spec::ItemSpecRef;
-use super::{ItemQuality, ItemRef};
-use crate::pc::PCStat;
+use super::{prices, ItemQuality, ItemRef};
+use crate::pc::pc_stat::PCStat;
 
 #[derive(Serialize, Deserialize, Clone, Copy)]
 pub enum Weapon {
@@ -35,18 +35,13 @@ impl Weapon {
 /// Possible damage dice which is a range of max base damage + quality range.
 pub const DAMAGE_DIE: [&str; 8] = ["1", "1d4", "1d6", "1d8", "1d10", "1d12", "2d6", "2d8"];
 
-const SP_PRICES: [u32; 5] = [25, 100, 200, 400, 800];
-
 const fn weapons(name: &'static str, weapon: Weapon, quality: ItemQuality) -> ItemRef {
-    let weight = match weapon {
-        Weapon::Dagger | Weapon::Sword | Weapon::Axe => 1,
-        _ => 2,
-    };
+    let is_bulky = !matches!(weapon, Weapon::Dagger | Weapon::Sword | Weapon::Axe);
     ItemRef {
         name,
         specs: ItemSpecRef::Weapon(weapon),
-        weight,
-        price: SP_PRICES[quality as usize] * 10 * weight as u32,
+        is_bulky,
+        price: prices::WEAPONS[quality as usize] * (is_bulky as u32 + 1),
         quality: ItemQuality::Common,
         stacks: None,
     }
@@ -55,4 +50,4 @@ const fn weapons(name: &'static str, weapon: Weapon, quality: ItemQuality) -> It
 pub const SWORD: ItemRef = weapons("worn sword", Weapon::Sword, ItemQuality::Common);
 pub const WARHAMMER: ItemRef = weapons("worn handaxe", Weapon::Axe, ItemQuality::Common);
 
-pub const ITEMS_WEAP: [&ItemRef; 2] = [&SWORD, &WARHAMMER];
+pub const ALL: [&ItemRef; 2] = [&SWORD, &WARHAMMER];

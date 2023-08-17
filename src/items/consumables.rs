@@ -12,7 +12,7 @@ const fn consume(
     ItemRef {
         name,
         specs: ItemSpecRef::Consumable(effect),
-        weight: 1,
+        is_bulky: false,
         price,
         quality,
         stacks,
@@ -25,10 +25,7 @@ const fn bomb(name: &'static str, effect: EffectRef, quality: ItemQuality) -> It
 }
 
 const fn blast(desc: &'static str) -> EffectRef {
-    EffectRef {
-        can_recharge: false,
-        desc,
-    }
+    EffectRef { desc }
 }
 
 // ------------------------------
@@ -46,4 +43,4 @@ const BOMB_CONCUSSIVE: ItemRef = bomb(
     ItemQuality::Uncommon,
 );
 
-pub(super) const ITEMS_BOMB: [&ItemRef; 2] = [&BOMB_CONCUSSIVE, &BOMB_KNOCKDOWN];
+pub(super) const BOMB: [&ItemRef; 2] = [&BOMB_CONCUSSIVE, &BOMB_KNOCKDOWN];

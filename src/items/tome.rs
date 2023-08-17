@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use super::item_spec::ItemSpecRef;
 use super::{ItemQuality, ItemRef};
-use crate::pc::PCStat;
+use crate::pc::pc_stat::PCStat;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Tome {
@@ -38,7 +38,7 @@ const fn tome(
     ItemRef {
         name,
         specs: ItemSpecRef::Tome(TomeRef { stat, effect }),
-        weight: 2,
+        is_bulky: true,
         price: SP_PRICE[quality as usize],
         quality,
         stacks: None,
@@ -51,4 +51,4 @@ const fn spell(name: &'static str, effect: &'static str) -> ItemRef {
 }
 pub const ADHERE: ItemRef = spell(concatcp!(S_PRE, "attract"), "2 objects are polarized, if they come within 10 ft. they are strongly attracted to each other as if magnetised");
 
-pub const ITEMS_SPELLBOOK: [&ItemRef; 1] = [&ADHERE];
+pub const ALL: [&ItemRef; 1] = [&ADHERE];

@@ -1,5 +1,3 @@
-use leptos::*;
-
 pub mod craft;
 mod description;
 pub mod followers;
@@ -7,87 +5,88 @@ pub mod inventory;
 pub mod journal;
 pub mod navbar;
 pub mod overview;
+pub mod pc_stat;
 pub mod scout;
 pub mod session;
 pub mod starting_equipment;
+mod update;
 
 use serde::{Deserialize, Serialize};
-use strum::{Display, EnumCount, EnumIter};
 
 use self::description::gen_description;
+use self::followers::Follower;
+use self::pc_stat::{PCStat, StatArray};
 use self::starting_equipment as start_eq;
-use crate::assets::ABILITY_MOD;
 use crate::items::buffs::Buff;
-use crate::items::recipes::{Recipe, RCP_SAGE};
+use crate::items::recipes::{self, Recipe};
 use crate::items::Item;
-use crate::rand::{rand_context, Rand};
+use crate::pc::pc_stat::StatArrBuilder;
+use crate::rand::Rand;
 use crate::utils::index_map::IndexMap;
-
-pub const MAX_CAPACITY: usize = 10;
+use crate::utils::time::Turns;
+use crate::utils::RwProvided;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct PC {
     pub name: String,
     pub description: String,
-    pub curr_hp: i32,
-    pub wounds: i32,
-    pub supply: u32,
+    pub stamina_dmg: i32,
+    pub health_dmg: i32,
+    pub funds: u32,
     pub inventory: IndexMap<Item>,
     pub quick_access: [Option<Item>; 3],
-    pub base_stats: [i32; PCStat::COUNT],
-    pub recipes: [Option<Recipe>; 5],
+    pub base_stats: StatArray,
+    pub recipes: Vec<Recipe>,
     pub buffs: IndexMap<Buff>,
-    pub turns: u64,
+    pub followers: IndexMap<Follower>,
+    pub turns: Turns,
 }
 
 impl PC {
-    pub fn new(cx: Scope, name: String) -> Self {
+    pub fn new(name: String) -> Self {
         log::info!("creating new pc");
-        rand_context(cx, |rand| {
-            let mut recipes = [0; 5].map(|_| None);
-            recipes[0] = Some(RCP_SAGE.into());
+        Rand::with(|rand| {
             Self {
                 name,
                 description: gen_description(rand),
-                curr_hp: rand.range(3, 6) as i32,
-                wounds: 0,
+                stamina_dmg: 0,
+                health_dmg: 0,
                 // Somewhere between 10 silver and 20 silver
-                supply: rand.range(10, 20) * 10,
-                inventory: IndexMap::new(start_eq::mage(rand)),
+                funds: rand.range(10, 20) * 10,
+                inventory: IndexMap::from(start_eq::mage(rand)),
                 quick_access: [None, None, None],
                 base_stats: gen_base_stats(rand),
-                recipes,
-                turns: 0,
-                buffs: IndexMap::new(Vec::new()),
+                recipes: vec![recipes::CUNNING.into()],
+                turns: Turns::new(0),
+                buffs: IndexMap::default(),
+                followers: IndexMap::default(),
             }
         })
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Copy, Display, EnumCount, EnumIter)]
-#[allow(clippy::upper_case_acronyms)]
-pub enum PCStat {
-    HP,
-    Speed,
-    STR,
-    DEX,
-    INT,
-    CHA,
+impl RwProvided for PC {
+    type Item = Self;
 }
 
-impl PCStat {
-    pub const fn index(&self) -> usize {
-        *self as usize
-    }
-}
-
-fn gen_base_stats(rand: &mut Rand) -> [i32; PCStat::COUNT] {
-    let mut arr = [0; PCStat::COUNT];
-    arr[PCStat::HP.index()] = 1;
-    arr[PCStat::Speed.index()] = 30;
-    arr[PCStat::STR.index()] = rand.pick(&ABILITY_MOD);
-    arr[PCStat::DEX.index()] = rand.pick(&ABILITY_MOD);
-    arr[PCStat::INT.index()] = rand.pick(&ABILITY_MOD);
-    arr[PCStat::CHA.index()] = rand.pick(&ABILITY_MOD);
-    arr
+fn gen_base_stats(rand: &mut Rand) -> StatArray {
+    /// -2: 10%, -1: 20%, 0: 15%, +1: 25%, +2: 20%, +3: 10%
+    const ABILITY_MOD: [i32; 20] = [
+        -2, -2, -1, -1, -1, -1, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3,
+    ];
+    let mut ability_arr = [0; 4].map(|_| rand.pick(&ABILITY_MOD));
+    // Sort by smallest to largest.
+    ability_arr.sort_unstable();
+    let stat_priority = [3, 1, 0, 2].map(|i| ability_arr[i]);
+    StatArrBuilder::new()
+        .stam(6)
+        .health(2)
+        .speed(30)
+        .recipes(3)
+        .inventory(6)
+        .str(stat_priority[0])
+        .dex(stat_priority[1])
+        .int(stat_priority[2])
+        .cha(stat_priority[3])
+        .build()
 }

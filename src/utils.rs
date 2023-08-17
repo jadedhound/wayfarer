@@ -2,32 +2,15 @@ use leptos::*;
 
 pub mod db;
 pub mod index_map;
+pub mod time;
 
 // -----------------------------------
 // SIMPLE FUNCTIONS
 // -----------------------------------
 
-/// Get a read/write signal that has already been provided
-pub fn rw_context<T>(cx: Scope) -> RwSignal<T> {
-    use_context::<RwSignal<T>>(cx).unwrap()
-}
-
-/// Capitalises the first letter of a given string.
-pub fn capitalise(s: &str) -> String {
-    let mut c = s.chars();
-    match c.next() {
-        None => String::new(),
-        Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
-    }
-}
-
-/// Flattens and joins a `vec` of string into a single string.
-pub fn flat_concat(v: Vec<Option<String>>, join: &'static str) -> Option<String> {
-    v.into_iter().flatten().reduce(|mut acc, e| {
-        acc.push_str(join);
-        acc.push_str(&e);
-        acc
-    })
+/// Get a read/write signal that has already been provided.
+pub fn expect_rw<T>() -> RwSignal<T> {
+    expect_context::<RwSignal<T>>()
 }
 
 /// Adds a `+` to positive values.
@@ -36,5 +19,43 @@ pub fn split_operator(x: i32) -> (char, i32) {
         ('+', x)
     } else {
         ('-', -x)
+    }
+}
+
+pub fn some_if(predicate: bool) -> Option<()> {
+    if predicate {
+        Some(())
+    } else {
+        None
+    }
+}
+
+// -----------------------------------
+// CONTEXT HELPER TRAIT
+// -----------------------------------
+
+pub trait RwProvided {
+    type Item: 'static;
+
+    fn with<F, T>(f: F) -> T
+    where
+        F: FnOnce(&Self::Item) -> T,
+    {
+        expect_rw::<Self::Item>().with(|x| f(x))
+    }
+    fn untracked<F, T>(f: F) -> T
+    where
+        F: FnOnce(&Self::Item) -> T,
+    {
+        expect_rw::<Self::Item>().with_untracked(|x| f(x))
+    }
+
+    fn update<F, T>(f: F)
+    where
+        F: FnOnce(&mut Self::Item) -> T,
+    {
+        expect_rw::<Self::Item>().update(|sesh| {
+            f(sesh);
+        })
     }
 }

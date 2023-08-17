@@ -4,34 +4,37 @@ use leptos_router::*;
 use super::journal::PCJournals;
 use super::navbar::pc_navbar;
 use super::session::PCSession;
-use super::PC;
+use super::{update, PC};
 use crate::error::{fatal_pg, Error};
 use crate::lobby::PCList;
 use crate::utils::db::provide_saved;
-use crate::utils::rw_context;
+use crate::utils::expect_rw;
 
-async fn get_pc(cx: Scope) -> Option<()> {
-    let id = use_params_map(cx).with_untracked(|p| p.get("id")?.parse::<usize>().ok())?;
-    let name = rw_context::<PCList>(cx).with_untracked(|list| list.0.get(&id).cloned())?;
-    provide_saved(cx, format!("{id}_journals"), PCJournals::default).await;
-    provide_saved(cx, id, || PC::new(cx, name)).await;
-    PCSession::provide(cx);
+async fn get_pc(id: Option<usize>) -> Option<()> {
+    let id = id?;
+    let name = expect_rw::<PCList>().with_untracked(|list| list.0.get(id).cloned())?;
+    // Get from IndexedDB.
+    provide_saved(format!("{id}_journals"), PCJournals::default).await;
+    provide_saved(id, || PC::new(name)).await;
+    // Create session.
+    provide_context(create_rw_signal(PCSession::new()));
+    // Init update hooks.
+    update::updater();
     Some(())
 }
 
-pub fn pc_scout(cx: Scope) -> impl IntoView {
-    let loading = create_resource(
-        cx,
-        || (),
-        move |_| async move { get_pc(cx).await.is_some() },
+pub fn pc_scout() -> impl IntoView {
+    let loading = create_local_resource(
+        || use_params_map().with_untracked(|p| p.get("id")?.parse::<usize>().ok()),
+        move |id| async move { get_pc(id).await.is_some() },
     );
 
     move || {
-        loading.read(cx).map(|pc_loaded| {
+        loading.get().map(|pc_loaded| {
             if pc_loaded {
-                pc_navbar(cx).into_view(cx)
+                pc_navbar().into_view()
             } else {
-                fatal_pg(cx, Error::PCNotFound).into_view(cx)
+                fatal_pg(Error::PCNotFound).into_view()
             }
         })
     }
