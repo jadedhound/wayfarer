@@ -35,7 +35,7 @@ pub fn modal_grey_screen() -> impl IntoView {
 }
 
 #[component]
-pub fn ModalCentered<F, S>(children: Children, title: F, id: u8) -> impl IntoView
+pub fn CenterModal<F, S>(children: Children, title: F, id: u8) -> impl IntoView
 where
     F: Fn() -> S + 'static,
     S: Display,
@@ -43,16 +43,16 @@ where
     let hidden = move || !expect_rw::<ModalState>().with(|state| state.0 == Some(id));
 
     view! {
-        <div class="relative z-40" hidden=hidden>
-            <div class= "fixed inset-0 w-full flex flex-col">
+        <div class= "relative z-40" hidden=hidden>
+            <div class= "fixed top-0 h-full w-full flex flex-col">
                 <div class= "h-[15vh] grow" on:click=move |_| ModalState::dismiss() />
-                <div class= "w-full px-2 animate-popin overflow-auto">
-                    <div class= "bg-zinc-800 rounded border-2 border-zinc-600 h-full w-full text-center flex flex-col p-4 gap-4 overflow-auto">
+                <div class= "w-full p-2 animate-popin overflow-auto">
+                    <div class= "bg-surface shadow-md shadow-black rounded h-full w-full text-center flex flex-col p-4 gap-4 overflow-auto">
                         <h5 class= "uppercase"> { move || title().to_string() } </h5>
                         { children() }
                     </div>
                 </div>
-                <div class= "h-[15vh] grow" on:click=move |_| ModalState::dismiss() />
+                <div class= "pseudo h-[15vh] grow" on:click=move |_| ModalState::dismiss() />
             </div>
         </div>
     }

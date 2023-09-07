@@ -1,36 +1,53 @@
 use leptos::*;
 use leptos_router::*;
 
-use crate::svg;
+use crate::icons;
 use crate::views::modal::modal_grey_screen;
-use crate::views::revealer::RevealerScreen;
-use crate::views::toast::toast_notification;
+use crate::views::revealer::revealer_screen;
+use crate::views::toast::toast_notif;
 
 pub fn pc_navbar() -> impl IntoView {
+    let selected = create_memo(|_| {
+        use_location().pathname.with(|path| {
+            let letter = path.chars().skip(4).skip_while(|x| x != &'/').nth(1);
+            match letter {
+                Some('r') => 0,
+                Some('j') => 1,
+                None => 2,
+                Some('i') => 3,
+                _ => 4,
+            }
+        })
+    });
+    let icon_css = move |id: i32| {
+        if selected.get() == id {
+            "w-10 fill-yellow-400"
+        } else {
+            "w-10"
+        }
+    };
+
     view! {
-        <div class="fixed flex w-full justify-between p-4 bg-black z-[5]">
-            <A href= "followers">
-                <div class= "w-10 svg" inner_html=svg::FOLLOWERS />
+        <Outlet />
+        <div class= "psuedo h-24" />
+        // Needs to be translated down to cover gap between bottom and div.
+        <div class= "fixed bottom-0 flex justify-around items-center w-full bg-zinc-950 z-[5]
+                    border-t border-amber-600 px-8 h-16 pb-1 translate-y-1 fill-zinc-400">
+            <A href= "realm">
+                <div class=move || icon_css(0) inner_html=icons::WREATH />
             </A>
             <A href= "journal">
-                <div class= "w-10 svg" inner_html=svg::PAPER_AND_QUILL />
+                <div class=move || icon_css(1) inner_html=icons::SCROLL />
             </A>
             <A href= "">
-                <div class= "rounded-full p-2 border border-yellow-500">
-                    <div class= "w-10 svg" inner_html=svg::CROWN />
-                </div>
+                <div class=move || icon_css(2) inner_html=icons::HELM />
             </A>
             <A href= "inventory">
-                <div class= "w-10 svg" inner_html=svg::BACKPACK />
-            </A>
-            <A href= "craft">
-                <div class= "w-10 svg" inner_html=svg::ANVIL />
+                <div class=move || icon_css(3) inner_html=icons::BACKPACK />
             </A>
         </div>
-        <div class= "psuedo h-24" />
-        <RevealerScreen />
-        { modal_grey_screen() }
-        { toast_notification() }
-        <Outlet />
+        { revealer_screen }
+        { modal_grey_screen }
+        { toast_notif }
     }
 }

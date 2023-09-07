@@ -3,14 +3,17 @@ use std::fmt::{self, Display, Formatter};
 use serde::{Deserialize, Serialize};
 
 /// One turn is 10 mins.
-const TURNS_IN_DAY: u64 = 24 * 6;
+pub const TURNS_IN_DAY: u64 = 24 * 6;
 
-#[derive(Serialize, Deserialize, Copy, Clone)]
+#[derive(Serialize, Deserialize, Copy, Clone, Default)]
 pub struct Turns(pub u64);
 
 impl Turns {
-    pub const fn new(time: u64) -> Self {
-        Self(time)
+    pub const fn one() -> Self {
+        Self(1)
+    }
+    pub const fn hour() -> Self {
+        Self(6)
     }
     pub fn next_day(&mut self) {
         self.0 += TURNS_IN_DAY - self.turns()
@@ -18,8 +21,9 @@ impl Turns {
     pub fn change_by(&mut self, amount: i64) {
         self.0 = (self.0 as i64 + amount) as u64
     }
-    pub fn set(&mut self, time_ref: &Self) {
-        self.0 += time_ref.0;
+    /// Adds a given `turn_ref` to this one.
+    pub fn add(&mut self, turn_ref: &Self) {
+        self.0 += turn_ref.0;
     }
     pub fn is_expired(&self, time_ref: u64) -> bool {
         self.0 <= time_ref

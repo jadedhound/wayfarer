@@ -1,6 +1,7 @@
 use std::fmt::Display;
 use std::rc::Rc;
 
+use leptos::logging::error;
 use leptos::*;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
@@ -60,9 +61,7 @@ where
         let val = rw.get();
         spawn_local(async move {
             let db = use_context::<Rc<Database>>().unwrap();
-            set(db, &key, &val)
-                .await
-                .unwrap_or_else(|e| log::error!("{e}"));
+            set(db, &key, &val).await.unwrap_or_else(|e| error!("{e}"));
         });
     });
 }

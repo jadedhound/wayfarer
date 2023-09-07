@@ -1,110 +1,59 @@
 use leptos::*;
 
-use crate::items::buffs::Buff;
-use crate::items::food::Food;
-use crate::items::item_spec::ItemSpec;
-use crate::items::reagents::Reagent;
-use crate::items::weapons::{Weapon, DAMAGE_DIE};
-use crate::items::Item;
-use crate::pc::pc_stat::PCStat;
-use crate::utils::{some_if, split_operator};
-
-use super::funds::short_funds;
+use crate::buffs::{Buff, BuffProp};
+use crate::items::weapons::damage_die;
+use crate::items::{Item, ItemProp};
 
 impl IntoView for &Item {
     fn into_view(self) -> View {
-        let colour = self.quality.colour();
-        let item_type = match &self.spec {
-            ItemSpec::Weapon(x) => match x.as_stat() {
-                PCStat::DEX => "dex weapon",
-                _ => "str weapon",
-            },
-            ItemSpec::Buff(_) => "potion",
-            _ => self.spec.as_ref(),
-        };
-        let subtext = format!("{}, {item_type}", self.quality);
-        let price = self.price;
-        let specific_view = match &self.spec {
-            ItemSpec::Weapon(weap) => weapon_view(weap).into_view(),
-            ItemSpec::Buff(buff) => potion_view(buff).into_view(),
-            ItemSpec::Food(food) => food_view(food).into_view(),
-            ItemSpec::Consumable(effect) => effect.to_string().into_view(),
-            ItemSpec::Reagent(reagent) => reagent_view(reagent).into_view(),
-            _ => ().into_view(),
-        };
+        let props = self.props.iter().filter_map(prop_views).collect_view();
 
         view! {
-            <div class= "flex flex-col h-full justify-center px-2 text-start">
-                <div class=format!("truncate uppercase {colour} title")>
-                    { self.name.clone() }
-                </div>
-                <div class= "italic text-sm">
-                    { subtext }
-                </div>
-                    { specific_view }
-                <div class= "">
-                    { short_funds(move || price) }
-                </div>
+            <div class= "flex flex-col h-full justify-center text-start">
+                <div class= "uppercase font-tight"> { &self.name } </div>
+                { props }
             </div>
         }
         .into_view()
     }
 }
 
-fn weapon_view(spec: &Weapon) -> impl IntoView {
-    let damage = format!("{} + {}", DAMAGE_DIE[spec.as_damage()], spec.as_stat());
-    view! {
-        <div> { damage } </div>
+fn prop_views(prop: &ItemProp) -> Option<View> {
+    match prop {
+        ItemProp::Usable(x) => Some(newline(format!("Use: {x}."))),
+        ItemProp::Edible(x) => Some(newline(format!("Heals {x} health."))),
+        ItemProp::Spellbook(x) => Some(newline(format!("{x}."))),
+        ItemProp::Range(x) => Some(newline(format!("Range {x} ft."))),
+        ItemProp::Effect(x) => Some(newline(format!("{x}."))),
+        ItemProp::Damage(x) => Some(newline(format!("Deals {} damage.", damage_die(*x)))),
+        ItemProp::Buff(x) => Some(buff_desc(x)),
+        _ => None,
     }
 }
 
-fn food_view(Food { buff, fatigue }: &Food) -> impl IntoView {
-    let buff = buff.as_ref().map(|buff| buff.to_string()).into_view();
-    let fatigue = format!("Removes {fatigue} fatigue.");
-    view! {
-        { buff }
-        { fatigue }
-    }
+fn newline(s: String) -> View {
+    view! { <div class= "capitalise"> { s } </div> }.into_view()
 }
 
-fn potion_view(buff: &Buff) -> impl IntoView {
-    let effect = buff
-        .effect
-        .as_ref()
-        .map(|x| {
-            view! {
-            <div> { format!("Effect: {x}") } </div>
-            }
+fn buff_desc(buff: &Buff) -> View {
+    let duration = buff
+        .props
+        .iter()
+        .find_map(|prop| match prop {
+            BuffProp::Duration(x) => Some(x),
+            _ => None,
         })
-        .into_view();
-    let stats = buff
-        .stats
-        .map(|x| {
+        .map(|turns| {
             view! {
-            <div> { x.to_string() } </div>
+                <div class= ""> { format!("Lasts for {turns}.") } </div>
             }
-        })
-        .into_view();
+        });
     view! {
-        <div>
-            { stats }
-            { effect }
+        <div> "Use: Applies the following buff." </div>
+        <div class= "border-y-2 border-yellow-600 my-1">
+            { buff.into_view() }
+            { duration }
         </div>
     }
-}
-
-fn reagent_view(reagent: &Reagent) -> impl IntoView {
-    reagent
-        .iter()
-        .filter_map(|(sub, x)| {
-            some_if(x > 0).map(|_| {
-                let (op, num) = split_operator(x as i32);
-                format!("{sub} {op}{num}")
-            })
-        })
-        .reduce(|mut acc, e| {
-            acc.push_str(", ");
-            acc.push_str(&e);
-            acc
-        })
+    .into_view()
 }

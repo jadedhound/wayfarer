@@ -1,88 +1,65 @@
 use leptos::*;
 
-use crate::items::effects::Effect;
-use crate::items::item_spec::ItemSpec;
-use crate::items::weapons::{Weapon, DAMAGE_DIE};
-use crate::items::Item;
-use crate::pc::overview::tome::tome_view;
-use crate::pc::session::PCSession;
+use crate::items::{Item, ItemProp};
 use crate::pc::PC;
-use crate::utils::{expect_rw, split_operator};
+use crate::utils::RwProvided;
 
 pub(super) fn quick_access() -> impl IntoView {
+    let no_items = PC::slice(|pc| pc.quick_access.iter().flatten().next().is_none());
+
     move || {
-        expect_rw::<PC>().with(|pc| {
-            let mut quick_access = pc.quick_access.iter().enumerate().flat_map(|(id, item)| {
-                let item = item.as_ref()?;
-                Some(spec_to_view(id, item))
-            });
-            // Show help text if quick_access is empty.
-            if let Some(slot_1) = quick_access.next() {
-                view! {
-                    <div class= "flex flex-col shaded-table">
-                        { slot_1 }
-                        { quick_access.collect_view() }
-                    </div>
-                }
-                .into_view()
-            } else {
-                help_text().into_view()
+        if no_items.get() {
+            view! {
+                <div class= "text-center italic p-2">
+                    "Items in quick access slots will be shown here."
+                </div>
             }
-        })
+            .into_view()
+        } else {
+            table().into_view()
+        }
     }
 }
 
-fn spec_to_view(id: usize, item: &Item) -> impl IntoView {
-    let name = item.name.clone();
-    match &item.spec {
-        ItemSpec::Weapon(weapon) => weapon_attack(name, weapon).into_view(),
-        ItemSpec::Tome(tome) => tome_view(item, tome).into_view(),
-        ItemSpec::Consumable(effect) => consumable_view(item.name.clone(), effect, id).into_view(),
-        _ => basic_item(item.name.clone()).into_view(),
-    }
-}
+fn table() -> impl IntoView {
+    let quick_access = PC::untracked(|pc| {
+        pc.quick_access
+            .iter()
+            .enumerate()
+            .flat_map(|(id, item)| {
+                let item = item.as_ref()?;
+                Some(quick_item(id, item))
+            })
+            .collect::<Vec<_>>()
+    });
 
-fn help_text() -> impl IntoView {
     view! {
-        <div class= "text-center italic p-2">
-            "Items in quick access slots will be shown here."
+        <div class= "flex flex-col shaded-table">
+            { quick_access }
         </div>
     }
 }
 
-fn basic_item(name: String) -> impl IntoView {
+fn quick_item(id: usize, item: &Item) -> impl IntoView {
+    let use_btn = item
+        .props
+        .iter()
+        .find(|prop| matches!(prop, ItemProp::Usable(_)))
+        .map(|_| use_item_btn(id));
     view! {
-        <div class= "p-2 uppercase title">
-            { name }
-        </div>
-    }
-}
-
-fn weapon_attack(name: String, weap: &Weapon) -> impl IntoView {
-    let sesh = expect_rw::<PCSession>();
-    let dmg_incr = move || {
-        let (op, num) = split_operator(sesh.with(|sesh| sesh.stats.get(weap.as_stat())));
-        format!("{op}{num}")
-    };
-    let dmg = format!("{}{}", DAMAGE_DIE[weap.as_damage()], dmg_incr());
-
-    view! {
-        <div class= "flex items-center">
-            <div class= "p-2 w-12 grow uppercase title"> { name } </div>
-            <div class= "w-16 text-center font-sans">
-                { dmg }
-            </div>
+        <div class= "">
+            { item.into_view() }
+            { use_btn }
         </div>
     }
 }
 
 fn use_item(id: usize) {
-    expect_rw::<PC>().update(|pc| {
+    PC::update(|pc| {
         let item = pc.quick_access[id].as_mut().unwrap();
-        if let Some(x) = item.stacks.as_mut() {
-            if x.0 > 1 {
-                x.0 -= 1;
-            } else {
+        if let Some(count) = item.find_mut_counter() {
+            count.decr();
+            if count.is_zero() {
                 pc.quick_access[id] = None;
             }
         } else {
@@ -91,31 +68,26 @@ fn use_item(id: usize) {
     })
 }
 
-fn consumable_view(name: String, effect: &Effect, id: usize) -> impl IntoView {
+fn use_item_btn(id: usize) -> impl IntoView {
     let uses_left = move || {
-        expect_rw::<PC>().with(|pc| {
+        let curr = PC::with(|pc| {
             pc.quick_access[id]
                 .as_ref()
-                .map(|item| {
-                    let stacks = item.stacks.map(|(curr, _)| curr).unwrap_or(1);
-                    let uses = if stacks > 2 { "uses" } else { "use" };
-                    format!("{stacks} {uses} left.")
-                })
+                .and_then(|item| item.find_counter().map(|count| count.curr))
                 .unwrap_or_default()
-        })
+        });
+        let uses = if curr > 2 { "uses" } else { "use" };
+        format!("{curr} {uses} left.")
     };
-    let effect = format!("Action: {effect}.");
 
     view! {
         <div class= "flex">
-            <div class= "flex flex-col p-2 w-12 grow">
-                <div class= "uppercase title"> { name } </div>
-                <div> { effect } </div>
+            <div class= "">
                 <div> { uses_left } </div>
             </div>
             <button
-                class= "rounded-r flex-centered w-16 font-sans text-emerald-500"
-                on:click=move |_| use_item( id)
+                class= "w-12 grow btn bg-green-800"
+                on:click=move |_| use_item(id)
             >
                 "USE"
             </button>

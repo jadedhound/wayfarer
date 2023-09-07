@@ -1,12 +1,11 @@
 use leptos::*;
 use serde::{Deserialize, Serialize};
 
-use crate::svg;
-use crate::utils::index_map::IndexMap;
-use crate::utils::{expect_rw, some_if};
-use crate::views::modal::{ModalCentered, ModalState};
-
 use super::session::PCSession;
+use crate::icons;
+use crate::utils::index_map::IndexMap;
+use crate::utils::{expect_rw, some_if, RwProvided};
+use crate::views::modal::{CenterModal, ModalState};
 
 #[derive(Serialize, Deserialize, Default, Clone)]
 pub struct PCJournals(IndexMap<Note>);
@@ -46,11 +45,9 @@ pub fn journal() -> impl IntoView {
 
     view! {
 
-        <div class= "flex flex-col px-2 gap-4">
-            <h5 class= "text-center"> "NOTES" </h5>
-            { journal_notes }
-            { new_note_input }
-        </div>
+        <h2> "Journal" </h2>
+        { journal_notes }
+        { new_note_input }
         { modal() }
     }
 }
@@ -58,25 +55,25 @@ pub fn journal() -> impl IntoView {
 fn new_note_input() -> impl IntoView {
     let journals = expect_rw::<PCJournals>();
     let new_note = create_rw_signal(String::new());
+    let create_note = move || {
+        let name = new_note.get();
+        journals.update(|j| j.0.add(Note::new(name)));
+        new_note.set(String::new())
+    };
 
     view! {
-        <div class= "flex">
+        <div class= "flex gap-1">
             <input
-                class= "w-12 grow rounded-l bg-inherit outline-none border-y-2 border-l-2 border-purple-800 px-2"
+                class= "w-12 grow input"
                 on:input=move |ev| new_note.set(event_target_value(&ev))
                 prop:value=move || new_note.get()
             />
             <button
-                class= "bg-purple-800 disabled:border-purple-800 btn-rounded-r flex-centered w-12"
-                on:click=move |_| {
-                    let name = new_note.get();
-                    journals.update(|j| j.0.add(Note::new(name)));
-                    new_note.set(String::new())
-                }
+                class= "btn bg-green-800 self-center w-10 text-xl"
+                on:click=move |_| create_note()
                 disabled=move || new_note.get().is_empty()
-            >
-                <div class= "svg w-6" inner_html=svg::PLUS />
-            </button>
+                inner_html=icons::PLUS
+            />
         </div>
     }
 }
@@ -84,16 +81,9 @@ fn new_note_input() -> impl IntoView {
 fn note_view(id: usize, Note { name, body }: &Note) -> impl IntoView {
     let sesh = expect_rw::<PCSession>();
     let edit_note = expect_rw::<EditNote>();
-    let body_hidden = move || sesh.with(|sesh| !sesh.open_notes.contains(&id));
-    let chev = move || {
-        if body_hidden() {
-            svg::DOWN_CHEV
-        } else {
-            svg::UP_CHEV
-        }
-    };
+    let body_hidden = PCSession::slice(move |sesh| !sesh.open_notes.contains(&id));
     let change_open = move || {
-        let is_open = !body_hidden();
+        let is_open = !body_hidden.get();
         sesh.update(|sesh| {
             if is_open {
                 if let Some(i) = sesh.open_notes.iter().position(|x| x == &id) {
@@ -108,29 +98,32 @@ fn note_view(id: usize, Note { name, body }: &Note) -> impl IntoView {
         edit_note.update(|x| x.0 = id);
         ModalState::open(0);
     };
+    let rotate_chev = move || {
+        some_if(!body_hidden.get())
+            .map(|_| "rotate-180")
+            .unwrap_or_default()
+    };
 
     view! {
         <div class= "flex flex-col gap-2">
-            <div class= "flex gap-x-2">
+            <div class= "flex gap-1">
                 <button
-                    class= "btn-zinc text-left px-2 h-12"
+                    class= "btn bg-purple-800 text-left px-2 h-12"
                     on:click=move |_| edit_note_modal()
                     hidden=body_hidden
                 >
-                    <div class= "w-6 svg" inner_html=svg::INKWELL />
+                    <div class= "w-6 icons" inner_html=icons::QUILL />
                 </button>
                 <button
-                    class= "btn-zinc text-left px-2 h-12 flex-centered w-full"
+                    class= "btn bg-surface text-left px-2 h-12 flex-center w-full"
                     on:click=move |_| change_open()
                 >
                     <div class= "w-12 grow"> { name.clone() } </div>
-                    <div class= "">
-                        <div class= "w-6 svg" inner_html=chev />
-                    </div>
+                    <div class=move || format!("w-4 {}", rotate_chev()) inner_html=icons::DOWN_CHEV />
                 </button>
             </div>
             <div
-                class= "rounded border-2 border-zinc-700"
+                class= "rounded border-2 border-zinc-800"
                 hidden=body_hidden
             >
                 { body_view( body) }
@@ -142,9 +135,7 @@ fn note_view(id: usize, Note { name, body }: &Note) -> impl IntoView {
 fn body_view(body: &str) -> impl IntoView {
     if body.is_empty() {
         view! {
-            <div class= "text-center">
-                "Click the inkwell to edit this note"
-            </div>
+            <div class= "psuedo h-10" />
         }
     } else {
         view! {
@@ -193,7 +184,7 @@ fn modal() -> impl IntoView {
     };
 
     view! {
-        <ModalCentered title=|| "Edit Note" id=0>
+        <CenterModal title=|| "Edit Note" id=0>
             <div class= "flex flex-col gap-2">
                 <input
                     class= "input"
@@ -201,17 +192,17 @@ fn modal() -> impl IntoView {
                     on:input=move |ev| name.set(event_target_value(&ev))
                 />
                 <textarea
-                    class= "input h-[50vh]"
+                    class= "input h-[40vh]"
                     prop:value=move || body.get()
                     on:input=move |ev| body.set(event_target_value(&ev))
                 />
                 <button
-                    class=move || format!("flex-centered p-2 rounded {}", btn_state().1)
+                    class=move || format!("flex-center p-2 rounded {}", btn_state().1)
                     on:click=move |_| save_or_delete()
                 >
                     { move || btn_state().0 }
                 </button>
             </div>
-        </ModalCentered>
+        </CenterModal>
     }
 }

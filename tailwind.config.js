@@ -8,13 +8,16 @@ module.exports = {
   ],
   theme: {
     fontFamily: {
-      'sans': ['Open Sans Condensed', 'ui-sans-serif'],
-      'serif': ['PTSans', 'ui-serif'],
+      'sans': ['Open Sans', 'ui-sans-serif'],
+      'serif': ['ui-serif'],
       'mono': ['ui-monospace'],
+      'tight': ['Open Sans Condensed'],
+      'regal': ['Hamlet']
     },
     extend: {
       colors: {
-        black: '#000000'
+        black: '#000000',
+        surface: '#27272a'
       },
       animation: {
         "fade": "fadeIn .5s ease-in",

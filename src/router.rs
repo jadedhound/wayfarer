@@ -4,13 +4,14 @@ use leptos::*;
 use leptos_router::*;
 
 use crate::error::*;
-use crate::lobby::{lobby, PCList};
-use crate::pc::craft::craft;
-use crate::pc::followers::followers;
+use crate::lobby::{lobby, NewPCTimeout, PCList};
+use crate::pc::class_view::class;
 use crate::pc::inventory::inventory;
 use crate::pc::journal::journal;
 use crate::pc::overview::overview;
+use crate::pc::realm::realm;
 use crate::pc::scout::pc_scout;
+use crate::pc::shops::shop;
 use crate::rand::provide_rand;
 use crate::utils::db::provide_saved;
 use crate::views::modal::ModalState;
@@ -24,11 +25,12 @@ pub fn main_router() -> impl IntoView {
                 <Route path= "/" view=load_assets_view>
                     <Route path= "" view=lobby />
                     <Route path= "/pc/:id" view=pc_scout >
-                        <Route path="" view=overview />
-                        <Route path= "/craft" view=craft />
-                        <Route path= "/inventory" view=inventory />
-                        <Route path= "/journal" view=journal />
-                        <Route path= "/followers" view=followers />
+                        <Route path= "" view=overview />
+                        <Route path= "inventory" view=inventory />
+                        <Route path= "journal" view=journal />
+                        <Route path= "realm" view=realm />
+                        <Route path= "shop" view=shop />
+                        <Route path= "class" view=class />
                     </Route>
                 </Route>
                 <Route path= "/*any" view=|| fatal_pg(Error::NotFound) />
@@ -44,14 +46,12 @@ async fn init_assets() -> Result<(), Error> {
     let db = simple_index::new().await?;
     provide_context(Rc::new(db));
     provide_saved("pc_list", PCList::default).await;
+    provide_saved("new_pc_timeout", || NewPCTimeout(0.0)).await;
 
     // Popup modals
-    let modal = create_rw_signal(ModalState::new());
-    provide_context(modal);
-    let toast = create_rw_signal(Toast::new());
-    provide_context(toast);
-    let revealer = create_rw_signal(Revealer(None));
-    provide_context(revealer);
+    provide_context(create_rw_signal(ModalState::new()));
+    provide_context(create_rw_signal(Toast::default()));
+    provide_context(create_rw_signal(Revealer(None)));
     Ok(())
 }
 

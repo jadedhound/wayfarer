@@ -12,10 +12,10 @@ use crate::utils::expect_rw;
 
 async fn get_pc(id: Option<usize>) -> Option<()> {
     let id = id?;
-    let name = expect_rw::<PCList>().with_untracked(|list| list.0.get(id).cloned())?;
+    let pc_basic = expect_rw::<PCList>().with_untracked(|list| list.0.get(id).cloned())?;
     // Get from IndexedDB.
     provide_saved(format!("{id}_journals"), PCJournals::default).await;
-    provide_saved(id, || PC::new(name)).await;
+    provide_saved(id, || PC::from(pc_basic)).await;
     // Create session.
     provide_context(create_rw_signal(PCSession::new()));
     // Init update hooks.

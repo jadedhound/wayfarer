@@ -1,8 +1,7 @@
-use const_format::concatcp;
+use const_format::formatcp;
 use serde::{Deserialize, Serialize};
 
-use super::item_spec::ItemSpecRef;
-use super::{ItemQuality, ItemRef};
+use super::{ItemPropRef as Prop, ItemRef};
 use crate::pc::pc_stat::PCStat;
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -26,29 +25,36 @@ pub struct TomeRef {
     pub effect: &'static str,
 }
 
-pub const DC_BY_QUALITY: [u8; 5] = [0, 0, 10, 15, 20];
-const SP_PRICE: [u32; 5] = [0, 0, 50, 150, 300];
+const fn tome(name: &'static str, props: &'static [Prop]) -> ItemRef {
+    ItemRef::new(name, 250, props)
+}
 
-const fn tome(
-    name: &'static str,
-    effect: &'static str,
-    quality: ItemQuality,
-    stat: PCStat,
-) -> ItemRef {
-    ItemRef {
-        name,
-        specs: ItemSpecRef::Tome(TomeRef { stat, effect }),
-        is_bulky: true,
-        price: SP_PRICE[quality as usize],
-        quality,
-        stacks: None,
+#[rustfmt::skip]
+pub mod spell {
+    use super::*;
+
+    const PRE: &str = "spelltome of";
+    const fn props(effect: &'static str) -> [Prop; 2] {
+        [Prop::Bulky, Prop::Spellbook(effect)]
     }
+
+    const ADHERE_PROP: [Prop; 2] = props("2 objects are polarized, if they come within 10 ft. they are strongly attracted");
+    pub const ADHERE: ItemRef = tome(formatcp!("{PRE} attract"), &ADHERE_PROP);
+
+    pub const ALL: [&ItemRef; 1] = [&ADHERE];
 }
 
-const S_PRE: &str = "spellbook: ";
-const fn spell(name: &'static str, effect: &'static str) -> ItemRef {
-    tome(name, effect, ItemQuality::Rare, PCStat::INT)
-}
-pub const ADHERE: ItemRef = spell(concatcp!(S_PRE, "attract"), "2 objects are polarized, if they come within 10 ft. they are strongly attracted to each other as if magnetised");
+#[rustfmt::skip]
+pub mod prayer {
+    use super::*;
 
-pub const ALL: [&ItemRef; 1] = [&ADHERE];
+    const PRE: &str = "prayertome of";
+    const fn props(effect: &'static str) -> [Prop; 2] {
+        [Prop::Bulky, Prop::Spellbook(effect)]
+    }
+
+    const VENTRIL_PROP: [Prop; 2]= props("a creature must repeat everything you think; it is otherwise mute");
+    pub const VENTRIL: ItemRef = tome(formatcp!("{PRE} the ventriloquist"), &VENTRIL_PROP);
+
+    pub const ALL: [&ItemRef; 1] = [&VENTRIL];
+}

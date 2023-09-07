@@ -1,71 +1,92 @@
 use leptos::*;
 use leptos_router::*;
 
-mod buffs;
-mod hp;
-mod quick_access;
-mod rest;
-mod tome;
-mod turn_tracker;
+use self::hp::hp;
+use self::prof::prof_view;
+use self::quick_access::quick_access;
 use self::turn_tracker::turn_tracker;
-use super::PC;
-use crate::pc::overview::buffs::buff_listview;
-use crate::pc::overview::hp::hp;
-use crate::pc::overview::quick_access::quick_access;
-use crate::pc::overview::rest::rest;
+use crate::icons;
 use crate::pc::session::PCSession;
-use crate::pc::PCStat;
-use crate::svg;
-use crate::utils::{expect_rw, split_operator, RwProvided};
+use crate::pc::{PCStat, PC};
+use crate::utils::{split_operator, RwProvided};
+
+mod buff_list;
+mod buff_search;
+mod buff_view;
+mod hp;
+mod prof;
+mod quick_access;
+mod turn_tracker;
 
 pub fn overview() -> impl IntoView {
-    let pc = expect_rw::<PC>();
+    let name = PC::with(|pc| {
+        view! {
+            <h3 class= "my-2 w-12 grow line-clamp-2"> { &pc.name } </h3>
+        }
+        .into_view()
+    });
 
     view! {
-        <div class= "flex flex-col space-y-2 px-2">
-            <h2> {move || pc.with(|p| p.name.clone())} </h2>
-            { ability_scores }
-            { hp }
-            <h5 class= "text-center"> "TURN TRACKER" </h5>
-            { turn_tracker }
-            <h5 class= "text-center"> "QUICK ACCESS" </h5>
-            { quick_access }
-            <h5 class= "text-center"> "BUFFS AND DEBUFFS" </h5>
-            { buff_listview }
-            <h5 class= "text-center"> "DESCRIPTION" </h5>
-            { move || pc.with(|p| p.description.clone()) }
-            <h5 class= "text-center"> "REST" </h5>
-            { rest }
-            <div>
-                <A href="/" class= "flex-centered p-2 mt-8 bg-red-900 rounded">
-                    <div class= "w-6 mr-2 svg" inner_html=svg::HOME />
-                    <div class= "mt-1"> "Lobby" </div>
-                </A>
-            </div>
-            <div class= "psuedo h-4" />
+        <div class= "flex items-center">
+            { name }
+            <A href= "/" class= "btn p-2 bg-red-800 aspect-square flex-center">
+                <div class= "w-5 -mr-1" inner_html=icons::EXIT />
+            </A>
         </div>
+        { ability_scores }
+        <div class= "grid grid-cols-7 gap-y-1 gap-x-2">
+            { class_view }
+            { prof_view }
+            { hp }
+        </div>
+        <h5 class= "text-center"> "TURN TRACKER" </h5>
+        { turn_tracker }
+        <h5 class= "text-center"> "QUICK ACCESS" </h5>
+        { quick_access }
+        <h5 class= "text-center"> "BUFFS & DEBUFFS" </h5>
+        { buff_search::search  }
+        { buff_list::list }
     }
 }
 
 fn ability_scores() -> impl IntoView {
-    view! {
+    const CORE_STATS: [PCStat; 4] = [PCStat::STR, PCStat::DEX, PCStat::INT, PCStat::CHA];
+    let names = CORE_STATS
+        .map(|x| {
+            view! { <div> { x.to_string() } </div> }
+        })
+        .collect_view();
+    let stats = move || {
+        PCSession::with(|sesh| {
+            CORE_STATS
+                .map(|x| {
+                    let (op, stat) = split_operator(sesh.stats.get(x));
+                    view! { <div> { format!("{op}{stat}") } </div> }
+                })
+                .collect_view()
+        })
+    };
 
-        <div class= "grid grid-cols-4 gap-2 divide-x-2 divide-emerald-700">
-            { ability( PCStat::STR) }
-            { ability( PCStat::DEX) }
-            { ability( PCStat::INT) }
-            { ability( PCStat::CHA) }
+    view! {
+        <div class= "grid grid-cols-4 divide-x-2 divide-rm-5 divide-sky-700 font-tight text-2xl text-center">
+            { names }
+            { stats }
         </div>
     }
 }
 
-fn ability(stat: PCStat) -> impl IntoView {
-    let score = move || PCSession::with(|sesh| split_operator(sesh.stats.get(stat)));
+fn class_view() -> impl IntoView {
+    let text = PC::with(|pc| {
+        let (class, level) = pc.class;
+        format!("{class} LEVEL {level}")
+    });
 
     view! {
-        <div class= "text-center font-sans text-2xl">
-            <div> { stat.to_string() } </div>
-            <div> { score } </div>
+        <A class= "btn bg-surface flex-center" href= "class">
+            <div class= "w-6 fill-yellow-500" inner_html=icons::BULLSEYE />
+        </A>
+        <div class= "col-span-6 uppercase font-tight self-center text-xl">
+            { text }
         </div>
     }
 }

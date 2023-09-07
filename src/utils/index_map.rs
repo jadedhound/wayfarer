@@ -33,21 +33,27 @@ impl<T: Clone> From<Vec<T>> for IndexMap<T> {
     }
 }
 
+impl<A: Clone> FromIterator<A> for IndexMap<A> {
+    fn from_iter<T: IntoIterator<Item = A>>(iter: T) -> Self {
+        Self {
+            values: iter.into_iter().map(|x| Some(x)).collect(),
+            ..Default::default()
+        }
+    }
+}
+
 impl<T: Clone> IndexMap<T> {
     pub fn values(&self) -> impl Iterator<Item = &T> + '_ {
         self.values.iter().flatten()
+    }
+    pub fn values_mut(&mut self) -> impl Iterator<Item = &mut T> + '_ {
+        self.values.iter_mut().flatten()
     }
     pub fn iter(&self) -> impl Iterator<Item = (usize, &T)> + '_ {
         self.values
             .iter()
             .enumerate()
             .filter_map(|(i, x)| Some((i, x.as_ref()?)))
-    }
-    pub fn clone_iter(&self) -> impl Iterator<Item = (usize, T)> + '_ {
-        self.values
-            .iter()
-            .enumerate()
-            .filter_map(|(i, x)| Some((i, x.clone()?)))
     }
     pub fn add(&mut self, t: T) {
         if let Some(id) = self.removed_ids.pop() {
@@ -74,6 +80,14 @@ impl<T: Clone> IndexMap<T> {
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
+    pub fn position<P>(&self, p: P) -> Option<usize>
+    where
+        P: Fn(&T) -> bool,
+    {
+        self.iter().find(|(_, item)| p(item)).map(|(id, _)| id)
+    }
+
+    /// Map through the values and create an index map from the result.
     pub fn clone_map<A, F>(&self, mut f: F) -> IndexMap<A>
     where
         A: Clone,

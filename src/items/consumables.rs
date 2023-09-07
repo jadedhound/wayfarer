@@ -1,46 +1,31 @@
-use super::effects::EffectRef;
-use super::item_spec::ItemSpecRef;
-use super::{adj_price, ItemQuality, ItemRef};
+#![cfg_attr(rustfmt, rustfmt_skip)]
 
-const fn consume(
-    name: &'static str,
-    effect: EffectRef,
-    price: u32,
-    quality: ItemQuality,
-    stacks: Option<u8>,
-) -> ItemRef {
-    ItemRef {
-        name,
-        specs: ItemSpecRef::Consumable(effect),
-        is_bulky: false,
-        price,
-        quality,
-        stacks,
-    }
-}
+use super::{ItemPropRef as Prop, ItemRef};
+use crate::utils::counter::Counter;
+use crate::buffs::held;
 
-const fn bomb(name: &'static str, effect: EffectRef, quality: ItemQuality) -> ItemRef {
-    const BOMB_CP: u32 = 25;
-    consume(name, effect, adj_price(BOMB_CP, quality), quality, Some(5))
-}
 
-const fn blast(desc: &'static str) -> EffectRef {
-    EffectRef { desc }
+const fn use_prop(desc: &'static str) -> [Prop; 2] {
+    [Prop::Count(Counter::full(5)), Prop::Usable(desc)]
 }
 
 // ------------------------------
 // KNOCK DOWN BOMBS
 // ------------------------------
 
-const BOMB_KNOCKDOWN: ItemRef = bomb(
-    "knockdown bomb",
-    blast("creatures within 5 ft. of the bomb are knocked down"),
-    ItemQuality::Common,
-);
-const BOMB_CONCUSSIVE: ItemRef = bomb(
-    "concussive charge",
-    blast("creatures within 10 ft. of the bomb are pushed 5 ft. away and knocked down"),
-    ItemQuality::Uncommon,
-);
+const KNOCKDOWN_T1: ItemRef = ItemRef::new("lesser knockdown bomb", 25, &use_prop("creatures within 5 ft. of the bomb are knocked prone"));
+const KNOCKDOWN_T2: ItemRef = ItemRef::new("knockdown bomb", 50, &use_prop("creatures within 10 ft. of the bomb are pushed away 5 ft. and knocked prone"));
 
-pub(super) const BOMB: [&ItemRef; 2] = [&BOMB_CONCUSSIVE, &BOMB_KNOCKDOWN];
+pub(super) const BOMB: [&ItemRef; 2] = [&KNOCKDOWN_T2, &KNOCKDOWN_T1];
+
+// ------------------------------
+// MISC
+// ------------------------------
+
+pub mod misc {
+    use super::*;
+
+    const TORCH: ItemRef = ItemRef::new("torch", 1, &[Prop::Count(Counter::empty(5)), Prop::Buff(held::TORCH)]);
+
+    pub const ALL: [&ItemRef; 1] = [&TORCH];
+}

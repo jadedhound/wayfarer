@@ -1,9 +1,9 @@
 use leptos::*;
 
+use crate::icons;
 use crate::items::Item;
 use crate::pc::inventory::stack_btn::stack_btn;
 use crate::pc::PC;
-use crate::svg;
 use crate::utils::{expect_rw, some_if};
 
 struct ChangeSlot(usize);
@@ -29,7 +29,7 @@ pub(super) fn quick_access() -> impl IntoView {
 
 fn quick_slot(id: usize, item: &Option<Item>) -> impl IntoView {
     let pc = expect_rw::<PC>();
-    let has_stacks = item.as_ref().is_some_and(|x| x.stacks.is_some());
+    let has_stacks = item.as_ref().is_some_and(|x| x.find_counter().is_some());
     let stacks = some_if(has_stacks).map(|_| stack_btn(id, false));
     let remove_disabled = move || pc.with(|pc| pc.quick_access[id].is_none());
     let remove = move || {
@@ -39,11 +39,6 @@ fn quick_slot(id: usize, item: &Option<Item>) -> impl IntoView {
                 pc.quick_access[id] = None
             }
         });
-    };
-    let svg_class = if item.is_some() {
-        "stroke-red-800"
-    } else {
-        "stroke-zinc-500"
     };
     let item = match item {
         Some(item) => item.into_view(),
@@ -55,14 +50,16 @@ fn quick_slot(id: usize, item: &Option<Item>) -> impl IntoView {
 
     view! {
         <div class= "flex gap-x-2">
-            <div class= "w-full p-2"> { item } </div>
-            { stacks }
+            <div class= "flex flex-col w-12 grow p-2">
+                { item }
+                { stacks }
+            </div>
             <button
-                class= "px-2"
+                class= "flex-center px-2 fill-red-500 disabled:fill-zinc-700"
                 on:click=move |_| remove()
                 disabled=remove_disabled
             >
-                <div class=format!("w-4 {svg_class}") inner_html=svg::CROSS />
+                <div class= "w-4" inner_html=icons::CROSS />
             </button>
         </div>
     }
