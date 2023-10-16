@@ -1,5 +1,3 @@
-use std::fmt::Display;
-
 use leptos::*;
 
 use crate::utils::expect_rw;
@@ -25,7 +23,7 @@ impl ModalState {
 }
 
 pub fn modal_grey_screen() -> impl IntoView {
-    let hidden = move || expect_rw::<ModalState>().with(|state| state.0.is_none());
+    let hidden = move || ModalState::get().is_none();
 
     view! {
         <div class= "fixed inset-0 z-30" hidden=hidden>
@@ -35,24 +33,38 @@ pub fn modal_grey_screen() -> impl IntoView {
 }
 
 #[component]
-pub fn CenterModal<F, S>(children: Children, title: F, id: u8) -> impl IntoView
-where
-    F: Fn() -> S + 'static,
-    S: Display,
-{
-    let hidden = move || !expect_rw::<ModalState>().with(|state| state.0 == Some(id));
+pub fn ModalCenter(children: Children, id: u8) -> impl IntoView {
+    let hidden = move || !ModalState::get().is_some_and(|x| x == id);
+    let dismiss = move |_| ModalState::dismiss();
 
     view! {
         <div class= "relative z-40" hidden=hidden>
-            <div class= "fixed top-0 h-full w-full flex flex-col">
-                <div class= "h-[15vh] grow" on:click=move |_| ModalState::dismiss() />
-                <div class= "w-full p-2 animate-popin overflow-auto">
-                    <div class= "bg-surface shadow-md shadow-black rounded h-full w-full text-center flex flex-col p-4 gap-4 overflow-auto">
-                        <h5 class= "uppercase"> { move || title().to_string() } </h5>
+            <div class= "fixed top-0 left-0 h-full w-full flex flex-col">
+                <div class= "h-[15vh] grow" on:click=dismiss />
+                <div class= "animate-popin p-2">
+                    <div class= "bg-surface shadow-md shadow-black rounded h-full w-full p-4 overflow-y-auto">
                         { children() }
                     </div>
                 </div>
-                <div class= "pseudo h-[15vh] grow" on:click=move |_| ModalState::dismiss() />
+                <div class= "h-[15vh] grow" on:click=dismiss />
+            </div>
+        </div>
+    }
+}
+
+#[component]
+pub fn ModalCenterCustom(children: Children, id: u8) -> impl IntoView {
+    let hidden = move || !ModalState::get().is_some_and(|x| x == id);
+    let dismiss = move |_| ModalState::dismiss();
+
+    view! {
+        <div class= "relative z-40" hidden=hidden>
+            <div class= "fixed top-0 left-0 h-full w-full flex flex-col">
+                <div class= "h-[15vh] grow" on:click=dismiss />
+                <div class= "animate-popin p-2">
+                    { children() }
+                </div>
+                <div class= "h-[15vh] grow" on:click=dismiss />
             </div>
         </div>
     }

@@ -5,7 +5,7 @@ use super::session::PCSession;
 use crate::icons;
 use crate::utils::index_map::IndexMap;
 use crate::utils::{expect_rw, some_if, RwProvided};
-use crate::views::modal::{CenterModal, ModalState};
+use crate::views::modal::{ModalCenter, ModalState};
 
 #[derive(Serialize, Deserialize, Default, Clone)]
 pub struct PCJournals(IndexMap<Note>);
@@ -45,7 +45,7 @@ pub fn journal() -> impl IntoView {
 
     view! {
 
-        <h2> "Journal" </h2>
+        <h4 class= "text-center"> "Journal" </h4>
         { journal_notes }
         { new_note_input }
         { modal() }
@@ -184,7 +184,8 @@ fn modal() -> impl IntoView {
     };
 
     view! {
-        <CenterModal title=|| "Edit Note" id=0>
+        <ModalCenter id=0>
+            <h5> "EDIT NOTE" </h5>
             <div class= "flex flex-col gap-2">
                 <input
                     class= "input"
@@ -203,6 +204,6 @@ fn modal() -> impl IntoView {
                     { move || btn_state().0 }
                 </button>
             </div>
-        </CenterModal>
+        </ModalCenter>
     }
 }

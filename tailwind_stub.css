@@ -94,11 +94,11 @@ CHECKMARK
 */
 
 .checkmark-btn {
-  @apply rounded border-2 border-surface fill-surface font-tight; 
+  @apply rounded border-2 border-yellow-500 fill-transparent; 
 }
 
 div input:checked ~ .checkmark-btn {
-  @apply border-yellow-500 fill-yellow-500;
+  @apply fill-yellow-500;
 }
 
 
@@ -142,20 +142,23 @@ BUTTON
 .btn-disabled {
   @apply disabled:shadow-none disabled:bg-inherit disabled:border-zinc-800 disabled:text-zinc-500 disabled:stroke-zinc-700 disabled:fill-zinc-700;
 }
-.btn {
-  @apply btn-disabled rounded border-2 border-transparent shadow shadow-black font-tight; 
-}
 .btn-no-font {
   @apply btn-disabled rounded border-2 border-transparent shadow shadow-black; 
 }
-.btn:disabled * {
+.btn-no-font:disabled *, .btn-no-font:disabled * * {
   @apply text-zinc-500;
+}
+.btn {
+  @apply btn-no-font font-tight; 
 }
 .btn-surface-disabled {
   @apply disabled:bg-inherit disabled:border-zinc-600 disabled:text-zinc-500;
 }
+.btn-surface-no-font {
+  @apply btn-surface-disabled rounded border-2 border-transparent; 
+}
 .btn-surface {
-  @apply btn-surface-disabled rounded border-2 border-transparent font-tight; 
+  @apply btn-surface-no-font font-tight; 
 }
 
 /* 
@@ -182,9 +185,23 @@ input[type=number] {
 
 /* 
 -------------------------------------------
+FOLLOWERS
+------------------------------------------- 
+*/
+
+.folstat-border :nth-child(-n+2) {
+  @apply border-b-2 border-inherit;  
+}
+.folstat-border :nth-child(2n+1) {
+  @apply border-r-2 border-inherit;  
+}
+
+/* 
+-------------------------------------------
 TOOLTIP
 ------------------------------------------- 
 */
+
 .tooltip {
   @apply invisible absolute top-0 p-1 -translate-y-9 truncate rounded bg-zinc-700 border-2 border-zinc-600;
 }
@@ -201,13 +218,13 @@ TABLE
 .shaded-table {
   @apply border-2 border-zinc-800 rounded;  
 }
-.shaded-table > :is(div,button):nth-child(even) {
+.shaded-table > :is(*):nth-child(even) {
   @apply bg-zinc-800;
 }
 .shaded-table-light {
   @apply border-2 border-zinc-700 rounded;  
 }
-.shaded-table-light > :is(div,button):nth-child(even) {
+.shaded-table-light > :is(*):nth-child(even) {
   @apply bg-zinc-700;
 }
 .shade-even-2 > *:nth-child(4n + 3), 

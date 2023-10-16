@@ -16,7 +16,7 @@ impl Turns {
         Self(6)
     }
     pub fn next_day(&mut self) {
-        self.0 += TURNS_IN_DAY - self.turns()
+        self.0 += TURNS_IN_DAY - self.in_turns()
     }
     pub fn change_by(&mut self, amount: i64) {
         self.0 = (self.0 as i64 + amount) as u64
@@ -33,26 +33,26 @@ impl Turns {
     pub fn diff(&self, other: Self) -> Self {
         Self(u64::abs_diff(self.0, other.0))
     }
-    pub fn days(&self) -> u64 {
+    pub fn in_days(&self) -> u64 {
         self.0 / TURNS_IN_DAY
     }
-    pub fn turns(&self) -> u64 {
+    pub fn in_turns(&self) -> u64 {
         self.0 % TURNS_IN_DAY
     }
 }
 
 impl Display for Turns {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let days = self.days();
-        let turns = self.turns();
+        let days = self.in_days();
+        let turns = self.in_turns();
         if days != 0 && turns != 0 {
             write!(f, "{days} days {turns} turns")
         } else if days != 0 {
             write!(f, "{days} days")
-        } else if turns != 0 {
-            write!(f, "{turns} turns")
         } else {
-            write!(f, "instant")
+            const SUFFIX_TEXT: [&str; 2] = ["turn", "turns"];
+            let suffix = SUFFIX_TEXT[(turns > 1) as usize];
+            write!(f, "{turns} {suffix}")
         }
     }
 }

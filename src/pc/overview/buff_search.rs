@@ -48,7 +48,7 @@ fn confirm_buff(buff: Buff) -> impl IntoView {
     view! {
         <div class= "flex gap-1">
             <button
-                class= "btn bg-surface w-12 grow text-left p-2"
+                class= "btn-no-font bg-surface w-12 grow text-left p-2"
                 on:click=move |_| accept()
             >
                 { buff_view }

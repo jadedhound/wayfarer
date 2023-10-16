@@ -2,6 +2,7 @@ use leptos::*;
 
 pub mod counter;
 pub mod db;
+pub mod enum_array;
 pub mod index_map;
 pub mod search;
 pub mod turns;

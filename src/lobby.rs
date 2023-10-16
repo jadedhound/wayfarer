@@ -14,9 +14,9 @@ use crate::pc::pc_class::PCClassRef;
 use crate::rand::Rand;
 use crate::utils::index_map::IndexMap;
 use crate::utils::{db, expect_rw, some_if};
-use crate::views::delete_btn::delete_btn;
+use crate::views::delete_btn::{delete_btn, delete_btn_show};
 use crate::views::modal::{modal_grey_screen, ModalState};
-use crate::views::revealer::{revealer_screen, Revealer};
+use crate::views::revealer::revealer_screen;
 
 mod create_pc;
 pub mod pc_basic;
@@ -63,7 +63,6 @@ pub fn lobby() -> impl IntoView {
 /// Displays a PC created by the user.
 fn pc_btn((id, pc_basic): (usize, &PCBasic)) -> impl IntoView {
     let delete_pc = move || {
-        Revealer::hide();
         // Remove from pc list.
         expect_rw::<PCList>().update(|pc_list| {
             pc_list.0.remove(id);
@@ -85,16 +84,10 @@ fn pc_btn((id, pc_basic): (usize, &PCBasic)) -> impl IntoView {
 
     view! {
         <div class= "relative">
-            <A
-                href=format!("/pc/{id}")
-                on:contextmenu=move |event| {
-                    event.prevent_default();
-                    Revealer::show('p', id);
-                }
-            >
-                <div class=format!("relative aspect-square btn {colour} flex-center overflow-hidden uppercase")>
+            <A href=format!("/pc/{id}") on:contextmenu=delete_btn_show('p', id)>
+                <div class=format!("relative aspect-square btn {colour} flex-center overflow-hidden")>
                     <div class= "w-24 top-0 fill-black opacity-40" inner_html=class_icon />
-                    <h5 class= "absolute text-center line-clamp-3"> { name } </h5>
+                    <h4 class= "absolute text-center line-clamp-3"> { name } </h4>
                 </div>
             </A>
             { delete_btn('p', id, delete_pc) }

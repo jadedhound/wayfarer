@@ -1,19 +1,23 @@
-use once_cell::sync::Lazy;
+#![cfg_attr(rustfmt, rustfmt_skip)]
+
+use array_concat::{concat_arrays, concat_arrays_size};
 use serde::{Deserialize, Serialize};
 
-pub mod alchemy;
-pub mod consumables;
-pub mod food;
+mod alchemy;
+mod arcane;
+mod consumables;
+mod divine;
+mod food;
 mod item_prop;
-pub mod search;
-pub mod simple;
-pub mod tome;
-pub mod weapons;
+mod search;
+mod simple;
+mod weapons;
 
 pub use item_prop::*;
 
 use self::simple::meta::ERROR_ITEM;
-use crate::buffs::Buff;
+use crate::buffs::{Buff, BuffRef};
+use crate::pc::PC;
 use crate::utils::counter::Counter;
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -81,13 +85,6 @@ impl Default for Item {
     }
 }
 
-static EITEM: Lazy<Item> = Lazy::new(|| ERROR_ITEM.into());
-impl Default for &Item {
-    fn default() -> Self {
-        &EITEM
-    }
-}
-
 impl PartialEq for Item {
     fn eq(&self, other: &Self) -> bool {
         self.name == other.name && self.props.len() == other.props.len()
@@ -103,3 +100,35 @@ impl From<ItemRef> for Item {
         }
     }
 }
+
+impl Default for &'static ItemRef {
+    fn default() -> Self {
+        &ERROR_ITEM
+    }
+}
+
+// -----------------------------------
+// PUBLIC
+// -----------------------------------
+
+// RE-EXPORTS
+pub use search::search;
+pub use simple::meta::FATIGUE;
+pub use weapons::damage_die;
+
+// SHOP LISTS
+pub use alchemy::T1 as SHOP_ALCHEMY_T1;
+pub use arcane::T1 as SHOP_ARCANE_T1;
+pub use divine::T1 as SHOP_HOLY_T1;
+pub use simple::sundry::ALL as SHOP_ADVENTURE_T1;
+pub use weapons::ALL as SHOP_SMITH_T1;
+
+// ARRAYS
+pub const BUFFS: [&BuffRef; concat_arrays_size!(arcane::BUFFS, divine::BUFFS)] =
+    concat_arrays!(arcane::BUFFS, divine::BUFFS);
+
+// STARTER GEAR
+pub const FIGHTER: [&ItemRef; 3] = [&consumables::TORCH, &weapons::WARHAMMER, &weapons::SHIELD];
+pub const ROGUE: [&ItemRef; 3] = [&consumables::TORCH, &weapons::DAGGER, &weapons::SWORD];
+pub const MAGE: [&ItemRef; 3] = [&consumables::TORCH, &arcane::LIGHT, &arcane::MINOR_ILLUSION];
+pub const CLERIC: [&ItemRef; 3] = [&consumables::TORCH, &divine::MESSAGE, &divine::CHARM];

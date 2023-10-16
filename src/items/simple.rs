@@ -14,7 +14,6 @@ pub mod sundry {
     const ROPE: ItemRef = simple("50 ft. rope", 10);
     const IRON_CHAIN: ItemRef = simple("10 ft. iron chain", 10);
     const MANACLES: ItemRef = simple("iron manacles", 10);
-    const LANTERN: ItemRef = simple("hooded lantern", 50);
     const MARBLES: ItemRef = simple("sack of marbles", 10);
     const TENT: ItemRef = simple("personal tent", 50);
     const SACK: ItemRef = simple("sack", 1);
@@ -35,8 +34,8 @@ pub mod sundry {
     const BUCKET: ItemRef = simple("bucket", 5);
 
     #[rustfmt::skip]
-    pub const ALL: [&ItemRef; 22] = [
-        &ROPE, &IRON_CHAIN, &MANACLES, &LANTERN, &MARBLES, 
+    pub const ALL: [&ItemRef; 21] = [
+        &ROPE, &IRON_CHAIN, &MANACLES, &MARBLES, 
         &TENT, &SACK, &CROWBAR, &HAMMER, &CHISEL, 
         &LOCKPICK, &HORN, &NEEDLE, &THREAD, &SHOVEL, 
         &HOURGLASS, &MIRROR, &FISHNET, &GRAPPLING_HOOK, &BELL, 

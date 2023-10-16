@@ -5,17 +5,17 @@ use crate::pc::PC;
 use crate::utils::RwProvided;
 
 pub(super) fn turn_tracker() -> impl IntoView {
-    let turns = move || PC::with(|pc| pc.turns).turns() % 6 + 1;
+    let turns = move || PC::with(|pc| pc.turns).in_turns() % 6 + 1;
     let days = create_memo(move |_| {
-        let x = PC::with(|pc| pc.turns).days();
+        let x = PC::with(|pc| pc.turns).in_days();
         format!("DAY {x}")
     });
     let change_turn = move |amount| PC::update(|pc| pc.turns.change_by(amount));
     let cannot_rewind = create_memo(move |_| {
         let mut turns = PC::with(|pc| pc.turns);
-        let curr = turns.days();
+        let curr = turns.in_days();
         turns.change_by(-1);
-        let next = turns.days();
+        let next = turns.in_days();
         curr != next
     });
 

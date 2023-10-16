@@ -4,7 +4,7 @@ use crate::buffs::Buff;
 use crate::pc::class_view::ClassState;
 use crate::pc::PC;
 use crate::utils::{expect_rw, RwProvided};
-use crate::views::modal::{CenterModal, ModalState};
+use crate::views::modal::{ModalCenter, ModalState};
 
 pub(super) fn optional_buff(i: usize) -> impl IntoView {
     let state = expect_rw::<ClassState>();
@@ -45,7 +45,7 @@ pub(super) fn optional_buff(i: usize) -> impl IntoView {
     });
 
     view! {
-        <button class= "col-start-2 col-span-6 btn bg-surface p-2"
+        <button class= "col-start-2 col-span-6 btn-no-font bg-surface p-2"
             on:click=move |_| open_buff_picker()
             disabled=disabled
         >
@@ -66,7 +66,7 @@ pub(super) fn buff_picker() -> impl IntoView {
     let buff_view = move |buff: Buff| {
         let buff_clone = buff.clone();
         view! {
-            <button class= "btn-surface bg-zinc-700 p-2"
+            <button class= "btn-surface-no-font bg-zinc-700 p-2"
                 on:click=move |_| on_click(&buff)
             >
                 { buff_clone.into_view() }
@@ -87,10 +87,11 @@ pub(super) fn buff_picker() -> impl IntoView {
     };
 
     view! {
-        <CenterModal title=|| "CHOOSE BUFF" id=0>
+        <ModalCenter id=0>
+            <h4 class= "text-center"> "Choose Buff" </h4>
             <div class= "flex flex-col gap-2">
                 { class_buffs }
             </div>
-        </CenterModal>
+        </ModalCenter>
     }
 }

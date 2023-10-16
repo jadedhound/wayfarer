@@ -1,5 +1,6 @@
 use super::{body, conditions, held, BuffRef};
-use crate::utils::search::{char_count, compile_count, contains_pattern, count_arr, CharCount};
+use crate::items;
+use crate::utils::search::{arr_len, char_count, compile_count, contains_pattern, CharCount};
 
 /// Searches through a compiled list of `BuffRef`.
 pub fn search(query: String) -> impl IntoIterator<Item = &'static BuffRef> {
@@ -24,11 +25,11 @@ pub fn search(query: String) -> impl IntoIterator<Item = &'static BuffRef> {
 // SEARCH COMPILER
 // -----------------------------------
 
-const ALL_BUFFS: [&[&BuffRef]; 3] = [&body::ALL, &conditions::ALL, &held::ALL];
-const TOTAL_BUFFS: usize = count_arr(&ALL_BUFFS, 0, 0);
-type CountedArr = [(CharCount, &'static BuffRef); TOTAL_BUFFS];
-const COUNTED_ARR_DEF: CountedArr = [([0; 36], &super::ERROR); TOTAL_BUFFS];
-const SEARCHABLE_ARR: CountedArr = compile_search(&ALL_BUFFS, 0, COUNTED_ARR_DEF, 0);
+const ALL: [&[&BuffRef]; 4] = [&body::ALL, &conditions::ALL, &held::ALL, &items::BUFFS];
+const ALL_LEN: usize = arr_len(&ALL, 0, 0);
+type CountedArr = [(CharCount, &'static BuffRef); ALL_LEN];
+const COUNTED_ARR_DEF: CountedArr = [([0; 36], &super::ERROR); ALL_LEN];
+const SEARCHABLE_ARR: CountedArr = compile_search(&ALL, 0, COUNTED_ARR_DEF, 0);
 
 /// Recursively compile `CountedArr` to be searched.
 const fn compile_search(

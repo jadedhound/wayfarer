@@ -10,8 +10,8 @@ use crate::pc::inventory::inventory;
 use crate::pc::journal::journal;
 use crate::pc::overview::overview;
 use crate::pc::realm::realm;
+use crate::pc::realm::shop::shop;
 use crate::pc::scout::pc_scout;
-use crate::pc::shops::shop;
 use crate::rand::provide_rand;
 use crate::utils::db::provide_saved;
 use crate::views::modal::ModalState;
@@ -25,15 +25,16 @@ pub fn main_router() -> impl IntoView {
                 <Route path= "/" view=load_assets_view>
                     <Route path= "" view=lobby />
                     <Route path= "/pc/:id" view=pc_scout >
-                        <Route path= "" view=overview />
+                        <Route path= "overview" view=overview />
                         <Route path= "inventory" view=inventory />
                         <Route path= "journal" view=journal />
                         <Route path= "realm" view=realm />
-                        <Route path= "shop" view=shop />
+                        <Route path= "realm/shop" view=shop />
                         <Route path= "class" view=class />
+                        <Route path= "*any" view=|| view!{ <Redirect path="overview" /> }/>
                     </Route>
                 </Route>
-                <Route path= "/*any" view=|| fatal_pg(Error::NotFound) />
+                <Route path= "/*any" view=|| view!{ <Redirect path="" /> } />
             </Routes>
         </Router>
     }

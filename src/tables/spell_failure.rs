@@ -1,6 +1,6 @@
 use crate::rand::Rand;
 
-pub fn spell_failure() -> (&'static str, &'static str) {
+pub fn gen_spell_failure() -> (&'static str, &'static str) {
     Rand::with(|rand| {
         let (affects, tbl) = rand.pick(&AFFECTS);
         let effect = rand.pick(tbl);

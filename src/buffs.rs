@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::items::ItemPropRef;
-use crate::pc::pc_stat::PCStat;
+use crate::pc::PCStat;
 use crate::utils::counter::Counter;
 use crate::utils::turns::Turns;
 

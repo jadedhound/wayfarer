@@ -96,7 +96,8 @@ fn base_buff(i: usize) -> impl IntoView {
     });
 
     view! {
-        <button class= "col-start-2 col-span-6 btn bg-surface p-2"
+        <button
+            class= "col-start-2 col-span-6 btn-no-font bg-surface p-2"
             disabled=disabled
         >
             { buff_view }

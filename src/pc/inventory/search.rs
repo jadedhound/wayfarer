@@ -4,8 +4,7 @@ use gloo::timers::future::sleep;
 use leptos::*;
 
 use crate::icons;
-use crate::items::search::search;
-use crate::items::{Item, ItemRef};
+use crate::items::{search, Item, ItemRef};
 use crate::pc::PC;
 use crate::utils::{expect_rw, some_if, RwProvided};
 

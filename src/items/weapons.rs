@@ -10,7 +10,7 @@ pub fn damage_die(i: usize) -> &'static str {
 }
 
 pub const HANDAXE: ItemRef = ItemRef::new("handaxe", 10, &[Prop::Damage(1), Prop::Range(30)]);
-pub const HAMMER: ItemRef = ItemRef::new("warhammer", 10, &[Prop::Damage(2)]);
+pub const WARHAMMER: ItemRef = ItemRef::new("warhammer", 10, &[Prop::Damage(2)]);
 pub const CROWSBEAK: ItemRef = ItemRef::new("crowsbeak", 20, &[Prop::Damage(3), Prop::Bulky]);
 pub const LONGBOW: ItemRef = ItemRef::new("longbow", 10, &[Prop::Damage(2), Prop::Range(120)]);
 pub const SHIELD: ItemRef = ItemRef::new("shield", 10, &[Prop::Effect("halve all physical damage taken")]);
@@ -22,7 +22,7 @@ pub const CROSSBOW: ItemRef = ItemRef::new(
 );
 
 pub const ALL: [&ItemRef; 8] = [
-    &HANDAXE, &HAMMER, &CROWSBEAK, &SHIELD,
+    &HANDAXE, &WARHAMMER, &CROWSBEAK, &SHIELD,
     &DAGGER, &SWORD, 
     &CROSSBOW, &LONGBOW 
 ];

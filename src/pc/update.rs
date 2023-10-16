@@ -4,17 +4,20 @@ use gloo::events::EventListener;
 use leptos::logging::log;
 use leptos::*;
 
+use self::buffs::on_buff_change;
 use super::session::PCSession;
 use super::PC;
 use crate::buffs::BuffProp;
-use crate::items::simple;
-use crate::items::simple::meta::FATIGUE;
+use crate::items::FATIGUE;
+use crate::pc::realm::FolStat;
 use crate::pc::session::SlotRange;
 use crate::utils::index_map::IndexMap;
 use crate::utils::turns::TURNS_IN_DAY;
 use crate::utils::RwProvided;
 use crate::views::revealer::Revealer;
 use crate::views::toast::Toast;
+
+mod buffs;
 
 pub(super) fn on_rally() {
     PC::update(|pc| {
@@ -44,7 +47,7 @@ pub(super) fn on_rest(days: u64, heal_health: bool) {
 }
 
 fn remove_fatigue(pc: &mut PC, num: usize) -> String {
-    const NAME: &str = simple::meta::FATIGUE.name;
+    const NAME: &str = FATIGUE.name;
     let fatigue: Vec<usize> = pc
         .inventory
         .iter()
@@ -85,7 +88,7 @@ where
 }
 
 pub(super) fn updater() {
-    on_buff_len_change();
+    on_buff_change();
     max_inventory_capacity();
     inventory_weights();
     encumberance();
@@ -99,8 +102,8 @@ fn max_inventory_capacity() {
     let max_inv = PC::slice(|pc| {
         pc.followers
             .values()
-            .map(|x| x.inv_incr())
-            .fold(MAX, |acc, e| acc + e)
+            .map(|follower| follower.stats.get(FolStat::Mule))
+            .fold(MAX, |acc, e| acc + e as usize)
     });
 
     create_effect(move |_| {
@@ -121,28 +124,28 @@ fn inventory_weights() {
     });
 
     create_effect(move |_| {
-        log!("↺  Inventory weights and encumberance");
+        log!("↺  Inventory changed");
         let (_, max) = on_change.get();
+        let mut last = 0;
         let mut is_encumbered = false;
         let weights: IndexMap<SlotRange> = PC::untracked(|pc| {
-            let mut last = 1;
             pc.inventory.clone_map(|item| {
                 let is_bulky = item.is_bulky();
-                let result = if last > max {
+                last += is_bulky as usize + 1;
+                if last > max {
                     is_encumbered = true;
                     SlotRange::Encumbered
                 } else if is_bulky {
                     SlotRange::Double(last)
                 } else {
                     SlotRange::Single(last)
-                };
-                last += is_bulky as usize + 1;
-                result
+                }
             })
         });
         PCSession::update(|x| {
             x.inv_slots = weights;
-            x.is_enumbered = is_encumbered;
+            x.is_encumbered = is_encumbered;
+            x.empty_inv_slots = max.saturating_sub(last);
         });
     });
 }
@@ -150,7 +153,7 @@ fn inventory_weights() {
 fn encumberance() {
     use crate::buffs::conditions::ENCUMBERED;
 
-    let is_encumbered = PCSession::slice(|sesh| sesh.is_enumbered);
+    let is_encumbered = PCSession::slice(|sesh| sesh.is_encumbered);
 
     create_effect(move |_| {
         let debuff_pos = PC::untracked(|pc| pc.buffs.position(|buff| buff.name == ENCUMBERED.name));
@@ -191,65 +194,6 @@ fn remove_expired_buffs() {
             }
         })
     });
-}
-
-// -----------------------------------
-// BUFF LEN
-// -----------------------------------
-
-/// Run a battery of functions when the length of buffs change.
-fn on_buff_len_change() {
-    let buff_len = PC::slice(|pc| pc.buffs.len());
-
-    create_effect(move |_| {
-        let _ = buff_len.get();
-        log!("↺  Buffs changed");
-        log!("    1. Searching for stat changes");
-        session_stats();
-        log!("    2. Adding expiry to relevant buffs");
-        PC::update(add_buff_expiry);
-    });
-}
-
-fn session_stats() {
-    let (mut base, overrides) = PC::untracked(|pc| {
-        let overrides: Vec<_> = pc
-            .buffs
-            .values()
-            .flat_map(|buff| {
-                buff.props.iter().find_map(|prop| match prop {
-                    BuffProp::StatOverride(stat, by) => Some((*stat, *by)),
-                    _ => None,
-                })
-            })
-            .collect();
-        (pc.base_stats, overrides)
-    });
-    // Override the base with these values.
-    for (stat, by) in overrides {
-        *base.get_mut(stat) = by
-    }
-    PCSession::update(|sesh| sesh.stats = base)
-}
-
-/// Find buffs with the `BuffProp::Duration` values and add an `BuffProp::Expiry`.
-fn add_buff_expiry(pc: &mut PC) {
-    let time = pc.turns;
-    for buff in pc.buffs.values_mut() {
-        // Check if buff has a duration.
-        let find_duration = buff.props.iter().find_map(|props| match props {
-            BuffProp::Duration(x) => Some(x),
-            _ => None,
-        });
-        if let Some(turns) = find_duration {
-            // Add any expiry if it's missing one.
-            if buff.find_expiry().is_none() {
-                let mut expiry = *turns;
-                expiry.add(&time);
-                buff.props.push(crate::buffs::BuffProp::Expiry(expiry))
-            }
-        }
-    }
 }
 
 fn on_revealer() {

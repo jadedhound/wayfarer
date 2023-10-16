@@ -5,8 +5,7 @@ use crate::icons;
 use crate::pc::PC;
 use crate::utils::counter::Counter;
 use crate::utils::{some_if, RwProvided};
-use crate::views::delete_btn::delete_btn;
-use crate::views::revealer::Revealer;
+use crate::views::delete_btn::{delete_btn, delete_btn_show};
 
 pub(super) fn view((id, buff): (usize, &Buff)) -> impl IntoView {
     let counter = PC::slice(move |pc| {
@@ -28,13 +27,7 @@ pub(super) fn view((id, buff): (usize, &Buff)) -> impl IntoView {
 
     view! {
         <div class= "relative">
-            <div
-                class= "p-2"
-                on:contextmenu=move |event| {
-                    event.prevent_default();
-                    Revealer::show('b', id);
-                }
-            >
+            <div class= "p-2" on:contextmenu=delete_btn_show('b', id)>
                 <div class= "mb-2"> { buff.into_view() } </div>
                 { use_item }
             </div>

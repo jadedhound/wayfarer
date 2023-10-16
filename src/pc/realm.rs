@@ -1,43 +1,49 @@
 use leptos::*;
 use serde::{Deserialize, Serialize};
-use strum::{Display, FromRepr};
+use strum::{Display, EnumCount, EnumIter};
 
 use self::followers::followers;
 use self::rest::rest;
-use self::shops::shops;
+use self::shop_grid::shops;
+use crate::utils::enum_array::{EnumArray, EnumRef};
 
 mod followers;
 mod rest;
-mod shops;
+pub mod shop;
+mod shop_grid;
 
 pub fn realm() -> impl IntoView {
     view! {
-        <h3 class= "text-center"> "Followers" </h3>
+        <h4 class= "text-center"> "Followers" </h4>
         { followers }
-        <h3 class= "text-center"> "Shops" </h3>
+        <h4 class= "text-center"> "Shops" </h4>
         { shops }
-        <h3 class= "text-center"> "Rest" </h3>
+        <h4 class= "text-center"> "Rest" </h4>
         { rest }
     }
-}
-
-#[derive(Serialize, Deserialize, Clone, Copy, Display, FromRepr, Default)]
-pub enum Experience {
-    #[default]
-    Novice,
-    Journeyman,
-    Expert,
-    Master,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Follower {
     pub name: String,
-    pub exp: Experience,
+    pub level: u8,
+    pub stats: FolStatArray,
 }
 
-impl Follower {
-    pub fn inv_incr(&self) -> usize {
-        2 * (self.exp as usize + 1)
+const FOL_STAT_COUNT: usize = FolStat::COUNT;
+
+#[derive(Serialize, Deserialize, Clone, Copy, EnumCount, EnumIter, Display)]
+pub enum FolStat {
+    Health,
+    Expertise,
+    Mule,
+    Morale,
+}
+
+impl EnumRef for FolStat {
+    fn index(&self) -> usize {
+        *self as usize
     }
 }
+
+pub type FolStatArray = EnumArray<FolStat, FOL_STAT_COUNT>;

@@ -23,11 +23,10 @@ const fn passive(effect: &'static str) -> [BuffPropRef; 2] {
     [BuffPropRef::Class, BuffPropRef::Effect(effect)]
 }
 
-const fn manual(effect: &'static str, count: usize) -> [BuffPropRef; 4] {
+const fn manual(effect: &'static str, count: usize) -> [BuffPropRef; 3] {
     [
         BuffPropRef::Class,
         BuffPropRef::Count(Counter::full(count)),
-        BuffPropRef::Rechargable,
         BuffPropRef::Effect(effect),
     ]
 }
@@ -87,14 +86,14 @@ pub mod rogue {
 pub mod mage {
     use super::*;
     
-    const T1_PROPS: [BuffPropRef; 2] = passive("you can read and cast novice spell scrolls");
-    pub const T1: BuffRef = BuffRef::new("novice spell scrolls", &T1_PROPS);
+    const T1_PROPS: [BuffPropRef; 2] = passive("you can create novice arcane scrolls");
+    pub const T1: BuffRef = BuffRef::new("novice arcane scrolls", &T1_PROPS);
 
-    const T2_PROPS: [BuffPropRef; 2] = passive("you can read and cast expert spell scrolls");
-    pub const T2: BuffRef = BuffRef::new("expert spell scrolls", &T2_PROPS);
+    const T2_PROPS: [BuffPropRef; 2] = passive("you can create expert arcane scrolls");
+    pub const T2: BuffRef = BuffRef::new("expert arcane scrolls", &T2_PROPS);
 
-    const T3_PROPS: [BuffPropRef; 2] = passive("you can read and cast master spell scrolls");
-    pub const T3: BuffRef = BuffRef::new("master spell scrolls", &T3_PROPS);
+    const T3_PROPS: [BuffPropRef; 2] = passive("you can create master arcane scrolls");
+    pub const T3: BuffRef = BuffRef::new("master arcane scrolls", &T3_PROPS);
 
     // -----------------------------------
     // OPTIONAL
@@ -117,13 +116,13 @@ pub mod mage {
 pub mod cleric {
     use super::*;
 
-    const T1_PROPS: [BuffPropRef; 2] = passive("you can read and cast novice divine scrolls");
+    const T1_PROPS: [BuffPropRef; 2] = passive("you can create novice divine scrolls");
     pub const T1: BuffRef = BuffRef::new("novice divine scrolls", &T1_PROPS);
 
-    const T2_PROPS: [BuffPropRef; 2] = passive("you can read and cast expert divine scrolls");
+    const T2_PROPS: [BuffPropRef; 2] = passive("you can create expert divine scrolls");
     pub const T2: BuffRef = BuffRef::new("expert divine scrolls", &T2_PROPS);
 
-    const T3_PROPS: [BuffPropRef; 2] = passive("you can read and cast master divine scrolls");
+    const T3_PROPS: [BuffPropRef; 2] = passive("you can create master divine scrolls");
     pub const T3: BuffRef = BuffRef::new("master divine scrolls", &T3_PROPS);
 
     // -----------------------------------
@@ -136,7 +135,7 @@ pub mod cleric {
     const BULWARK_OF_FAITH_PROPS: [BuffPropRef; 4] = rest("kneel in prayer, while praying, creating a 10 ft. semi-circle divine shield in front of you", 1);
     pub const BULWARK_OF_FAITH: BuffRef = BuffRef::new("bulwark of faith", &BULWARK_OF_FAITH_PROPS);
 
-    const SMITE_PROPS: [BuffPropRef; 4] = manual("deal [ guard ] damage as a quick action; 1 in 4 change to be renewed after a rest", 1);
+    const SMITE_PROPS: [BuffPropRef; 3] = manual("deal [ guard ] damage as a quick action; roll a d4 at dawn, on a 1 this ability recharges", 1);
     pub const SMITE: BuffRef = BuffRef::new("smite", &SMITE_PROPS);
 
 }

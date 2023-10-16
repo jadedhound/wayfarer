@@ -6,22 +6,25 @@ use crate::lobby::{NewPCTimeout, PCList, LOCKOUT_MINS, NAMES};
 use crate::pc::pc_class::PCClassRef;
 use crate::rand::Rand;
 use crate::utils::expect_rw;
-use crate::views::modal::{CenterModal, ModalState};
+use crate::views::modal::{ModalCenter, ModalState};
 
 const MAX_NAME_LEN: usize = 30;
 
 pub(super) fn create_pc_modal() -> impl IntoView {
     view! {
-        <CenterModal title=|| "CREATE PC" id=0>
-            { name_input }
-            <div class= "flex flex-col gap-1">
-                { class_radio(PCClassRef::Fighter) }
-                { class_radio(PCClassRef::Rogue) }
-                { class_radio(PCClassRef::Mage) }
-                { class_radio(PCClassRef::Cleric) }
+        <ModalCenter id=0>
+            <div class= "flex flex-col gap-2">
+                <h4 class= "text-center"> "Create Character" </h4>
+                { name_input }
+                <div class= "flex flex-col gap-1">
+                    { class_radio(PCClassRef::Fighter) }
+                    { class_radio(PCClassRef::Rogue) }
+                    { class_radio(PCClassRef::Mage) }
+                    { class_radio(PCClassRef::Cleric) }
+                </div>
+                { create_btn }
             </div>
-            { create_btn }
-        </CenterModal>
+        </ModalCenter>
     }
 }
 

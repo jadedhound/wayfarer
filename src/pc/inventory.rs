@@ -24,10 +24,9 @@ pub fn inventory() -> impl IntoView {
 
     view! {
         <div class=move || format!("flex flex-col gap-4 px-2 {}", limit_scroll())>
-            <h2> "Inventory" </h2>
-            <h5 class= "text-center"> "QUICK ACCESS" </h5>
+            <h4 class= "text-center"> "Quick Access" </h4>
             { quick_access }
-            <h5 class= "text-center"> "BACKPACK" </h5>
+            <h4 class= "text-center"> "Backpack" </h4>
             { change_funds }
             { search_view }
             { backpack }

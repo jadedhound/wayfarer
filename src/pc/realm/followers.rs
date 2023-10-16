@@ -1,105 +1,166 @@
 use leptos::*;
+use strum::IntoEnumIterator;
 
-use super::{Experience, Follower};
+use super::{FolStat, FolStatArray, Follower};
 use crate::icons;
 use crate::pc::PC;
-use crate::utils::{expect_rw, some_if, RwProvided};
+use crate::rand::Rand;
+use crate::utils::RwProvided;
+use crate::views::delete_btn::{delete_btn, delete_btn_show};
 
 pub fn followers() -> impl IntoView {
-    let follower_view = move || {
+    let follower_list = move || {
         PC::with(|pc| {
-            let has_followers = !pc.followers.is_empty();
-            some_if(has_followers).map(|_| {
-                let arr = pc
-                    .followers
-                    .iter()
-                    .map(|(id, x)| follower_view(id, x))
-                    .collect_view();
+            if pc.followers.is_empty() {
+                view! {
+                    <div class= "italic text-center">
+                        "Followers are an invaluable resource. You can have a maximum of 3
+                        and can roll for 1 per day while in a safe area."
+                    </div>
+                }
+            } else {
+                let arr = pc.followers.iter().map(follower_view).collect_view();
                 view! {
                     <div class= "flex flex-col gap-y-2 shaded-table">
                         { arr }
                     </div>
                 }
-            })
+            }
         })
     };
 
     view! {
-
         <div class= "flex flex-col gap-4">
-            { follower_view }
-            { add_follower_input }
+            { follower_list }
+            { random_follower_btn }
         </div>
     }
 }
 
-fn add_follower_input() -> impl IntoView {
-    let pc = expect_rw::<PC>();
-    let new_name = create_rw_signal(String::new());
-    let add_follower = move || {
-        let name = new_name.get();
-        new_name.set(String::new());
-        pc.update(|pc| {
-            pc.followers.add(Follower {
-                name,
-                exp: Experience::Novice,
-            })
-        })
+fn random_follower_btn() -> impl IntoView {
+    let fol_result = RwSignal::new(None);
+    let too_many_fol = move || PC::with(|pc| pc.followers.len() > 2);
+    let gen_fol_result = move |_| {
+        let fol = Rand::with(gen_follower);
+        fol_result.set(Some(fol))
+    };
+    let rand_btn = move || {
+        view! {
+            <button
+                class= "btn bg-surface py-2 flex justify-center gap-2"
+                on:click=gen_fol_result
+                disabled=too_many_fol
+            >
+                <div class= "w-6 -translate-y-px" inner_html=icons::DIE />
+                <div> "RANDOM FOLLOWER" </div>
+            </button>
+        }
+    };
+    let reset_fol_result = move |_| fol_result.set(None);
+    let add_follower = move |fol| {
+        PC::update(|pc| pc.followers.add(fol));
+        fol_result.set(None)
+    };
+    let confirm_choice = move |fol: Follower| {
+        let fol_view = fol.into_view();
+        view! {
+            <div class= "flex gap-1">
+                <button
+                    class= "btn-no-font bg-surface w-12 grow p-2"
+                    on:click=move |_| add_follower(fol.clone())
+                >
+                    { fol_view }
+                </button>
+                <button
+                    class= "btn bg-red-800 px-2"
+                    on:click=reset_fol_result
+                >
+                    <div class= "w-4" inner_html=icons::CROSS />
+                </button>
+            </div>
+        }
     };
 
     move || {
-        some_if(pc.with(|pc| pc.followers.len() < 3)).map(|_| {
-            view! {
-                <div class= "flex gap-1">
-                    <input
-                        class= "w-12 grow input"
-                        on:input=move |ev| new_name.set(event_target_value(&ev))
-                        prop:value=move || new_name.get()
-                    />
-                    <button
-                        class= "btn bg-green-800 self-center text-xl w-10"
-                        on:click=move |_| add_follower()
-                        disabled=move || new_name.get().is_empty()
-                        inner_html=icons::PLUS
-                    />
-                </div>
-            }
-        })
+        if let Some(fol) = fol_result.get() {
+            confirm_choice(fol).into_view()
+        } else {
+            rand_btn().into_view()
+        }
     }
 }
 
-fn follower_view(id: usize, follower: &Follower) -> impl IntoView {
-    let pc = expect_rw::<PC>();
-    let delete = move || {
-        pc.update(|pc| {
-            pc.followers.remove(id);
-        })
-    };
-    let upgrade = move || {
-        pc.update(|pc| {
-            let follower = pc.followers.get_mut(id).unwrap();
-            follower.exp = Experience::from_repr(follower.exp as usize + 1).unwrap_or_default();
-        })
-    };
+fn follower_view((id, follower): (usize, &Follower)) -> impl IntoView {
+    let delete = move || PC::update(|pc| pc.followers.remove(id));
 
     view! {
-        <div class= "flex">
-            <div class= "p-2 flex flex-col justify-center w-full uppercase">
-                <div> { follower.name.clone() } </div>
-                <div class= "text-sm italic"> { format!("Inventory +{}", follower.inv_incr()) } </div>
+        <div class= "relative">
+            <div
+                class= "p-2"
+                on:contextmenu=delete_btn_show('f', id)
+            >
+                { follower.into_view() }
             </div>
-            <button
-                class= "w-24 text-sky-500"
-                on:click=move |_| upgrade()
-            >
-                { follower.exp.to_string() }
-            </button>
-            <button
-                class= "self-center px-2 h-full text-red-800 text-center text-2xl"
-                on:click=move |_| delete()
-            >
-                <div class= "w-4 fill-red-500" inner_html=icons::CROSS />
-            </button>
+            { delete_btn('f', id, delete)}
         </div>
     }
+}
+
+fn gen_follower(rand: &mut Rand) -> Follower {
+    let mut name = rand.pick(&names::NAMES).to_string();
+    let mut stats = FolStatArray::default();
+    let incr_stats = rand_incr_stats(rand);
+    // 1/3 chance of the follower having a title and better stats.
+    if rand.range(0, 2) == 0 {
+        name.push(' ');
+        name.push_str(rand.pick(&names::TITLES));
+        for (i, stat) in incr_stats.iter().enumerate() {
+            *stats.get_mut(*stat) += i as i32 + 1;
+        }
+    } else {
+        *stats.get_mut(incr_stats[0]) += 1;
+    }
+    Follower {
+        name,
+        level: 0,
+        stats,
+    }
+}
+
+/// Gives 2 stats from `FolStat`.
+/// Used in `gen_follower` to give stat variety.
+fn rand_incr_stats(rand: &mut Rand) -> [FolStat; 2] {
+    let fol_stats: Vec<_> = FolStat::iter().collect();
+    let first = rand.pick(&fol_stats);
+    let second = rand.pick(&fol_stats);
+    // Reroll if the chosen stats are the same.
+    if first as usize == second as usize {
+        rand_incr_stats(rand)
+    } else {
+        [first, second]
+    }
+}
+
+#[rustfmt::skip]
+mod names {
+    pub const NAMES: [&str; 80] = [
+        // MALE
+        "Zane", "Kato", "Ragnor", "Tharion", "Jace", "Lorn", "Eron", "Varis", "Dorian", "Kira", 
+        "Nix", "Zephyr", "Corin", "Razel", "Lysander", "Orion", "Kian", "Draven", "Zarek", "Rian", 
+        "Talon", "Kyrus", "Soren", "Zevran", "Lucian", "Rix", "Cale", "Torin", "Darius", "Kairos", 
+        "Zalazar", "Remy", "Leon", "Kael", "Xander", "Corvin", "Rafe", "Zane", "Kato", "Ragnor",
+        // FEMALE
+        "Aria", "Lila", "Elora", "Nyx", "Selene", "Zara", "Lyra", "Rina", "Kira", "Mara", "Lira", 
+        "Nia", "Sela", "Zora", "Eira", "Ryla", "Kyla", "Tara", "Lora", "Nara", "Zira", "Eila", 
+        "Rora", "Kora", "Mira", "Lena", "Zena", "Eira", "Rina", "Kina", "Sara", "Zola", "Eila", 
+        "Rila", "Kala", "Mala", "Lina", "Zana", "Eina", "Rana"
+    ];
+    pub const TITLES: [&str; 36] = [
+        "the Swift", "the Wise", "the Fierce", "the Silentflame", "the Shadow", "the Brave", "the Storm", 
+        "the Cunning", "the Noble", "the Flame", "the Silent", "the Wind", "the Bold", "the Mad", 
+        "the Fair", "the Star", "the Bright", "the Dark", "the Iron", "the Hunter", "the Claw", 
+        "the Frost", "the Wise", "the Rogue", "the Light", "the Trickster", "the Wild", "the Strong", 
+        "the King", "the Timeless", "the Dragon", "the Lucky", "the Lion", "the Blade", 
+        "the Raven", "the Rebel",
+    ];
 }

@@ -39,11 +39,11 @@ pub fn overview() -> impl IntoView {
             { prof_view }
             { hp }
         </div>
-        <h5 class= "text-center"> "TURN TRACKER" </h5>
+        <h4 class= "text-center"> "Turn Tracker" </h4>
         { turn_tracker }
-        <h5 class= "text-center"> "QUICK ACCESS" </h5>
+        <h4 class= "text-center"> "Quick Access" </h4>
         { quick_access }
-        <h5 class= "text-center"> "BUFFS & DEBUFFS" </h5>
+        <h4 class= "text-center"> "Buffs & Debuffs" </h4>
         { buff_search::search  }
         { buff_list::list }
     }
@@ -82,7 +82,7 @@ fn class_view() -> impl IntoView {
     });
 
     view! {
-        <A class= "btn bg-surface flex-center" href= "class">
+        <A class= "btn bg-surface flex-center py-2" href= "../class">
             <div class= "w-6 fill-yellow-500" inner_html=icons::BULLSEYE />
         </A>
         <div class= "col-span-6 uppercase font-tight self-center text-xl">

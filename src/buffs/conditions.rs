@@ -1,5 +1,5 @@
 use super::{BuffPropRef as Prop, BuffRef};
-use crate::pc::pc_stat::PCStat;
+use crate::pc::PCStat;
 
 const BLIND_PROP: [Prop; 2] = [Prop::Debuff, Prop::Effect("you are unable to see")];
 const BLIND: BuffRef = BuffRef::new("blinded", &BLIND_PROP);

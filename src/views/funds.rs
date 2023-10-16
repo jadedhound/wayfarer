@@ -9,19 +9,29 @@ use crate::utils::some_if;
 
 const STYLES: [&str; 3] = ["fill-yellow-500", "fill-stone-300", "fill-orange-800"];
 
-pub fn funds(sup: u32) -> impl IntoView {
-    fund_view(coinage_and_colour(sup))
+pub fn funds(cp: u32) -> impl IntoView {
+    let coins = split_into_coinage(cp)
+        .into_iter()
+        .zip(STYLES)
+        .map(single_coin)
+        .collect_view();
+    fund_wrapper(coins)
 }
 
-pub fn short_funds<F>(sup: F) -> impl IntoView
-where
-    F: Fn() -> u32 + 'static,
-{
-    let sup = sup();
-    some_if(sup > 0).map(|_| {
-        let non_zero = coinage_and_colour(sup).filter(|x| x.0 != 0);
-        fund_view(non_zero)
+pub fn maybe_funds(cp: u32) -> Option<View> {
+    some_if(cp > 0).map(|_| {
+        let coins = split_into_coinage(cp)
+            .into_iter()
+            .zip(STYLES)
+            .filter(|x| x.0 != 0)
+            .map(single_coin)
+            .collect_view();
+        fund_wrapper(coins).into_view()
     })
+}
+
+pub fn short_funds(cp: u32) -> impl IntoView {
+    maybe_funds(cp).unwrap_or(fund_wrapper(single_coin((0, STYLES[2])).into_view()).into_view())
 }
 
 pub fn fund_input(rw_fund: RwSignal<u32>) -> impl IntoView {
@@ -65,24 +75,15 @@ pub fn fund_input(rw_fund: RwSignal<u32>) -> impl IntoView {
     }
 }
 
-fn fund_view<C>(coins: C) -> impl IntoView
-where
-    C: Iterator<Item = (u32, &'static str)>,
-{
-    let coins = coins
-        .into_iter()
-        .map(|(num, colour)| {
-            view! {
-                <div> { num } </div>
-                <div class=format!("{colour} w-4 translate-y-1") inner_html=icons::CIRCLE />
-            }
-        })
-        .collect_view();
-    view! { <div class= "flex gap-1"> { coins } </div> }
+fn single_coin((num, colour): (u32, &str)) -> impl IntoView {
+    view! {
+        <div> { num } </div>
+        <div class=format!("{colour} w-4 translate-y-1") inner_html=icons::CIRCLE />
+    }
 }
 
-fn coinage_and_colour(total: u32) -> impl Iterator<Item = (u32, &'static str)> {
-    split_into_coinage(total).into_iter().zip(STYLES)
+fn fund_wrapper(coins: View) -> impl IntoView {
+    view! { <div class= "flex gap-1"> { coins } </div> }
 }
 
 fn split_into_coinage(mut total: u32) -> [u32; 3] {

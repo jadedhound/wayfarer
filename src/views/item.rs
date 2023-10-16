@@ -1,8 +1,7 @@
 use leptos::*;
 
 use crate::buffs::{Buff, BuffProp};
-use crate::items::weapons::damage_die;
-use crate::items::{Item, ItemProp};
+use crate::items::{damage_die, Item, ItemProp};
 
 impl IntoView for &Item {
     fn into_view(self) -> View {
@@ -20,19 +19,24 @@ impl IntoView for &Item {
 
 fn prop_views(prop: &ItemProp) -> Option<View> {
     match prop {
-        ItemProp::Usable(x) => Some(newline(format!("Use: {x}."))),
-        ItemProp::Edible(x) => Some(newline(format!("Heals {x} health."))),
-        ItemProp::Spellbook(x) => Some(newline(format!("{x}."))),
-        ItemProp::Range(x) => Some(newline(format!("Range {x} ft."))),
-        ItemProp::Effect(x) => Some(newline(format!("{x}."))),
-        ItemProp::Damage(x) => Some(newline(format!("Deals {} damage.", damage_die(*x)))),
+        ItemProp::Resist => newline("Creatures can resist this effect"),
+        ItemProp::Usable(x) => newline(x),
+        ItemProp::Edible(x) => newline(format!("Heals {x} health")),
+        ItemProp::Range(x) => newline(format!("Range {x} ft")),
+        ItemProp::Effect(x) => newline(x),
+        ItemProp::Damage(x) => newline(format!("Deals {} damage", damage_die(*x))),
         ItemProp::Buff(x) => Some(buff_desc(x)),
+        ItemProp::Bulky => newline("requires 2 hands to use"),
+        ItemProp::WildMagic(x) => newline(format!("requires a DC {} spellcasting check", 10 + x)),
         _ => None,
     }
 }
 
-fn newline(s: String) -> View {
-    view! { <div class= "capitalise"> { s } </div> }.into_view()
+fn newline<S>(s: S) -> Option<View>
+where
+    S: std::fmt::Display,
+{
+    Some(view! { <div class= "capitalise"> { format!("{s}.") } </div> }.into_view())
 }
 
 fn buff_desc(buff: &Buff) -> View {
@@ -49,10 +53,14 @@ fn buff_desc(buff: &Buff) -> View {
             }
         });
     view! {
-        <div> "Use: Applies the following buff." </div>
-        <div class= "border-y-2 border-yellow-600 my-1">
-            { buff.into_view() }
-            { duration }
+        <div class= "relative">
+            <div class= "absolute right-0 inset-y-0 flex flex-col justify-center translate-x-4">
+                <div class= "text-yellow-600 -rotate-90"> "BUFF" </div>
+            </div>
+            <div class= "border-y-2 border-yellow-600 my-1 pr-3">
+                { buff.into_view() }
+                { duration }
+            </div>
         </div>
     }
     .into_view()

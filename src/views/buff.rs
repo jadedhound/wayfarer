@@ -36,22 +36,22 @@ fn effect(buff: &Buff) -> impl IntoView {
 
 fn uses_txt(buff: &Buff) -> impl IntoView {
     let mut count = 0;
-    let mut is_short = true;
+    let mut is_rally = None;
     for prop in buff.props.iter() {
         match prop {
-            BuffProp::Rest => is_short = false,
-            BuffProp::Rally => is_short = true,
+            BuffProp::Rally => is_rally = Some(true),
+            BuffProp::Rest => is_rally = Some(false),
             BuffProp::Count(x) => count = x.max,
             _ => (),
         }
     }
-    some_if(count > 0).map(|_| {
+    is_rally.map(|is_rally| {
         const LONG_OR_SHORT: [&str; 2] = ["rest", "rally"];
         const USES: [&str; 2] = ["use", "uses"];
         let desc = format!(
             "{count} {} per {}.",
             USES[(count > 1) as usize],
-            LONG_OR_SHORT[is_short as usize]
+            LONG_OR_SHORT[is_rally as usize]
         );
         view! {
             <div> { desc } </div>

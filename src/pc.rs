@@ -1,15 +1,15 @@
 use leptos::logging::log;
 use serde::{Deserialize, Serialize};
+use strum::{EnumCount, EnumIter};
 
 use self::description::gen_description;
-use self::pc_stat::{PCStat, StatArray};
 use self::realm::Follower;
 use crate::buffs::Buff;
-use crate::items::simple::sundry;
-use crate::items::{tome, weapons, Item};
+use crate::items::{self, Item, SHOP_ADVENTURE_T1};
 use crate::lobby::pc_basic::PCBasic;
 use crate::pc::pc_class::PCClassRef;
 use crate::rand::Rand;
+use crate::utils::enum_array::{EnumArray, EnumRef};
 use crate::utils::index_map::IndexMap;
 use crate::utils::turns::Turns;
 use crate::utils::RwProvided;
@@ -21,11 +21,9 @@ pub mod journal;
 pub mod navbar;
 pub mod overview;
 pub mod pc_class;
-pub mod pc_stat;
 pub mod realm;
 pub mod scout;
 pub mod session;
-pub mod shops;
 mod update;
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -38,7 +36,7 @@ pub struct PC {
     pub funds: u32,
     pub inventory: IndexMap<Item>,
     pub quick_access: [Option<Item>; 3],
-    pub base_stats: StatArray,
+    pub base_stats: PCStatArray,
     pub buffs: IndexMap<Buff>,
     pub followers: IndexMap<Follower>,
     pub turns: Turns,
@@ -73,7 +71,27 @@ impl RwProvided for PC {
     type Item = Self;
 }
 
-fn gen_base_stats(rand: &mut Rand, class: PCClassRef) -> StatArray {
+const PC_STAT_COUNT: usize = PCStat::COUNT;
+pub type PCStatArray = EnumArray<PCStat, PC_STAT_COUNT>;
+
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, strum::Display, EnumCount, EnumIter)]
+#[allow(clippy::upper_case_acronyms)]
+pub enum PCStat {
+    Guard,
+    Health,
+    STR,
+    DEX,
+    INT,
+    CHA,
+}
+
+impl EnumRef for PCStat {
+    fn index(&self) -> usize {
+        *self as usize
+    }
+}
+
+fn gen_base_stats(rand: &mut Rand, class: PCClassRef) -> PCStatArray {
     // -2: 10%, -1: 20%, 0: 15%, +1: 25%, +2: 20%, +3: 10%
     const ABILITY_MOD: [i32; 20] = [
         -2, -2, -1, -1, -1, -1, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3,
@@ -103,14 +121,14 @@ fn gen_base_stats(rand: &mut Rand, class: PCClassRef) -> StatArray {
 
 fn gen_inventory(rand: &mut Rand, class: PCClassRef) -> IndexMap<Item> {
     match class {
-        PCClassRef::Fighter => vec![&weapons::HAMMER, &weapons::SHIELD],
-        PCClassRef::Rogue => vec![&weapons::SWORD, &weapons::DAGGER],
-        PCClassRef::Mage => vec![rand.pick(&tome::spell::ALL)],
-        PCClassRef::Cleric => vec![rand.pick(&tome::prayer::ALL)],
+        PCClassRef::Fighter => &items::FIGHTER,
+        PCClassRef::Rogue => &items::ROGUE,
+        PCClassRef::Mage => &items::MAGE,
+        PCClassRef::Cleric => &items::CLERIC,
     }
-    .into_iter()
-    .map(|x| (*x).into())
-    .chain([(); 3].map(|_| (*rand.pick(&sundry::ALL)).into()))
+    .iter()
+    .map(|x| (**x).into())
+    .chain([(); 3].map(|_| (*rand.pick(&SHOP_ADVENTURE_T1)).into()))
     .collect()
 }
 

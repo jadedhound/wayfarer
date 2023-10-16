@@ -70,11 +70,14 @@ pub fn contains_pattern(pattern: &CharCount, text: &CharCount, confidence: u8) -
     true
 }
 
-/// Counts the number of buffs since `CountedArr` can't be unsized.
-pub const fn count_arr<T>(arr: &[&[&'static T]], i: usize, len: usize) -> usize {
+// -----------------------------------
+// HELPERS
+// -----------------------------------
+
+pub const fn arr_len<T>(arr: &[&[T]], acc: usize, i: usize) -> usize {
     if i < arr.len() {
-        count_arr(arr, i + 1, len + arr[i].len())
+        arr_len(arr, acc + arr[i].len(), i + 1)
     } else {
-        len
+        acc
     }
 }

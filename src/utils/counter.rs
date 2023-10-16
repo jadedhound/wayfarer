@@ -19,12 +19,6 @@ impl Counter {
             max: count,
         }
     }
-    pub fn decr(&mut self) {
-        self.curr -= 1;
-    }
-    pub fn incr(&mut self) {
-        self.curr += 1;
-    }
     pub fn is_zero(&self) -> bool {
         self.curr == 0
     }
