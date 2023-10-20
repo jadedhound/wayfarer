@@ -5,10 +5,13 @@ use serde::{Deserialize, Serialize};
 /// One turn is 10 mins.
 pub const TURNS_IN_DAY: u64 = 24 * 6;
 
-#[derive(Serialize, Deserialize, Copy, Clone, Default)]
+#[derive(Serialize, Deserialize, Copy, Clone, Default, PartialEq)]
 pub struct Turns(pub u64);
 
 impl Turns {
+    pub const fn new(days: u64, turns: u64) -> Self {
+        Self(days * TURNS_IN_DAY + turns)
+    }
     pub const fn one() -> Self {
         Self(1)
     }
@@ -22,16 +25,19 @@ impl Turns {
         self.0 = (self.0 as i64 + amount) as u64
     }
     /// Adds a given `turn_ref` to this one.
-    pub fn add(&mut self, turn_ref: &Self) {
+    pub fn add(&mut self, turn_ref: Self) {
         self.0 += turn_ref.0;
     }
     pub fn is_expired(&self, time_ref: u64) -> bool {
         self.0 <= time_ref
     }
-
     /// Absolute time difference with a given `other`.
-    pub fn diff(&self, other: Self) -> Self {
+    pub fn abs_diff(&self, other: Self) -> Self {
         Self(u64::abs_diff(self.0, other.0))
+    }
+    /// Saturating subtract with a given `other`.
+    pub fn sub(&self, other: Self) -> Self {
+        Self(u64::saturating_sub(self.0, other.0))
     }
     pub fn in_days(&self) -> u64 {
         self.0 / TURNS_IN_DAY

@@ -6,30 +6,30 @@ use crate::utils::counter::Counter;
 
 #[derive(Serialize, Deserialize, Clone, AsRefStr, PartialEq)]
 pub enum ItemProp {
+    Buff(Buff),
     Bulky,
     Count(Counter),
-    Resist,
-    Buff(Buff),
-    Usable(String),
-    Edible(usize),
+    Concentration,
     Damage(usize),
-    Range(u32),
     Effect(String),
-    WildMagic(u8),
+    Food,
+    Range(u32),
+    Resist,
+    Usable(String),
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum ItemPropRef {
+    Buff(BuffRef),
     Bulky,
     Count(Counter),
-    Resist,
-    Buff(BuffRef),
-    Usable(&'static str),
-    Edible(usize),
+    Concentration,
     Damage(usize),
-    Range(u32),
     Effect(&'static str),
-    WildMagic(u8),
+    Food,
+    Range(u32),
+    Resist,
+    Usable(&'static str),
 }
 
 impl From<ItemPropRef> for ItemProp {
@@ -42,11 +42,11 @@ impl From<ItemPropRef> for ItemProp {
             Ref::Count(x) => Self::Count(x),
             Ref::Buff(x) => Self::Buff(x.into()),
             Ref::Usable(x) => Self::Usable(x.into()),
-            Ref::Edible(x) => Self::Edible(x),
+            Ref::Food => Self::Food,
             Ref::Damage(x) => Self::Damage(x),
             Ref::Range(x) => Self::Range(x),
             Ref::Effect(x) => Self::Effect(x.into()),
-            Ref::WildMagic(x) => Self::WildMagic(x),
+            Ref::Concentration => Self::Concentration,
         }
     }
 }

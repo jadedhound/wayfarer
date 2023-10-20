@@ -10,131 +10,139 @@ use serde::{Deserialize, Serialize};
 use self::pc_basic::PCBasic;
 use crate::icons;
 use crate::lobby::create_pc::create_pc_modal;
-use crate::pc::pc_class::PCClassRef;
+use crate::lobby::pc_basic::NAMES;
+use crate::pc::class::PCClassRef;
 use crate::rand::Rand;
+use crate::utils::db::DBKey;
 use crate::utils::index_map::IndexMap;
-use crate::utils::{db, expect_rw, some_if};
-use crate::views::delete_btn::{delete_btn, delete_btn_show};
-use crate::views::modal::{modal_grey_screen, ModalState};
-use crate::views::revealer::revealer_screen;
+use crate::utils::rw_utils::RwUtils;
+use crate::utils::RwSignalEnhance;
+use crate::views::delete_confirm::DeleteModal;
+use crate::views::modal::ModalState;
 
 mod create_pc;
 pub mod pc_basic;
 
-const LOCKOUT_MINS: f64 = 0.0 * 60000.0;
-
-#[rustfmt::skip]
-const NAMES: [&str; 23] = [
-    "Abigail","Emilia","Allison","Clara","Leah",
-    "Myla","Ryanna","Valerie","Bram","Abram","Astin",
-    "Bradyn","Cartus","Eric","Gavin","Han","Jax",
-    "Jovan","Liam","Remus","Sebastion","Xander","Havy"
-];
+/// 15 min lock out to prevent PC spamming.
+const LOCKOUT_MINS: f64 = {
+    if cfg!(debug_assertions) {
+        0.0
+    } else {
+        15.0 * 60000.0
+    }
+};
 
 /// Keeps a timestamp of when the creating a new pc is acceptable again
-#[derive(Serialize, Deserialize, Clone, Copy)]
+#[derive(Serialize, Deserialize, Clone, Copy, Default)]
 pub struct NewPCTimeout(pub f64);
+
+impl RwUtils for NewPCTimeout {
+    type Item = Self;
+}
 
 /// Array with overview of PCs.
 #[derive(Serialize, Deserialize, Default, Clone)]
 pub struct PCList(pub IndexMap<PCBasic>);
 
+impl RwUtils for PCList {
+    type Item = Self;
+}
+
 /// PC overview and management.
 pub fn lobby() -> impl IntoView {
-    let pc_list = expect_rw::<PCList>();
+    PCBasic::provide();
+    let pc_list = PCList::expect();
     let pc_btns = move || pc_list.with(|list| list.0.iter().map(pc_btn).collect_view());
+    // Set what happens when a PC is confirmed for deletion.
+    DeleteModal::set_effect(move |id| {
+        // Remove from pc list.
+        pc_list.update_discard(|pc_list| pc_list.0.remove(id));
+        spawn_local(async move {
+            for ele in [DBKey::PC(id), DBKey::PCJournal(id)] {
+                if let Err(e) = ele.remove().await {
+                    error!("DB Remove Error: {e}")
+                }
+            }
+        });
+    });
 
     view! {
-        <div class= "p-2 flex border-b-2 border-amber-600">
-            <h3 class= "grow font-regal"> "Wayfarer" </h3>
+        <div class= "fixed top-0 left-0 h-16 w-full bg-black px-2 flex-center border-b border-amber-600">
+            <h3> "Wayfarer" </h3>
         </div>
-        <div class= "grid grid-cols-2 gap-6 p-2">
-            { pc_btns }
-            { create_pc_btn() }
-        </div>
+        <div class= "psuedo h-16" />
+        { pc_btns }
+        { create_pc_btn }
         <div class= "psuedo h-px grow" />
         { build_info }
         { create_pc_modal }
-        { modal_grey_screen }
-        { revealer_screen }
     }
 }
 
 /// Displays a PC created by the user.
 fn pc_btn((id, pc_basic): (usize, &PCBasic)) -> impl IntoView {
-    let delete_pc = move || {
-        // Remove from pc list.
-        expect_rw::<PCList>().update(|pc_list| {
-            pc_list.0.remove(id);
-        });
-        spawn_local(async move {
-            let rm_db_ids = [id.to_string(), format!("{id}_journals")];
-            if let Err(e) = db::remove(rm_db_ids.iter()).await {
-                error!("{e}")
-            }
-        });
-    };
+    let show_delete_modal = move |_| DeleteModal::show(id);
     let name = pc_basic.name.clone();
     let (class_icon, colour) = match pc_basic.class {
-        PCClassRef::Fighter => (icons::WARRIOR, "bg-amber-900"),
-        PCClassRef::Rogue => (icons::ROGUE, "bg-red-800"),
-        PCClassRef::Mage => (icons::MAGE, "bg-sky-800"),
-        PCClassRef::Cleric => (icons::CLERIC, "bg-yellow-700"),
+        PCClassRef::Fighter => (icons::WARRIOR, "fill-amber-700"),
+        PCClassRef::Rogue => (icons::ROGUE, "fill-red-600"),
+        PCClassRef::Mage => (icons::MAGE, "fill-sky-500"),
+        PCClassRef::Cleric => (icons::CLERIC, "fill-yellow-500"),
     };
 
     view! {
-        <div class= "relative">
-            <A href=format!("/pc/{id}") on:contextmenu=delete_btn_show('p', id)>
-                <div class=format!("relative aspect-square btn {colour} flex-center overflow-hidden")>
-                    <div class= "w-24 top-0 fill-black opacity-40" inner_html=class_icon />
-                    <h4 class= "absolute text-center line-clamp-3"> { name } </h4>
-                </div>
+        <div class= "flex gap-3 p-2 btn bg-surface">
+            <div class=format!("w-8 {colour}") inner_html=class_icon />
+            <A href=format!("/pc/{id}") class= "w-12 grow truncate">
+                <h5> { name } </h5>
             </A>
-            { delete_btn('p', id, delete_pc) }
+            <button on:click=show_delete_modal>
+                <div class= "w-5 fill-red-600" inner_html=icons::TRASH />
+            </button>
         </div>
     }
 }
 
-/// Returns the wait time before another PC can be created.
-fn cannot_create_pc() -> Option<u8> {
-    let pc_timeout = expect_rw::<NewPCTimeout>();
-    let time = pc_timeout.with(|time| time.0);
-    let diff = time - js_sys::Date::now();
-    let mins = (diff / 60000.0) as u8;
-    // Wait 30 seconds and then refresh the timeout (thus the view).
-    some_if(mins > 0).map(|_| {
-        spawn_local(async move {
-            sleep(Duration::from_secs(30)).await;
-            pc_timeout.update(|time| {
-                time.0 += 1.0;
-            });
-        });
-        mins
-    })
-}
-
 fn create_pc_btn() -> impl IntoView {
-    let pc_basic = create_rw_signal(PCBasic::default());
-    provide_context(pc_basic);
-    let cannot_create = cannot_create_pc();
-    let inner_text = match cannot_create {
-        Some(timeout) => format!("{timeout} mins").into_view(),
-        None => view! {
-            <div class= "w-12" inner_html=icons::PLUS />
+    let timeout = NewPCTimeout::expect();
+    let pc_basic = PCBasic::expect();
+    let mins_left = NewPCTimeout::slice(|timeout| {
+        let diff = timeout.0 - js_sys::Date::now();
+        (diff / 60000.0) as u8
+    });
+    let inner_text = move || {
+        if mins_left.get() > 0 {
+            format!("{} MIN COOLDOWN", mins_left.get()).into_view()
+        } else {
+            view! {
+                <div class= "w-6" inner_html=icons::PLUS />
+                <div class= "">
+                    "CREATE"
+                </div>
+                <div class= "w-6 psuedo" />
+            }
+            .into_view()
         }
-        .into_view(),
     };
-    let open_modal = move || {
+    let open_modal = move |_| {
         let name = Rand::with(|rand| rand.pick(&NAMES).to_string());
         pc_basic.update(|x| x.name = name);
-        ModalState::open(0)
+        ModalState::show(10)
     };
+    create_effect(move |_| {
+        if mins_left.get() > 0 {
+            spawn_local(async move {
+                sleep(Duration::from_secs(30)).await;
+                timeout.update_discard(|time| time.0 += 1.0);
+            });
+        }
+    });
 
     view! {
         <button
-            class= "btn bg-surface flex-center flex-col aspect-square"
-            on:click=move |_| open_modal()
-            disabled=move || cannot_create.is_some()
+            class= "btn bg-green-800 flex-center gap-1 py-2"
+            on:click=open_modal
+            disabled=move || { mins_left.get() > 0 }
         >
             { inner_text }
         </button>

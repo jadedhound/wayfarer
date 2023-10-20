@@ -5,10 +5,7 @@ use crate::pc::PCStat;
 use crate::utils::counter::Counter;
 use crate::utils::turns::Turns;
 
-pub mod body;
-pub mod class;
 pub mod conditions;
-pub mod held;
 pub mod search;
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -135,6 +132,12 @@ impl BuffProp {
 impl PartialEq for BuffProp {
     fn eq(&self, other: &Self) -> bool {
         self.index() == other.index()
+    }
+}
+
+impl PartialEq for BuffRef {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name && self.props.len() == other.props.len()
     }
 }
 

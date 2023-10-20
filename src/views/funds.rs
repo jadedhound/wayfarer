@@ -5,10 +5,10 @@ use leptos::ev::Event;
 use leptos::*;
 
 use crate::icons;
-use crate::utils::some_if;
 
 const STYLES: [&str; 3] = ["fill-yellow-500", "fill-stone-300", "fill-orange-800"];
 
+/// Displays all coins given a certain `cp` amount.
 pub fn funds(cp: u32) -> impl IntoView {
     let coins = split_into_coinage(cp)
         .into_iter()
@@ -19,7 +19,7 @@ pub fn funds(cp: u32) -> impl IntoView {
 }
 
 pub fn maybe_funds(cp: u32) -> Option<View> {
-    some_if(cp > 0).map(|_| {
+    (cp > 0).then(|| {
         let coins = split_into_coinage(cp)
             .into_iter()
             .zip(STYLES)
@@ -34,7 +34,7 @@ pub fn short_funds(cp: u32) -> impl IntoView {
     maybe_funds(cp).unwrap_or(fund_wrapper(single_coin((0, STYLES[2])).into_view()).into_view())
 }
 
-pub fn fund_input(rw_fund: RwSignal<u32>) -> impl IntoView {
+pub fn wealth_input(wealth: RwSignal<u32>) -> impl IntoView {
     let into_num = move |ev: Event, max: u32| {
         event_target_value(&ev)
             .parse::<u32>()
@@ -42,9 +42,9 @@ pub fn fund_input(rw_fund: RwSignal<u32>) -> impl IntoView {
             .unwrap_or(0)
     };
     let change_fund = move |coin: usize, new: u32| {
-        let mut coinage = split_into_coinage(rw_fund.get());
+        let mut coinage = split_into_coinage(wealth.get());
         coinage[coin] = new;
-        rw_fund.set(coinage[0] * 1000 + coinage[1] * 10 + coinage[2])
+        wealth.set(coinage[0] * 1000 + coinage[1] * 10 + coinage[2])
     };
 
     view! {
@@ -54,21 +54,21 @@ pub fn fund_input(rw_fund: RwSignal<u32>) -> impl IntoView {
                 type= "number"
                 maxlength= "3"
                 on:input=move |ev| change_fund(0, into_num(ev, 999))
-                prop:value=move || rw_fund.get() / 1000
+                prop:value=move || wealth.get() / 1000
             />
             <div class=formatcp!("w-4 {}", STYLES[0]) inner_html=icons::CIRCLE />
             <input
                 class= "input w-8 grow text-center"
                 type= "number"
                 on:input=move |ev| change_fund(1, into_num(ev, 99))
-                prop:value=move || (rw_fund.get() / 10) % 100
+                prop:value=move || (wealth.get() / 10) % 100
             />
             <div class=formatcp!("w-4 {}", STYLES[1]) inner_html=icons::CIRCLE />
             <input
                 class= "input w-4 grow text-center"
                 type= "number"
                 on:input=move |ev| change_fund(2, into_num(ev, 9))
-                prop:value=move || rw_fund.get() % 10
+                prop:value=move || wealth.get() % 10
             />
             <div class=formatcp!("w-4 {}", STYLES[2]) inner_html=icons::CIRCLE />
         </div>

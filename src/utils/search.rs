@@ -45,7 +45,9 @@ pub fn contains_pattern(pattern: &CharCount, text: &CharCount, confidence: u8) -
     // Start as a complete match.
     let mut curr_confidence = 100;
     // Each miss degrades the `curr_confidence` by % based on number of chars.
-    let miss_step = cmp::max(100 / pattern.iter().sum::<u8>(), 1);
+    let num_of_chars = cmp::max(pattern.iter().sum::<u8>(), 1);
+    // Minimum step is 1 and max is 100.
+    let miss_step = cmp::max(100 / num_of_chars, 1);
     let pattern_values_only = pattern.iter().enumerate().filter(|(_, x)| x > &&0);
 
     // Go through every letter counted in pattern. Degrade the confidence

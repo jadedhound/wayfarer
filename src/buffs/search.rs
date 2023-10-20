@@ -1,4 +1,4 @@
-use super::{body, conditions, held, BuffRef};
+use super::{conditions, BuffRef};
 use crate::items;
 use crate::utils::search::{arr_len, char_count, compile_count, contains_pattern, CharCount};
 
@@ -25,7 +25,7 @@ pub fn search(query: String) -> impl IntoIterator<Item = &'static BuffRef> {
 // SEARCH COMPILER
 // -----------------------------------
 
-const ALL: [&[&BuffRef]; 4] = [&body::ALL, &conditions::ALL, &held::ALL, &items::BUFFS];
+const ALL: [&[&BuffRef]; 2] = [&conditions::ALL, &items::BUFFS];
 const ALL_LEN: usize = arr_len(&ALL, 0, 0);
 type CountedArr = [(CharCount, &'static BuffRef); ALL_LEN];
 const COUNTED_ARR_DEF: CountedArr = [([0; 36], &super::ERROR); ALL_LEN];

@@ -5,25 +5,30 @@ use leptos::*;
 use super::buff_view;
 use crate::buffs::{Buff, BuffProp};
 use crate::pc::PC;
-use crate::utils::{some_if, RwProvided};
+use crate::utils::rw_utils::RwUtils;
+use crate::utils::RwSignalEnhance;
+use crate::views::delete_confirm::DeleteModal;
 
 pub(super) fn list() -> impl IntoView {
+    let pc = PC::expect();
+    // Set what happens when a buff is confirmed for deletion.
+    DeleteModal::set_effect(move |id| pc.update_discard(|pc| pc.buffs.remove(id)));
     let buff_list = move || {
-        PC::with(|pc| {
+        pc.with(|pc| {
             let mut buffs: Vec<_> = pc.buffs.iter().collect();
             buffs.sort_unstable_by(|(_, a), (_, b)| prop_order(a).cmp(&prop_order(b)));
             buffs.into_iter().map(buff_view::view).collect_view()
         })
     };
-    let container = move || {
-        view! {
-            <div class= "flex flex-col gap-y-1 shaded-table">
-                { buff_list }
-            </div>
-        }
-    };
-    let has_buffs = PC::slice(|pc| !pc.buffs.is_empty());
-    move || some_if(has_buffs.get()).map(|_| container())
+    let no_buffs = PC::slice(|pc| pc.buffs.is_empty());
+    view! {
+        <div
+            class= "flex flex-col gap-y-1 shaded-table"
+            disabled=no_buffs
+        >
+            { buff_list }
+        </div>
+    }
 }
 
 /// Ordered by what the player should pay most attention to.

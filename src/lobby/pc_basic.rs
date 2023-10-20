@@ -1,18 +1,22 @@
 use serde::{Deserialize, Serialize};
 
-use crate::pc::pc_class::PCClassRef;
+use crate::pc::class::PCClassRef;
+use crate::utils::rw_utils::RwUtils;
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Default)]
 pub struct PCBasic {
     pub name: String,
     pub class: PCClassRef,
 }
 
-impl Default for PCBasic {
-    fn default() -> Self {
-        Self {
-            name: String::new(),
-            class: PCClassRef::Fighter,
-        }
-    }
+impl RwUtils for PCBasic {
+    type Item = Self;
 }
+
+#[rustfmt::skip]
+pub const NAMES: [&str; 23] = [
+    "Abigail","Emilia","Allison","Clara","Leah",
+    "Myla","Ryanna","Valerie","Bram","Abram","Astin",
+    "Bradyn","Cartus","Eric","Gavin","Han","Jax",
+    "Jovan","Liam","Remus","Sebastion","Xander","Havy"
+];

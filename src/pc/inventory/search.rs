@@ -4,19 +4,25 @@ use gloo::timers::future::sleep;
 use leptos::*;
 
 use crate::icons;
-use crate::items::{search, Item, ItemRef};
+use crate::items::search::search;
+use crate::items::{Item, ItemRef};
 use crate::pc::PC;
-use crate::utils::{expect_rw, some_if, RwProvided};
+use crate::utils::rw_utils::RwUtils;
+use crate::utils::{expect_rw, ArrayEnhance};
 
 #[derive(Default)]
-struct SearchState {
+struct State {
     query: String,
     is_active: bool,
     found_item: Option<Item>,
 }
 
+impl RwUtils for State {
+    type Item = Self;
+}
+
 pub(super) fn search_view() -> impl IntoView {
-    let state = create_rw_signal(SearchState::default());
+    let state = create_rw_signal(State::default());
     provide_context(state);
     let has_item = create_read_slice(state, |state| state.found_item.is_some());
 
@@ -42,14 +48,14 @@ pub(super) fn search_view() -> impl IntoView {
 }
 
 fn item_view() -> impl IntoView {
-    let state = expect_rw::<SearchState>();
+    let (pc, state) = (PC::expect(), State::expect());
     let item = state.with(|x| x.found_item.clone().unwrap_or_default());
     let item_view = item.into_view();
     let add_item = move || {
-        PC::update(|pc| pc.inventory.add(item.clone()));
-        state.set(SearchState::default());
+        pc.update(|pc| pc.inventory.add(item.clone()));
+        state.set(State::default());
     };
-    let del_item = move || state.set(SearchState::default());
+    let del_item = move || state.set(State::default());
 
     view! {
         <div class= "flex gap-1">
@@ -70,7 +76,7 @@ fn item_view() -> impl IntoView {
 }
 
 fn input() -> impl IntoView {
-    let state = expect_rw::<SearchState>();
+    let state = expect_rw::<State>();
     // Focus loss needs to be staggered so that search results can be
     // clicked.
     let delayed_loss = move || {
@@ -94,10 +100,11 @@ fn input() -> impl IntoView {
 }
 
 fn results_view() -> impl IntoView {
-    let state = expect_rw::<SearchState>();
-    let query = create_read_slice(state, |state| {
-        some_if(!state.query.is_empty()).map(|_| state.query.clone())
-    });
+    let state = State::expect();
+    let query = leptos_use::signal_debounced(
+        State::slice(|state| state.query.is_not_empty().then(|| state.query.clone())),
+        500.0,
+    );
     let empty = move || {
         view! {
             <div class= "text-center py-2"> "Search for items or loot tables..." </div>

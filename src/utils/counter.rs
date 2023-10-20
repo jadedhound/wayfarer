@@ -7,19 +7,13 @@ pub struct Counter {
 }
 
 impl Counter {
-    pub const fn empty(count: usize) -> Self {
-        Self {
-            curr: 1,
-            max: count,
-        }
-    }
-    pub const fn full(count: usize) -> Self {
+    pub const fn new(count: usize) -> Self {
         Self {
             curr: count,
             max: count,
         }
     }
-    pub fn is_zero(&self) -> bool {
+    pub fn is_empty(&self) -> bool {
         self.curr == 0
     }
 }

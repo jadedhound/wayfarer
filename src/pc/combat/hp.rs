@@ -4,12 +4,13 @@ use leptos::*;
 
 use super::PC;
 use crate::icons;
-use crate::pc::session::PCSession;
+use crate::pc::session::Session;
 use crate::pc::{update, PCStat};
-use crate::utils::{expect_rw, RwProvided};
+use crate::utils::expect_rw;
+use crate::utils::rw_utils::RwUtils;
 
 #[derive(Clone, Copy)]
-struct HPState {
+struct State {
     is_raw: bool,
     been_interacted: bool,
     abs_value: i32,
@@ -17,7 +18,7 @@ struct HPState {
 
 /// Each time the user clicks a button (heal or damage) to confirm a choice
 /// the state is reset to this default.
-impl Default for HPState {
+impl Default for State {
     fn default() -> Self {
         Self {
             is_raw: false,
@@ -27,8 +28,12 @@ impl Default for HPState {
     }
 }
 
+impl RwUtils for State {
+    type Item = Self;
+}
+
 pub fn hp() -> impl IntoView {
-    provide_context(create_rw_signal(HPState::default()));
+    State::provide();
 
     view! {
         { guard }
@@ -40,9 +45,10 @@ pub fn hp() -> impl IntoView {
 }
 
 fn guard() -> impl IntoView {
-    let max = create_memo(move |_| PCSession::with(|sesh| sesh.stats.get(PCStat::Guard)));
+    let pc = PC::expect();
+    let max = Session::slice(|sesh| sesh.stats.get(PCStat::Guard));
     let curr = move || {
-        let stam_dmg = PC::with(|pc| pc.guard_dmg);
+        let stam_dmg = pc.with(|pc| pc.guard_dmg);
         max.get() - stam_dmg
     };
     let num_or_icon = move || {
@@ -67,23 +73,22 @@ fn guard() -> impl IntoView {
             { num_or_icon }
         </div>
         <input
-            class= "range green-bar col-span-6 bg-inherit border-2 border-stone-400"
+            class= "range green-bar col-span-6 bg-inherit border-2 border-stone-400 pointer-events-none"
             type= "range"
             min=0
             max=max
             value=curr
-            disabled=true
         />
     }
 }
 
 fn health() -> impl IntoView {
-    let state = expect_rw::<HPState>();
+    let (pc, state) = (PC::expect(), State::expect());
     let is_not_raw = create_read_slice(state, move |state| !state.is_raw);
     let invert_raw = move || state.update(|x| x.is_raw = !x.is_raw);
-    let max = create_memo(move |_| PCSession::with(|sesh| sesh.stats.get(PCStat::Health)));
+    let max = Session::slice(|sesh| sesh.stats.get(PCStat::Health));
     let curr = move || {
-        let health_dmg = PC::with(|pc| pc.health_dmg);
+        let health_dmg = pc.with(|pc| pc.health_dmg);
         max.get() - health_dmg
     };
 
@@ -94,29 +99,29 @@ fn health() -> impl IntoView {
         </div>
         <div class= "relative col-span-6">
             <input
-                class= "range red-bar w-full h-full bg-inherit border-2 border-stone-400"
+                class= "range red-bar w-full h-full bg-inherit border-2 border-stone-400 pointer-events-none"
                 type= "range"
                 min=0
                 max=max
                 value=curr
-                disabled=true
             />
-            <div
+            <button
                 class= "absolute cursor-pointer psuedo top-0 w-full h-full flex items-center justify-end"
                 on:click=move |_| invert_raw()
             >
                 <div class= "text-4xl px-4" hidden=is_not_raw inner_html= "&#x2022;" />
-            </div>
+            </button>
         </div>
     }
 }
 
 fn heal_btn() -> impl IntoView {
-    let state = expect_rw::<HPState>();
-
+    let (pc, sesh, state) = (PC::expect(), Session::expect(), State::expect());
     let is_max_hp = PC::slice(|pc| pc.health_dmg == 0);
     let is_max_guard = create_memo(move |_| {
-        PCSession::with_pc(|sesh, pc| pc.guard_dmg < 1 || sesh.stats.get(PCStat::Guard) < 1)
+        let no_damage = pc.with(|pc| pc.guard_dmg < 1);
+        let no_guard = sesh.with(|sesh| sesh.stats.get(PCStat::Guard) < 1);
+        no_damage || no_guard
     });
     let been_interacted = create_read_slice(state, |x| x.been_interacted);
     let abs_value = create_read_slice(state, |x| x.abs_value);
@@ -142,7 +147,7 @@ fn heal_btn() -> impl IntoView {
     let heal = move || {
         let val = abs_value.get();
         let mut rally_update = false;
-        PC::update(|pc| {
+        pc.update(|pc| {
             if been_interacted.get() {
                 pc.guard_dmg = cmp::max(pc.guard_dmg - val, 0);
             } else if is_max_guard.get() {
@@ -155,7 +160,7 @@ fn heal_btn() -> impl IntoView {
         if rally_update {
             update::on_rally();
         }
-        state.set(HPState::default());
+        state.set(State::default());
     };
 
     view! {
@@ -170,7 +175,7 @@ fn heal_btn() -> impl IntoView {
 }
 
 fn input_range() -> impl IntoView {
-    let state = expect_rw::<HPState>();
+    let state = expect_rw::<State>();
     let update_val = move |val: String| {
         let val = val.parse::<i32>().unwrap_or(1);
         state.update(|state| {
@@ -184,7 +189,7 @@ fn input_range() -> impl IntoView {
         <div class= "relative h-12 col-span-5 flex items-center justify-between px-2 pointer-events-none">
             <div class= "z-[1] w-4" inner_html=icons::MINUS />
             <input
-                class= "absolute left-0 range bg-yellow-900 yellow-bar w-full h-full pointer-events-auto"
+                class= "absolute left-0 range yellow-thumb bg-yellow-900 yellow-bar w-full h-full pointer-events-auto"
                 type= "range"
                 min=1
                 max=12
@@ -197,16 +202,16 @@ fn input_range() -> impl IntoView {
 }
 
 fn damage_btn() -> impl IntoView {
-    let state = expect_rw::<HPState>();
+    let (pc, sesh, state) = (PC::expect(), Session::expect(), State::expect());
     let val_slice = create_read_slice(state, |state| state.abs_value);
     let apply_dmg = move || {
         let (dmg, is_raw) = state.with(|x| (x.abs_value, x.is_raw));
-        let (max_stam, max_health) = PCSession::with(|sesh| {
+        let (max_stam, max_health) = sesh.with(|sesh| {
             let stam = sesh.stats.get(PCStat::Guard);
             let health = sesh.stats.get(PCStat::Health);
             (stam, health)
         });
-        PC::update(|pc| {
+        pc.update(|pc| {
             let mut apply_to_health = |dmg| {
                 if pc.health_dmg + dmg > max_health {
                     pc.health_dmg = max_health;
@@ -224,7 +229,7 @@ fn damage_btn() -> impl IntoView {
                 pc.guard_dmg += dmg;
             }
         });
-        state.set(HPState::default())
+        state.set(State::default())
     };
 
     view! {

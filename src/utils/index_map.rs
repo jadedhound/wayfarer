@@ -55,6 +55,9 @@ impl<T: Clone> IndexMap<T> {
             .enumerate()
             .filter_map(|(i, x)| Some((i, x.as_ref()?)))
     }
+    pub fn keys(&self) -> impl Iterator<Item = usize> + '_ {
+        self.iter().map(|(i, _)| i)
+    }
     pub fn add(&mut self, t: T) {
         if let Some(id) = self.removed_ids.pop() {
             self.values[id] = Some(t)
@@ -73,6 +76,12 @@ impl<T: Clone> IndexMap<T> {
     }
     pub fn get_mut(&mut self, id: usize) -> Option<&mut T> {
         self.values.get_mut(id).and_then(|x| x.as_mut())
+    }
+    pub fn expect(&self, id: usize) -> T
+    where
+        T: Default,
+    {
+        self.get(id).cloned().unwrap_or_default()
     }
     pub fn len(&self) -> usize {
         self.values.len() - self.removed_ids.len()

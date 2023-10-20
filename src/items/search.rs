@@ -1,5 +1,5 @@
-use super::simple::{meta, sundry};
-use super::{alchemy, arcane, consumables, divine, food, weapons, ItemRef};
+use super::meta::{self, ERROR_ITEM};
+use super::{adventure, alchemist, arcane, blacksmith, divine, food, ItemRef};
 use crate::utils::search::{arr_len, char_count, compile_count, contains_pattern, CharCount};
 
 /// Searches through a compiled list of `ItemRef`.
@@ -25,19 +25,18 @@ pub fn search(query: &str) -> impl Iterator<Item = &'static ItemRef> {
 // SEARCH COMPILER
 // -----------------------------------
 
-const ALL_ITEMS: [&[&ItemRef]; 8] = [
-    &sundry::ALL,
-    &meta::ALL,
-    &alchemy::T1,
-    &arcane::ALL,
-    &divine::ALL,
-    &consumables::ALL,
-    &food::ALL,
-    &weapons::ALL,
+const ALL_ITEMS: [&[&ItemRef]; 7] = [
+    &adventure::ITEMS,
+    &alchemist::ITEMS,
+    &arcane::ITEMS,
+    &blacksmith::ITEMS,
+    &divine::ITEMS,
+    &food::ITEMS,
+    &meta::ITEMS,
 ];
 const TOTAL_ITEMS: usize = arr_len(&ALL_ITEMS, 0, 0);
 type CountedArr = [(CharCount, &'static ItemRef); TOTAL_ITEMS];
-const COUNTED_ARR_DEF: CountedArr = [([0; 36], &meta::ERROR_ITEM); TOTAL_ITEMS];
+const COUNTED_ARR_DEF: CountedArr = [([0; 36], &ERROR_ITEM); TOTAL_ITEMS];
 const SEARCHABLE_ARR: CountedArr = compile_search(&ALL_ITEMS, 0, COUNTED_ARR_DEF, 0);
 
 /// Recursively compile `CountedArr` to be searched.

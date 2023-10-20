@@ -1,35 +1,32 @@
 use leptos::*;
 
 use crate::icons;
-use crate::lobby::pc_basic::PCBasic;
-use crate::lobby::{NewPCTimeout, PCList, LOCKOUT_MINS, NAMES};
-use crate::pc::pc_class::PCClassRef;
+use crate::lobby::pc_basic::{PCBasic, NAMES};
+use crate::lobby::{NewPCTimeout, PCList, LOCKOUT_MINS};
+use crate::pc::class::PCClassRef;
 use crate::rand::Rand;
 use crate::utils::expect_rw;
+use crate::utils::rw_utils::RwUtils;
 use crate::views::modal::{ModalCenter, ModalState};
 
 const MAX_NAME_LEN: usize = 30;
 
 pub(super) fn create_pc_modal() -> impl IntoView {
     view! {
-        <ModalCenter id=0>
-            <div class= "flex flex-col gap-2">
-                <h4 class= "text-center"> "Create Character" </h4>
-                { name_input }
-                <div class= "flex flex-col gap-1">
-                    { class_radio(PCClassRef::Fighter) }
-                    { class_radio(PCClassRef::Rogue) }
-                    { class_radio(PCClassRef::Mage) }
-                    { class_radio(PCClassRef::Cleric) }
-                </div>
-                { create_btn }
-            </div>
+        <ModalCenter id=10>
+            <h4 class= "text-center"> "Create Character" </h4>
+            { name_input }
+            { class_radio(PCClassRef::Fighter) }
+            { class_radio(PCClassRef::Rogue) }
+            { class_radio(PCClassRef::Mage) }
+            { class_radio(PCClassRef::Cleric) }
+            { create_btn }
         </ModalCenter>
     }
 }
 
 fn name_input() -> impl IntoView {
-    let pc_basic = expect_rw::<PCBasic>();
+    let pc_basic = PCBasic::expect();
     let randomise_name = move || {
         let name = Rand::with(|rand| rand.pick(&NAMES).to_string());
         pc_basic.update(|x| x.name = name);
@@ -107,7 +104,7 @@ fn create_btn() -> impl IntoView {
             // 10 secs of padding is needed due to rounding after division
             time.0 = LOCKOUT_MINS + js_sys::Date::now() + 10000.0;
         });
-        ModalState::dismiss();
+        ModalState::hide();
     };
 
     view! {

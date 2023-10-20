@@ -1,114 +1,90 @@
 use leptos::*;
 use strum::IntoEnumIterator;
 
-use super::{FolStat, FolStatArray, Follower};
+use super::{Follower, FollowerStat, FollowerStatArray};
 use crate::icons;
 use crate::pc::PC;
 use crate::rand::Rand;
-use crate::utils::RwProvided;
-use crate::views::delete_btn::{delete_btn, delete_btn_show};
+use crate::utils::rw_utils::RwUtils;
+use crate::utils::turns::Turns;
+use crate::utils::RwSignalEnhance;
+use crate::views::delete_confirm::DeleteModal;
 
 pub fn followers() -> impl IntoView {
-    let follower_list = move || {
-        PC::with(|pc| {
-            if pc.followers.is_empty() {
-                view! {
-                    <div class= "italic text-center">
-                        "Followers are an invaluable resource. You can have a maximum of 3
-                        and can roll for 1 per day while in a safe area."
-                    </div>
-                }
-            } else {
-                let arr = pc.followers.iter().map(follower_view).collect_view();
-                view! {
-                    <div class= "flex flex-col gap-y-2 shaded-table">
-                        { arr }
-                    </div>
-                }
-            }
-        })
-    };
+    let pc = PC::expect();
+    DeleteModal::set_effect(move |id| pc.update_discard(|pc| pc.followers.remove(id)));
+    let no_followers = move || pc.with(|pc| pc.followers.is_empty());
+    let follower_list = move || pc.with(|pc| pc.followers.iter().map(follower_view).collect_view());
 
     view! {
-        <div class= "flex flex-col gap-4">
+        <div class= "shaded-table" hidden=no_followers>
             { follower_list }
-            { random_follower_btn }
         </div>
+        { random_follower_button }
     }
 }
 
-fn random_follower_btn() -> impl IntoView {
-    let fol_result = RwSignal::new(None);
-    let too_many_fol = move || PC::with(|pc| pc.followers.len() > 2);
-    let gen_fol_result = move |_| {
-        let fol = Rand::with(gen_follower);
-        fol_result.set(Some(fol))
+fn random_follower_button() -> impl IntoView {
+    let pc = PC::expect();
+    let max_followers = PC::slice(|pc| pc.followers.len() > 2);
+    let cooldown = PC::slice(|pc| pc.follower_cooldown.sub(pc.turns));
+    let disabled = move || max_followers.get() || cooldown.get().0 > 0;
+    let add_follower = move |_| {
+        let follower = Rand::with(gen_follower);
+        pc.update(|pc| {
+            pc.followers.add(follower);
+            if !cfg!(debug_assertions) {
+                pc.follower_cooldown = pc.turns;
+                pc.follower_cooldown.add(Turns::new(3, 0));
+            }
+        });
     };
-    let rand_btn = move || {
-        view! {
-            <button
-                class= "btn bg-surface py-2 flex justify-center gap-2"
-                on:click=gen_fol_result
-                disabled=too_many_fol
-            >
+    let text = move || {
+        if cooldown.get().0 > 0 {
+            let days = move || format!("{} DAY COOLDOWN", cooldown.get().in_days());
+            view! {
+                <div class= "w-6 -translate-y-px" inner_html=icons::CLOCK />
+                <div> { days } </div>
+            }
+            .into_view()
+        } else {
+            view! {
                 <div class= "w-6 -translate-y-px" inner_html=icons::DIE />
                 <div> "RANDOM FOLLOWER" </div>
-            </button>
-        }
-    };
-    let reset_fol_result = move |_| fol_result.set(None);
-    let add_follower = move |fol| {
-        PC::update(|pc| pc.followers.add(fol));
-        fol_result.set(None)
-    };
-    let confirm_choice = move |fol: Follower| {
-        let fol_view = fol.into_view();
-        view! {
-            <div class= "flex gap-1">
-                <button
-                    class= "btn-no-font bg-surface w-12 grow p-2"
-                    on:click=move |_| add_follower(fol.clone())
-                >
-                    { fol_view }
-                </button>
-                <button
-                    class= "btn bg-red-800 px-2"
-                    on:click=reset_fol_result
-                >
-                    <div class= "w-4" inner_html=icons::CROSS />
-                </button>
-            </div>
+            }
+            .into_view()
         }
     };
 
-    move || {
-        if let Some(fol) = fol_result.get() {
-            confirm_choice(fol).into_view()
-        } else {
-            rand_btn().into_view()
-        }
+    view! {
+        <button
+            class= "btn bg-surface py-2 flex justify-center gap-2"
+            on:click=add_follower
+            disabled=disabled
+        >
+            { text }
+        </button>
     }
 }
 
 fn follower_view((id, follower): (usize, &Follower)) -> impl IntoView {
-    let delete = move || PC::update(|pc| pc.followers.remove(id));
-
     view! {
-        <div class= "relative">
-            <div
-                class= "p-2"
-                on:contextmenu=delete_btn_show('f', id)
+        <div class= "flex gap-2 px-2">
+            <button on:click=move |_| DeleteModal::show(id)>
+                <div class= "w-5 fill-red-600" inner_html=icons::TRASH />
+            </button>
+            <button
+                class= "p-2 w-full"
             >
                 { follower.into_view() }
-            </div>
-            { delete_btn('f', id, delete)}
+            </button>
         </div>
     }
 }
 
 fn gen_follower(rand: &mut Rand) -> Follower {
     let mut name = rand.pick(&names::NAMES).to_string();
-    let mut stats = FolStatArray::default();
+    let mut stats = FollowerStatArray::default();
     let incr_stats = rand_incr_stats(rand);
     // 1/3 chance of the follower having a title and better stats.
     if rand.range(0, 2) == 0 {
@@ -129,8 +105,8 @@ fn gen_follower(rand: &mut Rand) -> Follower {
 
 /// Gives 2 stats from `FolStat`.
 /// Used in `gen_follower` to give stat variety.
-fn rand_incr_stats(rand: &mut Rand) -> [FolStat; 2] {
-    let fol_stats: Vec<_> = FolStat::iter().collect();
+fn rand_incr_stats(rand: &mut Rand) -> [FollowerStat; 2] {
+    let fol_stats: Vec<_> = FollowerStat::iter().collect();
     let first = rand.pick(&fol_stats);
     let second = rand.pick(&fol_stats);
     // Reroll if the chosen stats are the same.

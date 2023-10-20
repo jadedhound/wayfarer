@@ -10,6 +10,9 @@ impl IntoView for &Item {
         view! {
             <div class= "flex flex-col h-full justify-center text-start">
                 <div class= "uppercase font-tight"> { &self.name } </div>
+                <div class= "italic" hidden=self.desc.is_empty()>
+                    { &self.desc }
+                </div>
                 { props }
             </div>
         }
@@ -21,13 +24,13 @@ fn prop_views(prop: &ItemProp) -> Option<View> {
     match prop {
         ItemProp::Resist => newline("Creatures can resist this effect"),
         ItemProp::Usable(x) => newline(x),
-        ItemProp::Edible(x) => newline(format!("Heals {x} health")),
+        ItemProp::Food => newline("Restores health when consumed during rest"),
         ItemProp::Range(x) => newline(format!("Range {x} ft")),
         ItemProp::Effect(x) => newline(x),
         ItemProp::Damage(x) => newline(format!("Deals {} damage", damage_die(*x))),
         ItemProp::Buff(x) => Some(buff_desc(x)),
-        ItemProp::Bulky => newline("requires 2 hands to use"),
-        ItemProp::WildMagic(x) => newline(format!("requires a DC {} spellcasting check", 10 + x)),
+        ItemProp::Bulky => newline("Requires 2 hands to hold"),
+        ItemProp::Concentration => newline("Requires concentration to maintain"),
         _ => None,
     }
 }
@@ -36,7 +39,10 @@ fn newline<S>(s: S) -> Option<View>
 where
     S: std::fmt::Display,
 {
-    Some(view! { <div class= "capitalise"> { format!("{s}.") } </div> }.into_view())
+    let newline = view! {
+        <div class= "capitalise"> { format!("{s}.") } </div>
+    };
+    Some(newline.into_view())
 }
 
 fn buff_desc(buff: &Buff) -> View {

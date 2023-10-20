@@ -3,7 +3,7 @@ use leptos::*;
 use crate::buffs::{Buff, BuffProp};
 use crate::icons;
 use crate::pc::PC;
-use crate::utils::{some_if, RwProvided};
+use crate::utils::rw_utils::RwUtils;
 
 impl IntoView for &Buff {
     fn into_view(self) -> leptos::View {
@@ -27,7 +27,7 @@ fn effect(buff: &Buff) -> impl IntoView {
         })
         .collect();
     let effects = effects.join(" ");
-    some_if(!effects.is_empty()).map(|_| {
+    (!effects.is_empty()).then(move || {
         view! {
             <div class= "capitalise"> { effects } </div>
         }
@@ -60,6 +60,7 @@ fn uses_txt(buff: &Buff) -> impl IntoView {
 }
 
 fn name(buff: &Buff) -> impl IntoView {
+    let pc = PC::expect();
     let mut colour = "";
     let mut turns = None;
     for prop in buff.props.iter() {
@@ -67,7 +68,7 @@ fn name(buff: &Buff) -> impl IntoView {
             BuffProp::Class => colour = "text-yellow-500",
             BuffProp::Rechargable => colour = "text-sky-500",
             BuffProp::Debuff => colour = "text-red-500",
-            BuffProp::Expiry(x) => PC::with(|pc| turns = Some(pc.turns.diff(*x))),
+            BuffProp::Expiry(x) => pc.with(|pc| turns = Some(pc.turns.abs_diff(*x))),
             _ => (),
         }
     }

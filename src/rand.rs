@@ -1,28 +1,30 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use leptos::{provide_context, use_context};
+use leptos::{expect_context, provide_context};
 use nanorand::{Rng, WyRand};
-
-pub fn provide_rand() {
-    let seed = (js_sys::Math::random() * 10_f64.powf(10.0)) as u64;
-    let cell = RefCell::new(Rand {
-        inner: WyRand::new_seed(seed),
-    });
-    provide_context(Rc::new(cell));
-}
 
 #[derive(Clone)]
 pub struct Rand {
-    inner: nanorand::WyRand,
+    inner: WyRand,
 }
 
 impl Rand {
+    /// Provide `Rand` for use anywhere in the app.
+    pub fn provide() {
+        let seed = (js_sys::Math::random() * 10_f64.powf(10.0)) as u64;
+        let cell = RefCell::new(Rand {
+            inner: WyRand::new_seed(seed),
+        });
+        provide_context(Rc::new(cell));
+    }
+
+    /// Recall `Rand` from context and use it.
     pub fn with<F, T>(f: F) -> T
     where
         F: FnOnce(&mut Rand) -> T,
     {
-        let cell = use_context::<Rc<RefCell<Rand>>>().unwrap();
+        let cell = expect_context::<Rc<RefCell<Rand>>>();
         let mut cell = cell.as_ref().borrow_mut();
         f(&mut cell)
     }

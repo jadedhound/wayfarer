@@ -1,18 +1,13 @@
 use gloo::events::EventListener;
 use leptos::*;
-use leptos_router::use_location;
 
-use super::attr::MAX_INVENTORY;
-use super::realm::shop::Shop;
-use super::PC;
 use crate::icons;
 use crate::pc::PCStatArray;
 use crate::utils::index_map::IndexMap;
-use crate::utils::RwProvided;
+use crate::utils::rw_utils::RwUtils;
 
 #[derive(Default)]
-pub(super) struct PCSession {
-    pub pc_id: usize,
+pub(super) struct Session {
     pub stats: PCStatArray,
     pub max_inv: usize,
     pub inv_slots: IndexMap<SlotRange>,
@@ -22,37 +17,9 @@ pub(super) struct PCSession {
     pub cast_divine: u8,
     pub cast_arcane: u8,
     pub revealer_listen: Option<EventListener>,
-    pub active_shop: Shop,
 }
 
-impl PCSession {
-    /// Relies on `PC` to have been provided already to base itself on.
-    pub fn new() -> Self {
-        let pc_id: usize = use_location().pathname.with_untracked(|loc| {
-            loc.chars()
-                .skip(4)
-                .take_while(|x| x != &'/')
-                .collect::<String>()
-                .parse::<usize>()
-                .unwrap()
-        });
-        PC::untracked(|pc| Self {
-            pc_id,
-            stats: pc.base_stats,
-            max_inv: MAX_INVENTORY,
-            ..Default::default()
-        })
-    }
-
-    pub fn with_pc<F, T>(f: F) -> T
-    where
-        F: FnOnce(&Self, &PC) -> T,
-    {
-        PC::with(|pc| Self::with(|sesh| f(sesh, pc)))
-    }
-}
-
-impl RwProvided for PCSession {
+impl RwUtils for Session {
     type Item = Self;
 }
 

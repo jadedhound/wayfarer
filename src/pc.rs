@@ -2,43 +2,46 @@ use leptos::logging::log;
 use serde::{Deserialize, Serialize};
 use strum::{EnumCount, EnumIter};
 
+use self::class::level::ClassExp;
 use self::description::gen_description;
 use self::realm::Follower;
 use crate::buffs::Buff;
-use crate::items::{self, Item, SHOP_ADVENTURE_T1};
+use crate::items::{self, Item};
 use crate::lobby::pc_basic::PCBasic;
-use crate::pc::pc_class::PCClassRef;
+use crate::pc::class::PCClassRef;
 use crate::rand::Rand;
 use crate::utils::enum_array::{EnumArray, EnumRef};
+use crate::utils::fixed_vec::FixedVec;
 use crate::utils::index_map::IndexMap;
+use crate::utils::rw_utils::RwUtils;
 use crate::utils::turns::Turns;
-use crate::utils::RwProvided;
 
-pub mod class_view;
+pub mod class;
+pub mod combat;
 mod description;
 pub mod inventory;
 pub mod journal;
 pub mod navbar;
-pub mod overview;
-pub mod pc_class;
 pub mod realm;
 pub mod scout;
 pub mod session;
 mod update;
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Default)]
 pub struct PC {
     pub name: String,
-    pub class: (PCClassRef, u8),
+    // Class and EXP.
+    pub class: (PCClassRef, ClassExp),
     pub description: String,
     pub guard_dmg: i32,
     pub health_dmg: i32,
-    pub funds: u32,
+    pub wealth: u32,
     pub inventory: IndexMap<Item>,
-    pub quick_access: [Option<Item>; 3],
+    pub quick_access: FixedVec<usize>,
     pub base_stats: PCStatArray,
     pub buffs: IndexMap<Buff>,
     pub followers: IndexMap<Follower>,
+    pub follower_cooldown: Turns,
     pub turns: Turns,
     pub prof: String,
 }
@@ -49,30 +52,36 @@ impl From<PCBasic> for PC {
         Rand::with(|rand| {
             Self {
                 name: value.name,
-                class: (value.class, 1),
+                class: (value.class, ClassExp::default()),
                 description: gen_description(rand),
-                guard_dmg: 0,
-                health_dmg: 0,
-                // Somewhere between 10 silver and 20 silver
-                funds: rand.range(10, 20) * 10,
+                // 15 SP to start.
+                wealth: 150,
                 inventory: gen_inventory(rand, value.class),
-                quick_access: [None, None, None],
+                quick_access: FixedVec::new(2),
                 base_stats: gen_base_stats(rand, value.class),
-                turns: Turns::default(),
                 buffs: IndexMap::from(vec![Buff::from(*value.class.base_buffs[0])]),
-                followers: IndexMap::default(),
                 prof: value.class.prof.into(),
+                ..Default::default()
             }
         })
     }
 }
 
-impl RwProvided for PC {
+impl RwUtils for PC {
     type Item = Self;
 }
 
 const PC_STAT_COUNT: usize = PCStat::COUNT;
 pub type PCStatArray = EnumArray<PCStat, PC_STAT_COUNT>;
+
+impl PartialEq for PCStatArray {
+    fn eq(&self, other: &Self) -> bool {
+        let is_not_same = self
+            .iter_enum()
+            .any(|(stat, value)| other.get(stat) != value);
+        !is_not_same
+    }
+}
 
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, strum::Display, EnumCount, EnumIter)]
 #[allow(clippy::upper_case_acronyms)]
@@ -109,8 +118,8 @@ fn gen_base_stats(rand: &mut Rand, class: PCClassRef) -> PCStatArray {
     // Index 3 is largest abi, 0 is smallest.
     .map(|i| ability_arr[4 - i]);
     vec![
-        (PCStat::Guard, 6),
-        (PCStat::Health, 2),
+        (PCStat::Guard, attr::GUARD),
+        (PCStat::Health, attr::HEALTH),
         (PCStat::STR, stat_priority[0]),
         (PCStat::DEX, stat_priority[1]),
         (PCStat::INT, stat_priority[2]),
@@ -128,10 +137,12 @@ fn gen_inventory(rand: &mut Rand, class: PCClassRef) -> IndexMap<Item> {
     }
     .iter()
     .map(|x| (**x).into())
-    .chain([(); 3].map(|_| (*rand.pick(&SHOP_ADVENTURE_T1)).into()))
+    .chain([(); 3].map(|_| (*rand.pick(&items::adventure::ITEMS)).into()))
     .collect()
 }
 
-pub mod attr {
-    pub const MAX_INVENTORY: usize = 7;
+mod attr {
+    pub const INV_CAPACITY: usize = 10;
+    pub const HEALTH: i32 = 2;
+    pub const GUARD: i32 = 6;
 }

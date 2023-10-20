@@ -2,17 +2,15 @@ use leptos::*;
 
 use crate::icons;
 use crate::pc::PC;
-use crate::utils::RwProvided;
+use crate::utils::rw_utils::RwUtils;
 
 pub(super) fn turn_tracker() -> impl IntoView {
-    let turns = move || PC::with(|pc| pc.turns).in_turns() % 6 + 1;
-    let days = create_memo(move |_| {
-        let x = PC::with(|pc| pc.turns).in_days();
-        format!("DAY {x}")
-    });
-    let change_turn = move |amount| PC::update(|pc| pc.turns.change_by(amount));
+    let pc = PC::expect();
+    let turns = move || pc.with(|pc| pc.turns).in_turns() % 6 + 1;
+    let days = PC::slice(|pc| format!("DAY {}", pc.turns.in_days()));
+    let change_turn = move |amount| pc.update(|pc| pc.turns.change_by(amount));
     let cannot_rewind = create_memo(move |_| {
-        let mut turns = PC::with(|pc| pc.turns);
+        let mut turns = pc.with(|pc| pc.turns);
         let curr = turns.in_days();
         turns.change_by(-1);
         let next = turns.in_days();

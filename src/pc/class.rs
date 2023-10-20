@@ -3,13 +3,16 @@ use core::fmt;
 use serde::{Deserialize, Serialize};
 use strum::AsRefStr;
 
-use crate::buffs::{
-    class::{cleric, fighter, mage, rogue},
-    BuffRef,
-};
+use crate::buffs::BuffRef;
 
-#[derive(Serialize, Deserialize, Clone, Copy, AsRefStr, PartialEq)]
+mod buffs;
+pub mod level;
+pub mod view;
+mod view_optional;
+
+#[derive(Serialize, Deserialize, Clone, Copy, AsRefStr, PartialEq, Default)]
 pub enum PCClassRef {
+    #[default]
     Fighter,
     Rogue,
     Mage,
@@ -19,57 +22,50 @@ pub enum PCClassRef {
 #[derive(Clone, Copy)]
 pub struct PCClass {
     pub prof: &'static str,
-    pub base_buffs: [&'static BuffRef; 3],
+    pub base_buffs: &'static [&'static BuffRef],
     pub optional_buffs: &'static [&'static BuffRef],
+    pub guard_bonus: i32,
 }
 
 impl PCClass {
     pub const fn new(
         prof: &'static str,
-        base_buffs: [&'static BuffRef; 3],
+        base_buffs: &'static [&'static BuffRef],
         optional_buffs: &'static [&'static BuffRef],
+        guard_bonus: i32,
     ) -> Self {
         Self {
             prof,
             base_buffs,
             optional_buffs,
+            guard_bonus,
         }
     }
 }
 
-const FIGHTER_OPTIONAL: [&BuffRef; 3] = [&fighter::ENRAGE, &fighter::CHARGE, &fighter::ON_THE_HUNT];
 pub const FIGHTER: PCClass = PCClass::new(
-    "intimidation, endurance and military",
-    [&fighter::T1, &fighter::T2, &fighter::T3],
-    &FIGHTER_OPTIONAL,
+    "military, intimidation and endurance",
+    &buffs::FIGHTER_MAIN,
+    &buffs::FIGHTER_OPTIONAL,
+    6,
 );
-
-const ROGUE_OPTIONAL: [&BuffRef; 2] = [&rogue::HUNTERS_MARK, &rogue::MAGE_HAND];
 pub const ROGUE: PCClass = PCClass::new(
     "delicate tasks, stealth and deception",
-    [&rogue::T1, &rogue::T2, &rogue::T3],
-    &ROGUE_OPTIONAL,
+    &buffs::ROGUE_MAIN,
+    &buffs::ROGUE_OPTIONAL,
+    3,
 );
-const MAGE_OPTIONAL: [&BuffRef; 4] = [
-    &mage::FIND_FAMILIAR,
-    &mage::FIREBOLT,
-    &mage::MAGECRAFT,
-    &mage::METAMAGIC,
-];
 pub const MAGE: PCClass = PCClass::new(
     "arcane, history and insight",
-    [&mage::T1, &mage::T2, &mage::T3],
-    &MAGE_OPTIONAL,
+    &buffs::MAGE_MAIN,
+    &buffs::MAGE_OPTIONAL,
+    1,
 );
-const CLERIC_OPTIONAL: [&BuffRef; 3] = [
-    &cleric::BULWARK_OF_FAITH,
-    &cleric::SMITE,
-    &cleric::TURN_UNDEAD,
-];
 pub const CLERIC: PCClass = PCClass::new(
     "divine, medicine and religion",
-    [&cleric::T1, &cleric::T2, &cleric::T3],
-    &CLERIC_OPTIONAL,
+    &buffs::CLERIC_MAIN,
+    &buffs::CLERIC_OPTIONAL,
+    4,
 );
 
 // -----------------------------------

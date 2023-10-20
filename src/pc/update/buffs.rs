@@ -3,27 +3,26 @@ use leptos::*;
 
 use super::PC;
 use crate::buffs::BuffProp;
-use crate::pc::session::PCSession;
-use crate::utils::RwProvided;
+use crate::pc::session::Session;
+use crate::utils::rw_utils::RwUtils;
 
 /// Run a battery of functions when the length of buffs change.
 pub(super) fn on_buff_change() {
+    let pc = PC::expect();
     let buff_len = PC::slice(|pc| pc.buffs.len());
 
     create_effect(move |_| {
         let _ = buff_len.get();
         log!("↺  Buffs changed");
-        log!("    1. Searching for stat changes");
         session_stats();
         log!("    2. Adding expiry to relevant buffs");
-        PC::update(add_buff_expiry);
-        log!("    3. Checking caster status");
-        caster_status();
+        pc.update(add_buff_expiry);
     });
 }
 
-fn session_stats() {
-    let (mut base, overrides) = PC::untracked(|pc| {
+pub(super) fn session_stats() {
+    log!("    1. Searching for stat changes");
+    let (mut base, overrides) = PC::expect().with_untracked(|pc| {
         let overrides: Vec<_> = pc
             .buffs
             .values()
@@ -40,7 +39,7 @@ fn session_stats() {
     for (stat, by) in overrides {
         *base.get_mut(stat) = by
     }
-    PCSession::update(|sesh| sesh.stats = base)
+    Session::expect().update(|sesh| sesh.stats = base)
 }
 
 /// Find buffs with the `BuffProp::Duration` values and add an `BuffProp::Expiry`.
@@ -56,29 +55,9 @@ fn add_buff_expiry(pc: &mut PC) {
             // Add any expiry if it's missing one.
             if buff.find_expiry().is_none() {
                 let mut expiry = *turns;
-                expiry.add(&time);
+                expiry.add(time);
                 buff.props.push(crate::buffs::BuffProp::Expiry(expiry))
             }
         }
     }
-}
-
-fn caster_status() {
-    let (arcane, divine) = PC::with(|pc| {
-        let (mut arcane, mut divine) = (0, 0);
-        for buff in pc.buffs.values() {
-            if let Some(second_word) = buff.name.split(' ').nth(1) {
-                if second_word == "arcane" {
-                    arcane += 1;
-                } else if second_word == "divine" {
-                    divine += 1;
-                }
-            }
-        }
-        (arcane, divine)
-    });
-    PCSession::update(|sesh| {
-        sesh.cast_divine = divine;
-        sesh.cast_arcane = arcane;
-    })
 }

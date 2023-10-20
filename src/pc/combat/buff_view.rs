@@ -4,10 +4,11 @@ use crate::buffs::{Buff, BuffProp};
 use crate::icons;
 use crate::pc::PC;
 use crate::utils::counter::Counter;
-use crate::utils::{some_if, RwProvided};
-use crate::views::delete_btn::{delete_btn, delete_btn_show};
+use crate::utils::rw_utils::RwUtils;
+use crate::views::delete_confirm::DeleteModal;
 
 pub(super) fn view((id, buff): (usize, &Buff)) -> impl IntoView {
+    let show_delete_modal = move |_| DeleteModal::show(id);
     let counter = PC::slice(move |pc| {
         pc.buffs.get(id).and_then(|x| {
             x.props.iter().find_map(|x| match x {
@@ -18,21 +19,22 @@ pub(super) fn view((id, buff): (usize, &Buff)) -> impl IntoView {
     });
     let use_item = move || {
         counter.get().and_then(|count| {
-            some_if(count.max < 2)
-                .map(|_| just_button(id, count).into_view())
+            (count.max < 2)
+                .then(|| just_button(id, count).into_view())
                 .or_else(|| Some(input_range(id, count).into_view()))
         })
     };
-    let del_buff = move || PC::update(|pc| pc.buffs.remove(id));
 
     view! {
-        <div class= "relative">
-            <div class= "p-2" on:contextmenu=delete_btn_show('b', id)>
-                <div class= "mb-2"> { buff.into_view() } </div>
+            <div class= "p-2">
+                <div class= "flex gap-3">
+                    <button on:click=show_delete_modal>
+                        <div class= "w-5 fill-red-600" inner_html=icons::TRASH />
+                    </button>
+                    <div class= "mb-2"> { buff.into_view() } </div>
+                </div>
                 { use_item }
             </div>
-            { delete_btn('b', id, del_buff) }
-        </div>
     }
 }
 
@@ -49,8 +51,9 @@ fn change_count(pc: &mut PC, id: usize, amount: usize) {
 }
 
 fn just_button(id: usize, count: Counter) -> impl IntoView {
+    let pc = PC::expect();
     let onclick = move || {
-        PC::update(|pc| {
+        pc.update(|pc| {
             if count.curr < 1 {
                 change_count(pc, id, count.max)
             } else {
@@ -66,7 +69,7 @@ fn just_button(id: usize, count: Counter) -> impl IntoView {
 
     view! {
         <button
-            class=format!("btn {css} w-full")
+            class=format!("btn py-2 {css} w-full")
             on:click=move |_| onclick()
         >
             { text }
@@ -75,8 +78,9 @@ fn just_button(id: usize, count: Counter) -> impl IntoView {
 }
 
 fn input_range(id: usize, count: Counter) -> impl IntoView {
+    let pc = PC::expect();
     let onclick = move || {
-        PC::update(|pc| {
+        pc.update(|pc| {
             if count.curr < 1 {
                 change_count(pc, id, count.max)
             } else {
@@ -96,7 +100,7 @@ fn input_range(id: usize, count: Counter) -> impl IntoView {
     view! {
         <div class= "flex gap-1">
             <button
-                class=format!("btn {css} px-2")
+                class=format!("btn {css} p-2")
                 on:click=move |_| onclick()
             >
                 <div class= "w-6" inner_html=ico />

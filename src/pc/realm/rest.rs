@@ -2,10 +2,10 @@ use leptos::*;
 
 use crate::icons;
 use crate::pc::update;
-use crate::utils::some_if;
 use crate::views::revealer::Revealer;
 
-pub(super) fn rest() -> impl IntoView {
+#[component]
+pub fn Rest() -> impl IntoView {
     let days = RwSignal::new(1);
     let steps = (1..=7).map(|x| view! { <div> { x } </div> }).collect_view();
     let change_days = move |ev: String| {
@@ -31,15 +31,18 @@ pub(super) fn rest() -> impl IntoView {
                 on:input=move |ev| change_days(event_target_value(&ev))
             />
         </div>
-        { rest_btn(days) }
+        <RestButton days />
     }
 }
 
-fn rest_btn(days: RwSignal<u64>) -> impl IntoView {
+#[component]
+fn RestButton(days: RwSignal<u64>) -> impl IntoView {
     let is_safe = RwSignal::new(false);
     let days_view = move || {
-        let safe = some_if(is_safe.get()).map(|_| "SAFE ").unwrap_or_default();
-        format!("{safe}REST {} DAYS", days.get())
+        let safe = is_safe.get().then_some("SAFE ").unwrap_or_default();
+        let days = days.get();
+        let days_txt = if days == 1 { "DAY" } else { "DAYS" };
+        format!("{safe}REST {days} {days_txt}")
     };
     let complete_rest = move || {
         update::on_rest(days.get(), is_safe.get());
@@ -51,7 +54,7 @@ fn rest_btn(days: RwSignal<u64>) -> impl IntoView {
         <div class= "flex gap-2">
             <div class= "relative">
                 <input
-                    class= "absolute opacity-0"
+                    class= "absolute opacity-0 w-full h-full"
                     type= "checkbox"
                     on:click=move |_| is_safe.update(|x| *x = !*x)
                     prop:checked=move || is_safe.get()
@@ -68,7 +71,7 @@ fn rest_btn(days: RwSignal<u64>) -> impl IntoView {
                 >
                     { days_view }
                 </button>
-                <div hidden=move || !Revealer::state('r', 0)>
+                <div hidden=move || !Revealer::is_shown('r', 0)>
                     <button
                         class= "absolute top-0 h-full w-full btn bg-blue-800 z-40"
                         on:click= move |_| complete_rest()

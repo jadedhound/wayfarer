@@ -6,7 +6,6 @@ mod lobby;
 mod pc;
 mod rand;
 mod router;
-mod tables;
 mod utils;
 mod views;
 

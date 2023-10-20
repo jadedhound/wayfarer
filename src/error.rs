@@ -17,11 +17,12 @@ impl From<simple_index::Error> for Error {
     }
 }
 
-pub fn fatal_pg(err: Error) -> impl IntoView {
+#[component]
+pub fn FatalPage(err: Error) -> impl IntoView {
     view! {
-        <div class= "h-32 grow flex-center flex-col space-y-4 text-center px-4">
+        <div class= "flex-center flex-col gap-y-4 px-4 min-h-screen">
             <h1 class= "text-red-800"> "Fatal" </h1>
-            <h5> { err.to_string().to_uppercase() } </h5>
+            <h5 class= "uppercase"> { err.to_string() } </h5>
         </div>
     }
 }

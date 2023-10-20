@@ -6,9 +6,10 @@ use self::prof::prof_view;
 use self::quick_access::quick_access;
 use self::turn_tracker::turn_tracker;
 use crate::icons;
-use crate::pc::session::PCSession;
+use crate::pc::session::Session;
 use crate::pc::{PCStat, PC};
-use crate::utils::{split_operator, RwProvided};
+use crate::utils::rw_utils::RwUtils;
+use crate::utils::split_operator;
 
 mod buff_list;
 mod buff_search;
@@ -18,8 +19,9 @@ mod prof;
 mod quick_access;
 mod turn_tracker;
 
-pub fn overview() -> impl IntoView {
-    let name = PC::with(|pc| {
+pub fn combat() -> impl IntoView {
+    let pc = PC::expect();
+    let name = pc.with_untracked(|pc| {
         view! {
             <h3 class= "my-2 w-12 grow line-clamp-2"> { &pc.name } </h3>
         }
@@ -51,13 +53,14 @@ pub fn overview() -> impl IntoView {
 
 fn ability_scores() -> impl IntoView {
     const CORE_STATS: [PCStat; 4] = [PCStat::STR, PCStat::DEX, PCStat::INT, PCStat::CHA];
+    let sesh = Session::expect();
     let names = CORE_STATS
         .map(|x| {
             view! { <div> { x.to_string() } </div> }
         })
         .collect_view();
     let stats = move || {
-        PCSession::with(|sesh| {
+        sesh.with(|sesh| {
             CORE_STATS
                 .map(|x| {
                     let (op, stat) = split_operator(sesh.stats.get(x));
@@ -76,9 +79,9 @@ fn ability_scores() -> impl IntoView {
 }
 
 fn class_view() -> impl IntoView {
-    let text = PC::with(|pc| {
-        let (class, level) = pc.class;
-        format!("{class} LEVEL {level}")
+    let text = PC::expect().with(|pc| {
+        let (class, exp) = pc.class;
+        format!("{class} LEVEL {}", exp.level().get())
     });
 
     view! {

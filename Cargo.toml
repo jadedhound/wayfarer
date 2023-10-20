@@ -1,6 +1,6 @@
 [package]
 name = "wayfarer"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
 
 [dependencies]
@@ -22,3 +22,4 @@ thiserror = "1.0.40"
 strum = { version = "0.25", features = ["derive"] }
 const_format = "0.2.31"
 array-concat = "0.5.2"
+leptos-use = "0.8.0"
