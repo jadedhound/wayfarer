@@ -1,12 +1,11 @@
 use serde::{Deserialize, Serialize};
 
 use crate::items::ItemPropRef;
-use crate::pc::PCStat;
+use crate::pc::Ability;
 use crate::utils::counter::Counter;
 use crate::utils::turns::Turns;
 
 pub mod conditions;
-pub mod search;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Buff {
@@ -40,7 +39,8 @@ pub enum BuffProp {
     Count(Counter),
     Duration(Turns),
     Expiry(Turns),
-    StatOverride(PCStat, i32),
+    Score(Ability, i32),
+    ScoreOverride(Ability, i32),
     Debuff,
 }
 
@@ -65,7 +65,8 @@ pub enum BuffPropRef {
     Rechargable,
     Count(Counter),
     Duration(Turns),
-    StatOverride(PCStat, i32),
+    Score(Ability, i32),
+    ScoreOverride(Ability, i32),
     Debuff,
 }
 
@@ -99,8 +100,9 @@ impl From<BuffPropRef> for BuffProp {
             Ref::Count(x) => Self::Count(x),
             Ref::Duration(x) => Self::Duration(x),
             Ref::Rechargable => Self::Rechargable,
-            Ref::StatOverride(x, y) => Self::StatOverride(x, y),
+            Ref::ScoreOverride(x, y) => Self::ScoreOverride(x, y),
             Ref::Debuff => Self::Debuff,
+            Ref::Score(x, y) => Self::Score(x, y),
         }
     }
 }
@@ -123,8 +125,9 @@ impl BuffProp {
             BuffProp::Count(_) => 5,
             BuffProp::Duration(_) => 6,
             BuffProp::Expiry(_) => 7,
-            BuffProp::StatOverride(_, _) => 8,
+            BuffProp::ScoreOverride(_, _) => 8,
             BuffProp::Debuff => 9,
+            BuffProp::Score(_, _) => 10,
         }
     }
 }
@@ -141,8 +144,15 @@ impl PartialEq for BuffRef {
     }
 }
 
+impl Default for &BuffRef {
+    fn default() -> Self {
+        &ERROR
+    }
+}
+
 // -----------------------------------
 // META
 // -----------------------------------
 
-const ERROR: BuffRef = BuffRef::new("error", &[]);
+pub const ALL: [&[&BuffRef]; 2] = [&conditions::ALL, &crate::items::BUFFS];
+pub const ERROR: BuffRef = BuffRef::new("error", &[]);

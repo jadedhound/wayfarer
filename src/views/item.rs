@@ -2,6 +2,7 @@ use leptos::*;
 
 use crate::buffs::{Buff, BuffProp};
 use crate::items::{damage_die, Item, ItemProp};
+use crate::utils::add_operator;
 
 impl IntoView for &Item {
     fn into_view(self) -> View {
@@ -10,9 +11,6 @@ impl IntoView for &Item {
         view! {
             <div class= "flex flex-col h-full justify-center text-start">
                 <div class= "uppercase font-tight"> { &self.name } </div>
-                <div class= "italic" hidden=self.desc.is_empty()>
-                    { &self.desc }
-                </div>
                 { props }
             </div>
         }
@@ -23,24 +21,42 @@ impl IntoView for &Item {
 fn prop_views(prop: &ItemProp) -> Option<View> {
     match prop {
         ItemProp::Resist => newline("Creatures can resist this effect"),
-        ItemProp::Usable(x) => newline(x),
-        ItemProp::Food => newline("Restores health when consumed during rest"),
+        ItemProp::Usable(x) => emphasised("use consumable", "text-sky-500", x),
         ItemProp::Range(x) => newline(format!("Range {x} ft")),
         ItemProp::Effect(x) => newline(x),
         ItemProp::Damage(x) => newline(format!("Deals {} damage", damage_die(*x))),
         ItemProp::Buff(x) => Some(buff_desc(x)),
-        ItemProp::Bulky => newline("Requires 2 hands to hold"),
+        ItemProp::Bulky(x) => newline(format!("Requires {x} inventory slots")),
         ItemProp::Concentration => newline("Requires concentration to maintain"),
+        ItemProp::Score(abi, score) => newline(format!("{abi} {}", add_operator(*score))),
+        ItemProp::Passive => emphasised(
+            "passive",
+            "text-orange-500",
+            "can be used without being held",
+        ),
         _ => None,
     }
 }
 
-fn newline<S>(s: S) -> Option<View>
+fn newline<S>(line: S) -> Option<View>
 where
     S: std::fmt::Display,
 {
     let newline = view! {
-        <div class= "capitalise"> { format!("{s}.") } </div>
+        <div class= "capitalise"> { format!("{line}.") } </div>
+    };
+    Some(newline.into_view())
+}
+
+fn emphasised<S>(title: S, colour: S, line: S) -> Option<View>
+where
+    S: std::fmt::Display,
+{
+    let newline = view! {
+        <div class= "capitalise">
+            <span class=colour.to_string()> { format!("{title}: ") } </span>
+            { format!("{line}.") }
+        </div>
     };
     Some(newline.into_view())
 }

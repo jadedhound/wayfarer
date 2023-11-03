@@ -1,3 +1,5 @@
+use std::cmp;
+
 use serde::{Deserialize, Serialize};
 
 /// Holds an array of elements where the indexes of remaining
@@ -29,6 +31,26 @@ impl<T: Clone> From<Vec<T>> for IndexMap<T> {
         Self {
             values: value.into_iter().map(|x| Some(x)).collect(),
             ..Default::default()
+        }
+    }
+}
+
+impl<T: Clone> From<Vec<(usize, T)>> for IndexMap<T> {
+    fn from(value: Vec<(usize, T)>) -> Self {
+        let max_id = value.iter().fold(0, |acc, (id, _)| cmp::max(acc, *id));
+        let mut result = vec![None; max_id + 1];
+        for (id, ele) in value {
+            result[id] = Some(ele)
+        }
+        let mut removed_ids = vec![];
+        for (id, ele) in result.iter().enumerate() {
+            if ele.is_none() {
+                removed_ids.push(id)
+            }
+        }
+        Self {
+            values: result,
+            removed_ids,
         }
     }
 }
@@ -94,18 +116,5 @@ impl<T: Clone> IndexMap<T> {
         P: Fn(&T) -> bool,
     {
         self.iter().find(|(_, item)| p(item)).map(|(id, _)| id)
-    }
-
-    /// Map through the values and create an index map from the result.
-    pub fn clone_map<A, F>(&self, mut f: F) -> IndexMap<A>
-    where
-        A: Clone,
-        F: FnMut(&T) -> A,
-    {
-        let values = self.values.iter().map(|x| x.as_ref().map(&mut f)).collect();
-        IndexMap {
-            removed_ids: self.removed_ids.clone(),
-            values,
-        }
     }
 }

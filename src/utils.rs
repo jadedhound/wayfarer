@@ -1,7 +1,8 @@
+use std::future::Future;
+
 use leptos::*;
 
 pub mod counter;
-pub mod db;
 pub mod enum_array;
 pub mod fixed_vec;
 pub mod index_map;
@@ -23,12 +24,22 @@ pub fn expect_rw<T>() -> RwSignal<T> {
 }
 
 /// Adds a `+` to positive values.
-pub fn split_operator(x: i32) -> (char, i32) {
+pub fn add_operator(x: i32) -> String {
     if x > -1 {
-        ('+', x)
+        format!("+{x}")
     } else {
-        ('-', -x)
+        x.to_string()
     }
+}
+
+/// A convenience wrapper around create_local_resource with only loads a resource once.
+pub fn fetch<T, F, Fu>(asset: F) -> Resource<(), T>
+where
+    T: 'static,
+    F: Fn() -> Fu + 'static,
+    Fu: Future<Output = T> + 'static,
+{
+    create_local_resource_with_initial_value(|| (), move |_| asset(), None)
 }
 
 /// Concats the string (with a space inbetween) if `predicate` is true.
@@ -43,6 +54,58 @@ where
         } else {
             base.to_string()
         }
+    }
+}
+
+pub const fn array_len<T>(arr: &[&[T]]) -> usize {
+    const fn len<T>(arr: &[&[T]], acc: usize, i: usize) -> usize {
+        if i < arr.len() {
+            len(arr, acc + arr[i].len(), i + 1)
+        } else {
+            acc
+        }
+    }
+
+    len(arr, 0, 0)
+}
+
+/// Recursively flatten an array of arrays.
+pub const fn flatten_array<'a, T: Copy, const COUNT: usize>(
+    arr: &'a [&'a [T]],
+    default: T,
+) -> [T; COUNT] {
+    /// Recursively flatten an array of arrays.
+    const fn flatten<'a, T: Copy, const COUNT: usize>(
+        arr: &'a [&'a [T]],
+        arr_i: usize,
+        acc: [T; COUNT],
+        acc_i: usize,
+    ) -> [T; COUNT] {
+        if arr_i < arr.len() {
+            let (acc, acc_i) = copy_subarray_to_acc(arr[arr_i], 0, acc, acc_i);
+            flatten(arr, arr_i + 1, acc, acc_i)
+        } else {
+            acc
+        }
+    }
+
+    flatten(arr, 0, [default; COUNT], 0)
+}
+
+/// Copy each subarray item into the accumulator.
+const fn copy_subarray_to_acc<T: Copy, const COUNT: usize>(
+    arr: &[T],
+    arr_i: usize,
+    mut acc: [T; COUNT],
+    acc_i: usize,
+) -> ([T; COUNT], usize) {
+    if arr_i < arr.len() {
+        acc[acc_i + arr_i] = arr[arr_i];
+        copy_subarray_to_acc(arr, arr_i + 1, acc, acc_i)
+    } else {
+        // Adjust the current position of the `acc_i` by the amount of
+        // items we just added.
+        (acc, acc_i + arr_i)
     }
 }
 

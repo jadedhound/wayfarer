@@ -1,28 +1,23 @@
 use leptos::*;
+use leptos_router::A;
 
 use crate::icons;
-use crate::pc::inventory::edit_item_modal;
-use crate::pc::inventory::stack_btn::stack_btn;
+use crate::items::meta::EMPTY_ITEM;
+use crate::items::ItemProp;
+use crate::pc::inventory::count_button::count_button;
 use crate::pc::session::Session;
-use crate::pc::PC;
+use crate::pc::{Ability, PC};
 use crate::utils::concat_if;
 use crate::utils::rw_utils::RwUtils;
-use crate::views::delete_confirm::DeleteModal;
-use crate::views::funds::maybe_funds;
-use crate::views::modal::ModalState;
-use crate::views::revealer::Revealer;
+use crate::views::revealer::{RevLocation, Revealer};
+use crate::views::wealth::maybe_wealth;
 
 pub fn backpack() -> impl IntoView {
-    let pc = PC::expect();
-    let id_list = move || pc.with(|pc| pc.inventory.keys().collect::<Vec<_>>());
-    DeleteModal::set_effect(move |id| {
-        pc.update(|pc| {
-            pc.quick_access.remove_where(|x| *x == id);
-            pc.inventory.remove(id);
-        })
-    });
+    let sesh = Session::expect();
+    let id_list = move || sesh.with(|sesh| sesh.sorted_inv.clone());
 
     view! {
+        { fatigue }
         <div class= "flex flex-col shaded-table">
             <For
                 each=id_list
@@ -30,6 +25,49 @@ pub fn backpack() -> impl IntoView {
                 children=item_view
             />
             { empty_slots }
+        </div>
+    }
+}
+
+fn fatigue() -> impl IntoView {
+    let pc = PC::expect();
+    let fatigue = PC::slice(|pc| pc.fatigue);
+    let is_locked = RwSignal::new(true);
+    #[rustfmt::skip]
+    let lock_icon = move || {
+        if is_locked.get() { icons::LOCKED } else { icons::UNLOCKED }
+    };
+    #[rustfmt::skip]
+    let lock_colour = move || {
+        if is_locked.get() { "fill-zinc-500" } else { "fill-yellow-500" }
+    };
+
+    view! {
+        <div class= "flex gap-4 border-y-2 border-orange-600 py-2">
+            <button
+                class=move || format!("ml-2 w-5 {}", lock_colour())
+                on:click=move |_| is_locked.update(|x| *x = !*x)
+                inner_html=lock_icon
+            />
+            <div class= "w-12 grow">
+                <h6> "Fatigue" </h6>
+                <div class= "italic">
+                    "Each point of fatigue reduces the available inventory."
+                </div>
+            </div>
+            <button
+                class= "w-5 rotate-180 disabled:invisible"
+                on:click=move |_| pc.update(|pc| pc.fatigue -= 1)
+                disabled=move || { fatigue.get() < 1 || is_locked.get() }
+                inner_html=icons::RIGHT_CHEV
+            />
+            <h5 class= "self-center"> { fatigue } </h5>
+            <button
+                class= "w-5 disabled:invisible"
+                on:click=move |_| pc.update(|pc| pc.fatigue += 1)
+                disabled=move || { fatigue.get() > 9 || is_locked.get() }
+                inner_html=icons::RIGHT_CHEV
+            />
         </div>
     }
 }
@@ -48,8 +86,9 @@ fn empty_slots() -> impl IntoView {
 
     move || {
         sesh.with(|sesh| {
+            let max_inv = sesh.abi_scores.get(Ability::MaxInventory) as usize;
             (sesh.empty_inv_slots > 0).then(|| {
-                (sesh.max_inv - sesh.empty_inv_slots + 1..=sesh.max_inv)
+                (max_inv - sesh.empty_inv_slots + 1..=max_inv)
                     .map(empty)
                     .collect_view()
             })
@@ -60,10 +99,16 @@ fn empty_slots() -> impl IntoView {
 /// Renders the item with the `id` given.
 fn item_view(id: usize) -> impl IntoView {
     let pc = PC::expect();
-    let item = move || pc.with(|pc| pc.inventory.get(id).cloned().unwrap_or_default());
-    let stacks = move || item().find_counter().map(|_| stack_btn(id));
-    let item_view = move || item().into_view();
-    let price = move || maybe_funds(item().price());
+    let item = pc.with_untracked(|pc| pc.inventory.get(id).cloned().unwrap_or(EMPTY_ITEM.into()));
+    let stacks = item.find_counter().map(|_| count_button(id));
+    let item_view = item.into_view();
+    let price = move || {
+        let price = pc
+            .with(|pc| pc.inventory.get(id).map(|item| item.price()))
+            .unwrap_or_default();
+        maybe_wealth(price)
+    };
+
     view! {
         <div class= "relative">
             <div class= "flex gap-2 w-full items-stretch">
@@ -127,43 +172,54 @@ fn slot_by_weight(id: usize) -> impl IntoView {
 }
 
 fn more_button(id: usize) -> impl IntoView {
-    let (pc, edit_state) = (PC::expect(), edit_item_modal::State::expect());
+    let pc = PC::expect();
     let show_delete_modal = move |_| {
         Revealer::hide();
-        DeleteModal::show(id)
+        pc.update(|pc| pc.inventory_remove(id))
     };
-    let show_edit_modal = move |_| {
+    let copy_item = move |_| {
         Revealer::hide();
-        if let Some(item) = pc.with(|pc| pc.inventory.get(id).cloned()) {
-            edit_state.update(|state| {
-                state.id = id;
-                state.item = item;
-            });
-            ModalState::show(10);
-        }
+        pc.update(|pc| {
+            if let Some(item) = pc.inventory.get(id).cloned() {
+                pc.inventory.add(item)
+            }
+        })
     };
-    let menu_hidden = create_memo(move |_| !Revealer::is_shown('m', id));
+    let cannot_use = pc.with_untracked(|pc| {
+        !pc.inventory
+            .get(id)
+            .map(|item| {
+                item.props
+                    .iter()
+                    .any(|prop| matches!(prop, ItemProp::Buff(_) | ItemProp::Usable(_)))
+            })
+            .unwrap_or(false)
+    });
+    let use_item = move |_| pc.update(|pc| pc.use_item(id));
+    let menu_hidden = create_memo(move |_| Revealer::is_hidden(RevLocation::BackpackMore, id));
 
     view! {
         <div class= "flex-center">
             <div class= "relative">
                 <button
-                    class= "px-2 relative"
-                    on:click=move |_| Revealer::show('m', id)
+                    class= "px-2"
+                    on:click=move |_| Revealer::show(RevLocation::BackpackMore, id)
                 >
                     <div class= "w-6" inner_html=icons::ELLIPSES />
                 </button>
                 <div
-                    class= "btn bg-surface flex flex-col px-2 z-40 w-28
-                    absolute bottom-0 right-0 translate-y-[6.5rem] -translate-x-2"
+                    class= "btn bg-surface flex flex-col z-40 w-28
+                    absolute right-0 -translate-x-2 [&>*]:py-3"
                     hidden=menu_hidden
                 >
-                    <button class= "py-3" on:click=show_edit_modal>
-                        "EDIT"
-                    </button>
-                    <button class= "py-3 text-red-500" on:click=show_delete_modal>
+                    <button class= "text-red-500" on:click=show_delete_modal>
                         "DELETE"
                     </button>
+                    <A class= "text-center" href=format!("../edit_item/{id}")>
+                        "EDIT"
+                    </A>
+                    <button hidden=cannot_use on:click=use_item> "USE" </button>
+                    <button on:click=copy_item> "COPY" </button>
                 </div>
             </div>
         </div>

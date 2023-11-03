@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use strum::AsRefStr;
 
 use crate::buffs::BuffRef;
+use crate::items::{self, ItemRef};
 
 mod buffs;
 pub mod level;
@@ -25,6 +26,8 @@ pub struct PCClass {
     pub base_buffs: &'static [&'static BuffRef],
     pub optional_buffs: &'static [&'static BuffRef],
     pub guard_bonus: i32,
+    pub starter_gear: &'static [&'static ItemRef],
+    pub adventuring_gear: usize,
 }
 
 impl PCClass {
@@ -33,12 +36,16 @@ impl PCClass {
         base_buffs: &'static [&'static BuffRef],
         optional_buffs: &'static [&'static BuffRef],
         guard_bonus: i32,
+        starter_gear: &'static [&'static ItemRef],
+        adventuring_gear: usize,
     ) -> Self {
         Self {
             prof,
             base_buffs,
             optional_buffs,
             guard_bonus,
+            starter_gear,
+            adventuring_gear,
         }
     }
 }
@@ -48,17 +55,30 @@ pub const FIGHTER: PCClass = PCClass::new(
     &buffs::FIGHTER_MAIN,
     &buffs::FIGHTER_OPTIONAL,
     6,
+    &[
+        &items::weaponsmith::WARHAMMER,
+        &items::armoursmith::KITE_SHIELD,
+    ],
+    2,
 );
 pub const ROGUE: PCClass = PCClass::new(
     "delicate tasks, stealth and deception",
     &buffs::ROGUE_MAIN,
     &buffs::ROGUE_OPTIONAL,
     3,
+    &[&items::weaponsmith::DAGGER, &items::weaponsmith::SWORD],
+    4,
 );
 pub const MAGE: PCClass = PCClass::new(
     "arcane, history and insight",
     &buffs::MAGE_MAIN,
     &buffs::MAGE_OPTIONAL,
+    1,
+    &[
+        &items::weaponsmith::DAGGER,
+        &items::arcane::ARCANE_ARROW,
+        &items::arcane::FEATHER_FALL,
+    ],
     1,
 );
 pub const CLERIC: PCClass = PCClass::new(
@@ -66,6 +86,12 @@ pub const CLERIC: PCClass = PCClass::new(
     &buffs::CLERIC_MAIN,
     &buffs::CLERIC_OPTIONAL,
     4,
+    &[
+        &items::weaponsmith::WARHAMMER,
+        &items::divine::MESSAGE,
+        &items::divine::CHARM,
+    ],
+    1,
 );
 
 // -----------------------------------

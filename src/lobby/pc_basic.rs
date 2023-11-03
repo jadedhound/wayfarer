@@ -9,9 +9,7 @@ pub struct PCBasic {
     pub class: PCClassRef,
 }
 
-impl RwUtils for PCBasic {
-    type Item = Self;
-}
+impl RwUtils for PCBasic {}
 
 #[rustfmt::skip]
 pub const NAMES: [&str; 23] = [

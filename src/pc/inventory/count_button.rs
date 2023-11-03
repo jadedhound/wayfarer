@@ -5,19 +5,18 @@ use crate::icons;
 use crate::pc::PC;
 use crate::utils::concat_if;
 use crate::utils::rw_utils::RwUtils;
-use crate::views::revealer::Revealer;
+use crate::views::revealer::{RevLocation, Revealer};
 
 const CHG_BTN: &str =
     "bg-black flex-center z-50 border-y-2 border-sky-800 h-10 w-10 relative -mx-2 disabled:invisible";
 
-pub fn stack_btn(id: usize) -> impl IntoView {
+pub fn count_button(id: usize) -> impl IntoView {
     let pc = PC::expect();
-    let hide_btns = create_memo(move |_| !Revealer::is_shown('s', id));
+    let hide_btns = create_memo(move |_| !Revealer::is_shown(RevLocation::CountButton, id));
     let count = PC::slice(move |pc| {
         pc.inventory
             .get(id)
             .and_then(|x| x.find_counter())
-            .copied()
             .unwrap_or_default()
     });
     let curr = move || count.get().curr;
@@ -26,10 +25,12 @@ pub fn stack_btn(id: usize) -> impl IntoView {
     let cannot_remove = move || hide_btns.get() || curr() < 2;
     let change_stack = move |by: i64| {
         pc.update(|pc| {
-            if let Some(item) = pc.inventory.get_mut(id) {
-                if let Some(count) = item.find_mut_counter() {
-                    count.curr = (count.curr as i64 + by) as usize;
-                }
+            let item_count = pc
+                .inventory
+                .get_mut(id)
+                .and_then(|item| item.find_mut_counter());
+            if let Some(count) = item_count {
+                count.curr = (count.curr as i64 + by) as usize;
             }
         })
     };
@@ -49,7 +50,7 @@ pub fn stack_btn(id: usize) -> impl IntoView {
                     "px-4 h-10 flex items-center gap-2 border-2 border-transparent rounded",
                     "bg-black !border-sky-800"
                 )
-                on:click=move |_| { Revealer::show('s', id) }
+                on:click=move |_| { Revealer::show(RevLocation::CountButton, id) }
             >
                 <div class= ""> { move || format!("{} / {}", curr(), max())} </div>
                 <div class= "w-4" inner_html=icons::STACK />

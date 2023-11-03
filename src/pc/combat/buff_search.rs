@@ -2,12 +2,11 @@ use std::time::Duration;
 
 use leptos::*;
 
-use crate::buffs::search::search as find_buff;
-use crate::buffs::{Buff, BuffRef};
+use crate::buffs::{self, Buff, BuffRef};
 use crate::icons;
 use crate::pc::PC;
 use crate::utils::rw_utils::RwUtils;
-use crate::utils::RwSignalEnhance;
+use crate::utils::{search as utils_search, RwSignalEnhance};
 
 #[derive(Default)]
 struct State {
@@ -16,11 +15,9 @@ struct State {
     chosen_buff: Option<&'static BuffRef>,
 }
 
-impl RwUtils for State {
-    type Item = Self;
-}
+impl RwUtils for State {}
 
-pub(super) fn search() -> impl IntoView {
+pub fn search() -> impl IntoView {
     State::provide();
     let chosen_buff = State::slice(|x| x.chosen_buff);
 
@@ -44,13 +41,13 @@ fn confirm_buff(buff_ref: &'static BuffRef) -> impl IntoView {
     view! {
         <div class= "flex gap-1">
             <button
-                class= "btn-no-font bg-surface w-12 grow text-left p-2"
+                class= "btn !font-[inherit] bg-surface w-12 grow text-left"
                 on:click=move |_| accept()
             >
                 { buff_view }
             </button>
             <button
-                class= "btn bg-red-700 px-2"
+                class= "btn bg-red-700"
                 on:click=move |_| state.reset()
             >
                 <div class= "w-4" inner_html=icons::CROSS />
@@ -76,13 +73,19 @@ fn input() -> impl IntoView {
     };
 
     view! {
-        <input
-            class= "input"
-            on:focus= move |_| state.update(|x| x.focus = true)
-            on:blur=delayed_focus_loss
-            on:input=move |ev| query_set.set(event_target_value(&ev))
-            prop:value=query
-        />
+        <div class= "relative">
+            <div class= "absolute inset-y-0 left-2 flex-center" >
+                <div class= "w-6 stroke-sky-500" inner_html=icons::MAGNIFYING_GLASS />
+            </div>
+            <input
+                class= "input text-center w-full !px-10"
+                placeholder= "Search for buffs..."
+                on:focus= move |_| state.update(|x| x.focus = true)
+                on:blur=delayed_focus_loss
+                on:input=move |ev| query_set.set(event_target_value(&ev))
+                prop:value=query
+            />
+        </div>
         { results }
     }
 }
@@ -90,6 +93,7 @@ fn input() -> impl IntoView {
 fn results() -> impl IntoView {
     let query = leptos_use::signal_debounced(State::slice(|state| state.query.clone()), 500.0);
     let is_not_focused = State::slice(|x| !x.focus);
+    let find_buff = move |query: String| utils_search::search(&buffs::ALL, |buff| buff.name, query);
     let search_result = move || {
         let query = query.get();
         if query.is_empty() {

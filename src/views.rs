@@ -1,9 +1,10 @@
 pub mod buff;
+pub mod checkbox;
+pub mod confirm_button;
 pub mod delete_confirm;
-pub mod follower;
-pub mod funds;
 pub mod item;
 pub mod modal;
 pub mod revealer;
 pub mod toast;
 pub mod utils;
+pub mod wealth;

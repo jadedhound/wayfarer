@@ -4,19 +4,16 @@ use serde::{Deserialize, Serialize};
 
 const EXP: [usize; 7] = [0, 500, 1500, 3000, 5500, 9500, 16000];
 
-#[derive(Serialize, Deserialize, Clone, Copy, Default)]
+#[derive(Serialize, Deserialize, Clone, Copy, Default, PartialEq)]
 pub struct ClassExp(usize);
 
 impl ClassExp {
     pub fn get(&self) -> usize {
         self.0
     }
-    pub fn incr(&mut self, by: usize) {
-        let new_value = cmp::min(self.0.saturating_add(by), EXP[EXP.len() - 1]);
-        self.0 = new_value
-    }
-    pub fn decr(&mut self, by: usize) {
-        self.0 = self.0.saturating_sub(by)
+    pub fn change(&mut self, by: isize) {
+        let new_value = usize::try_from(self.0 as isize + by).unwrap_or_default();
+        self.0 = cmp::min(new_value, EXP[EXP.len() - 1])
     }
     pub fn level(&self) -> ClassLevel {
         let max_i = EXP.len() - 1;
@@ -43,5 +40,11 @@ impl ClassLevel {
     }
     pub fn max_exp(&self) -> usize {
         EXP.get(self.0).copied().unwrap_or(EXP[EXP.len() - 1])
+    }
+}
+
+impl Default for ClassLevel {
+    fn default() -> Self {
+        Self(1)
     }
 }

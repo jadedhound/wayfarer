@@ -8,17 +8,17 @@ use leptos_router::*;
 use serde::{Deserialize, Serialize};
 
 use self::pc_basic::PCBasic;
-use crate::icons;
+use crate::indexeddb::DBKey;
 use crate::lobby::create_pc::create_pc_modal;
 use crate::lobby::pc_basic::NAMES;
 use crate::pc::class::PCClassRef;
 use crate::rand::Rand;
-use crate::utils::db::DBKey;
 use crate::utils::index_map::IndexMap;
 use crate::utils::rw_utils::RwUtils;
 use crate::utils::RwSignalEnhance;
 use crate::views::delete_confirm::DeleteModal;
-use crate::views::modal::ModalState;
+use crate::views::modal::{ModalLocation, ModalState};
+use crate::{icons, indexeddb};
 
 mod create_pc;
 pub mod pc_basic;
@@ -36,17 +36,13 @@ const LOCKOUT_MINS: f64 = {
 #[derive(Serialize, Deserialize, Clone, Copy, Default)]
 pub struct NewPCTimeout(pub f64);
 
-impl RwUtils for NewPCTimeout {
-    type Item = Self;
-}
+impl RwUtils for NewPCTimeout {}
 
 /// Array with overview of PCs.
 #[derive(Serialize, Deserialize, Default, Clone)]
 pub struct PCList(pub IndexMap<PCBasic>);
 
-impl RwUtils for PCList {
-    type Item = Self;
-}
+impl RwUtils for PCList {}
 
 /// PC overview and management.
 pub fn lobby() -> impl IntoView {
@@ -58,17 +54,19 @@ pub fn lobby() -> impl IntoView {
         // Remove from pc list.
         pc_list.update_discard(|pc_list| pc_list.0.remove(id));
         spawn_local(async move {
-            for ele in [DBKey::PC(id), DBKey::PCJournal(id)] {
-                if let Err(e) = ele.remove().await {
-                    error!("DB Remove Error: {e}")
-                }
+            let result = indexeddb::remove(&[DBKey::PC(id), DBKey::PCJournal(id)]).await;
+            if let Err(err) = result {
+                error!("DB Remove Error: {err}")
             }
         });
     });
 
     view! {
-        <div class= "fixed top-0 left-0 h-16 w-full bg-black px-2 flex-center border-b border-amber-600">
+        <div class= "fixed top-0 left-0 flex justify-between items-center bg-black border-b border-amber-600 h-16 px-4 w-full">
             <h3> "Wayfarer" </h3>
+            <A href= "settings">
+                <div class= "w-8" inner_html=icons::COG />
+            </A>
         </div>
         <div class= "psuedo h-16" />
         { pc_btns }
@@ -91,7 +89,7 @@ fn pc_btn((id, pc_basic): (usize, &PCBasic)) -> impl IntoView {
     };
 
     view! {
-        <div class= "flex gap-3 p-2 btn bg-surface">
+        <div class= "flex gap-3 btn bg-surface">
             <div class=format!("w-8 {colour}") inner_html=class_icon />
             <A href=format!("/pc/{id}") class= "w-12 grow truncate">
                 <h5> { name } </h5>
@@ -127,7 +125,7 @@ fn create_pc_btn() -> impl IntoView {
     let open_modal = move |_| {
         let name = Rand::with(|rand| rand.pick(&NAMES).to_string());
         pc_basic.update(|x| x.name = name);
-        ModalState::show(10)
+        ModalState::show(ModalLocation::CreatePC)
     };
     create_effect(move |_| {
         if mins_left.get() > 0 {
@@ -140,7 +138,7 @@ fn create_pc_btn() -> impl IntoView {
 
     view! {
         <button
-            class= "btn bg-green-800 flex-center gap-1 py-2"
+            class= "btn bg-green-800 flex-center gap-1"
             on:click=open_modal
             disabled=move || { mins_left.get() > 0 }
         >

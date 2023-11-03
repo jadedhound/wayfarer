@@ -24,9 +24,7 @@ impl Toast {
     }
 }
 
-impl RwUtils for Toast {
-    type Item = Self;
-}
+impl RwUtils for Toast {}
 
 pub fn toast_notification() -> impl IntoView {
     let state = Toast::expect();
@@ -44,7 +42,7 @@ pub fn toast_notification() -> impl IntoView {
     view! {
         <div class= "fixed inset-x-0 bottom-2 px-2 z-10" hidden=is_hidden>
             <button
-                class= "animate-popin text-left btn bg-sky-800 flex items-center gap-2 p-2 mx-auto"
+                class= "animate-popin text-left btn bg-sky-800 flex items-center gap-2 mx-auto"
                 on:click=hide_toast
             >
                 <div class= "w-5" inner_html=icons::BELL />

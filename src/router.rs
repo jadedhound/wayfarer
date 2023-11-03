@@ -2,16 +2,22 @@ use leptos::*;
 use leptos_router::*;
 
 use crate::error::*;
+use crate::indexeddb;
+use crate::indexeddb::DBKey;
 use crate::lobby::{lobby, NewPCTimeout, PCList};
 use crate::pc::class::view::class;
 use crate::pc::combat::combat;
-use crate::pc::inventory::Inventory;
-use crate::pc::journal::Journal;
-use crate::pc::realm::{realm, Sell, ShopView};
-use crate::pc::scout::PCScout;
+use crate::pc::edit_item::edit_item;
+use crate::pc::inventory::inventory;
+use crate::pc::journal::edit_note::edit_note;
+use crate::pc::journal::overview::journal;
+use crate::pc::realm::realm;
+use crate::pc::realm::sell::sell;
+use crate::pc::realm::shop::delegate::shop_delegate;
+use crate::pc::scout::pc_scout;
 use crate::rand::Rand;
-use crate::utils::db;
-use crate::utils::db::DBKey;
+use crate::settings::settings;
+use crate::utils::fetch;
 use crate::utils::rw_utils::RwUtils;
 use crate::views::delete_confirm::{delete_confirm_modal, DeleteModal};
 use crate::views::modal::{modal_grey_screen, ModalState};
@@ -22,17 +28,22 @@ pub fn main_router() -> impl IntoView {
     view! {
         <Router>
             <Routes>
-                <Route path= "/" view=load_assets>
-                    <Route path= "" view=lobby />
-                    <Route path= "/pc/:id" view=PCScout >
-                        <Route path= "overview" view=combat />
-                        <Route path= "inventory" view=Inventory />
-                        <Route path= "journal" view=Journal />
-                        <Route path= "realm" view=realm />
-                        <Route path= "realm/buy/:repr" view=ShopView />
-                        <Route path= "realm/sell" view=Sell />
-                        <Route path= "class" view=class />
-                        <Route path= "*any" view=|| view!{ <Redirect path="overview" /> }/>
+                <Route path= "/" view=critical_assets>
+                    <Route path= "settings" view=settings />
+                    <Route path= "" view=secondary_assets>
+                        <Route path= "" view=lobby />
+                        <Route path= "pc/:id" view=pc_scout >
+                            <Route path= "overview" view=combat />
+                            <Route path= "inventory" view=inventory />
+                            <Route path= "edit_item/:id" view=edit_item />
+                            <Route path= "journal" view=journal />
+                            <Route path= "edit_note/:id" view=edit_note />
+                            <Route path= "realm" view=realm />
+                            <Route path= "realm/buy/:repr" view=shop_delegate />
+                            <Route path= "realm/sell" view=sell />
+                            <Route path= "class" view=class />
+                            <Route path= "*any" view=|| view!{ <Redirect path="overview" /> }/>
+                        </Route>
                     </Route>
                 </Route>
                 <Route path= "/*any" view=|| view!{ <Redirect path="" /> } />
@@ -41,42 +52,50 @@ pub fn main_router() -> impl IntoView {
     }
 }
 
-async fn init_assets() -> Result<(), Error> {
-    // Random generator
-    Rand::provide();
-    // IndexedDB
-    db::provide().await?;
-    DBKey::PCList.provide(PCList::default).await;
-    DBKey::NewPCTimeout.provide(NewPCTimeout::default).await;
-    // Popup modals
-    ModalState::provide();
-    DeleteModal::provide();
-    Toast::provide();
-    Revealer::provide();
-    Ok(())
-}
+fn critical_assets() -> impl IntoView {
+    let load_assets = fetch(move || async {
+        // IndexedDB
+        indexeddb::provide().await?;
+        // Popup modals
+        ModalState::provide();
+        DeleteModal::provide();
+        Toast::provide();
+        Revealer::provide();
+        Ok(())
+    });
 
-fn load_assets() -> impl IntoView {
-    let load_assets = create_local_resource(|| (), move |_| async move { init_assets().await });
     move || {
         load_assets
             .get()
             .map(|result| match result {
                 Ok(_) => main().into_view(),
-                Err(err) => view! { <FatalPage err /> }.into_view(),
+                Err(err) => fatal_page(err).into_view(),
             })
             .into_view()
     }
 }
 
+fn secondary_assets() -> impl IntoView {
+    let load_assets = fetch(move || async {
+        Rand::provide();
+        DBKey::PCList.provide(PCList::default).await;
+        DBKey::NewPCTimeout.provide(NewPCTimeout::default).await;
+        Some(())
+    });
+
+    move || load_assets.get().flatten().map(|_| Outlet()).into_view()
+}
+
 fn main() -> impl IntoView {
     view! {
-        <main class= "flex flex-col p-2 gap-y-2 min-h-screen">
-            <Outlet />
-        </main>
-        { modal_grey_screen }
-        { revealer_screen }
+        <Outlet />
+        // Z-10
         { toast_notification }
+        // Z-20
+        { modal_grey_screen }
+        // Z-30
+        { revealer_screen }
+        // Ever present delete modal
         { delete_confirm_modal }
     }
 }

@@ -1,85 +1,240 @@
 use leptos::*;
+use strum::Display;
 
+use super::restore_buffs;
+use crate::buffs::BuffProp;
 use crate::icons;
-use crate::pc::update;
-use crate::views::revealer::Revealer;
+use crate::pc::PC;
+use crate::utils::rw_utils::RwUtils;
+use crate::utils::turns::Turns;
+use crate::views::checkbox::Checkbox;
+use crate::views::revealer::{RevLocation, Revealer};
+use crate::views::toast::Toast;
 
-#[component]
-pub fn Rest() -> impl IntoView {
-    let days = RwSignal::new(1);
-    let steps = (1..=7).map(|x| view! { <div> { x } </div> }).collect_view();
-    let change_days = move |ev: String| {
-        let num = ev.parse::<u64>().unwrap_or(1);
-        days.set(num);
-    };
+#[derive(Clone, Copy, Default, Debug)]
+struct State {
+    firewood: Outcome,
+    cooking: Outcome,
+    camaraderie: Outcome,
+    has_tent: bool,
+    has_bedroll: bool,
+}
+
+#[derive(Default, Display, Clone, Copy, PartialEq, Debug)]
+enum Outcome {
+    #[default]
+    Failure,
+    #[strum(serialize = "Partial Success")]
+    PartialSuccess,
+    Success,
+}
+
+pub fn rest() -> impl IntoView {
+    let pc = PC::expect();
+    let state = State::provide();
+    let (has_bedroll, has_tent) = pc.with_untracked(|pc| {
+        let has_bedroll = pc
+            .inventory
+            .values()
+            .any(|item| item.name.contains("bedroll"));
+        let has_tent = pc.inventory.values().any(|item| item.name.contains("tent"));
+        (has_bedroll, has_tent)
+    });
+    state.update(|state| {
+        state.has_bedroll = has_bedroll;
+        state.has_tent = has_tent;
+    });
 
     view! {
         <div class= "italic text-center">
-            "Every rest removes fatigue but only safe rests restore health."
+            "Split the group to accomplish the following tasks; sleep tonight might be
+            the only thing that stands between you and a grizzly fate tomorrow."
         </div>
-        <div class= "relative pointer-events-none h-10">
-            <div class= "absolute grid grid-cols-7 text-center items-center w-full h-full font-tight">
-                { steps }
+        <div class= "grid grid-cols-3 gap-1">
+            <h6 class= "text-center col-span-2 col-span-3"> "Firewood" </h6>
+            <div class= "italic text-center col-span-3">
+                "Gather 1d6 hours of firewood, modified by weather conditions."
             </div>
-            <input
-                class= "range sky-bar bg-sky-950 h-full w-full pointer-events-auto"
-                type= "range"
-                min=0
-                max=7
-                step=1
-                value=1
-                on:input=move |ev| change_days(event_target_value(&ev))
-            />
+            { outcome_grid(|state| state.firewood, |state, value| state.firewood = value) }
+            <h6 class= "text-center col-span-2 col-span-3"> "Cooking" </h6>
+            <div class= "italic text-center col-span-3">
+                "Expend rations and a INT check to cook a hearty meal for all."
+            </div>
+            { outcome_grid(|state| state.cooking, |state, value| state.cooking = value) }
+            <h6 class= "text-center col-span-2 col-span-3"> "Camaraderie" </h6>
+            <div class= "italic text-center col-span-3">
+                "CHA check to lighten the mood and comfort your fellow adventurers."
+            </div>
+            { outcome_grid(|state| state.camaraderie, |state, value| state.camaraderie = value) }
         </div>
-        <RestButton days />
+        <div class= "grid grid-cols-2 gap-1">
+            <h6 class= "text-center col-span-2"> "Equipment" </h6>
+            { equipment(
+                "BEDROLL",
+                |state| state.has_bedroll,
+                |state| state.has_bedroll = !state.has_bedroll
+            ) }
+            { equipment(
+                "TENT",
+                |state| state.has_tent,
+                |state| state.has_tent = !state.has_tent
+            ) }
+            <h6 class= "text-center col-span-2"> "Seasons" </h6>
+            { seasons }
+        </div>
+        <h6 class= "text-center"> "Result" </h6>
+        <div>
+            <span class= "font-tight text-red-500"> "FAILURE. " </span>
+            "+1 fatigue."
+            <br />
+            <span class= "font-tight text-orange-500"> "PARTIAL. " </span>
+            "-1 fatigue, guard restored, buffs recharged."
+            <br />
+            <span class= "font-tight text-green-500"> "SUCCESS. " </span>
+            "-1 fatigue, guard restored, buffs recharged, +1 health."
+        </div>
+        <div class= "grid grid-cols-3 gap-1">
+            { complete_rest }
+        </div>
     }
 }
 
-#[component]
-fn RestButton(days: RwSignal<u64>) -> impl IntoView {
-    let is_safe = RwSignal::new(false);
-    let days_view = move || {
-        let safe = is_safe.get().then_some("SAFE ").unwrap_or_default();
-        let days = days.get();
-        let days_txt = if days == 1 { "DAY" } else { "DAYS" };
-        format!("{safe}REST {days} {days_txt}")
+fn outcome_grid<G, S>(getter: G, setter: S) -> impl IntoView
+where
+    G: Fn(&State) -> Outcome + Copy + 'static,
+    S: Fn(&mut State, Outcome) + Copy + 'static,
+{
+    let state = State::expect();
+    let outcome_button = move |outcome: Outcome| {
+        let change_outcome = move || state.update(|state| setter(state, outcome));
+        let checked = State::slice(move |state| getter(state) == outcome);
+        view! {
+            <Checkbox
+                checked
+                on_click=change_outcome
+                checked_colour= "border-yellow-500 text-yellow-400"
+                class= "p-2"
+            >
+                { outcome.to_string() }
+            </Checkbox>
+        }
     };
-    let complete_rest = move || {
-        update::on_rest(days.get(), is_safe.get());
-        is_safe.set(false);
-        Revealer::hide();
+    view! {
+        { outcome_button(Outcome::Success) }
+        { outcome_button(Outcome::PartialSuccess) }
+        { outcome_button(Outcome::Failure) }
+    }
+}
+
+fn equipment<F, C>(name: &'static str, equipment: F, change_value: C) -> impl IntoView
+where
+    F: Fn(&State) -> bool + Copy + 'static,
+    C: Fn(&mut State) + Copy + 'static,
+{
+    let state = State::expect();
+    let has_equipment = State::slice(equipment);
+    let change_value = move || state.update(change_value);
+    view! {
+        <Checkbox
+            checked=has_equipment
+            on_click=change_value
+            checked_colour= "border-yellow-500 text-yellow-400"
+            class= "p-2"
+        >
+            { name }
+        </Checkbox>
+    }
+}
+
+fn seasons() -> impl IntoView {
+    let outcomes = State::slice(|state| {
+        state.firewood as u8
+            + state.cooking as u8
+            + state.camaraderie as u8
+            + state.has_tent as u8
+            + state.has_bedroll as u8
+    });
+    let season = move |name: &'static str, dc: u8, class: &'static str, icon: &'static str| {
+        let dc = move || dc.saturating_sub(outcomes.get());
+        view! {
+            <div class=format!("flex justify-center font-tight gap-2 {class}")>
+                <div class= "w-5" inner_html=icon />
+                <div> { format!("{name} DC {}", dc())} </div>
+            </div>
+        }
+    };
+    view! {
+        { season("WINTER", 18, "text-sky-500 fill-sky-500", icons::SNOWFLAKE) }
+        { season("SUMMER", 8, "text-amber-400 fill-amber-400", icons::SUN) }
+        { season("SPRING/FALL", 13, "text-lime-500 fill-lime-500 col-span-2", icons::LEAF) }
+    }
+}
+
+fn complete_rest() -> impl IntoView {
+    fn action_button<F>(name: &'static str, class: &'static str, onclick: F) -> impl IntoView
+    where
+        F: Fn() + Copy + 'static,
+    {
+        let pc = PC::expect();
+        let onclick = move |_| {
+            onclick();
+            pc.update(|pc| {
+                pc.turns.add(Turns::new(1, 0));
+                restore_buffs(pc, |prop| matches!(prop, BuffProp::Rest | BuffProp::Rally))
+            });
+            Revealer::hide();
+        };
+        view! {
+            <button
+                class=format!("btn z-40 {class}")
+                on:click=onclick
+                hidden=move || Revealer::is_hidden(RevLocation::RestConfirm, 0)
+            >
+                { name }
+            </button>
+        }
+    }
+
+    let pc = PC::expect();
+    let failure = move || {
+        pc.update(|pc| pc.fatigue += 1);
+        Toast::show("rest failure", "fatigue added to inventory");
+    };
+    let partial = move || {
+        pc.update(|pc| {
+            pc.guard_dmg = 0;
+            pc.fatigue = pc.fatigue.saturating_sub(1);
+        });
+        Toast::show("partial rest", "fatigue removed and guard restored");
+    };
+    let success = move || {
+        pc.update(|pc| {
+            pc.guard_dmg = 0;
+            pc.health_dmg = pc.health_dmg.saturating_sub(1);
+            pc.fatigue = pc.fatigue.saturating_sub(1);
+        });
+        Toast::show(
+            "rest success",
+            "fatigue removed, guard restored and +1 health",
+        );
     };
 
     view! {
-        <div class= "flex gap-2">
-            <div class= "relative">
-                <input
-                    class= "absolute opacity-0 w-full h-full"
-                    type= "checkbox"
-                    on:click=move |_| is_safe.update(|x| *x = !*x)
-                    prop:checked=move || is_safe.get()
-                />
-                <div class= "checkmark-btn flex-center p-2 h-full">
-                    <div class= "w-6" inner_html=icons::HOME />
-                </div>
-            </div>
-            <div class= "relative w-12 grow">
-                <button
-                    class= "btn bg-surface py-2 w-full"
-                    on:click= move |_| Revealer::show('r', 0)
-                    disabled=move || days.get() < 1
-                >
-                    { days_view }
-                </button>
-                <div hidden=move || !Revealer::is_shown('r', 0)>
-                    <button
-                        class= "absolute top-0 h-full w-full btn bg-blue-800 z-40"
-                        on:click= move |_| complete_rest()
-                    >
-                        "CONFIRM"
-                    </button>
-                </div>
-            </div>
-        </div>
+        <button
+            class= "btn bg-surface col-span-3"
+            on:click=move |_| Revealer::show(RevLocation::RestConfirm, 0)
+            hidden=move || Revealer::is_shown(RevLocation::RestConfirm, 0)
+        >
+            "CONFIRM"
+        </button>
+        { action_button("SUCCESS", "bg-green-800", success) }
+        { action_button("PARTIAL", "bg-orange-700", partial) }
+        { action_button("FAILURE", "bg-red-800", failure) }
     }
 }
+
+// -----------------------------------
+// TRAIT IMPL
+// -----------------------------------
+
+impl RwUtils for State {}

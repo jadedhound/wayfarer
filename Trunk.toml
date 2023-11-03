@@ -1,13 +1,2 @@
 [serve]
 address = "0.0.0.0"
-
-[[hooks]]
-stage = "build"
-command = "node"
-command_arguments = [
-    "node_modules/tailwindcss/lib/cli",
-    "-i",
-    "tailwind_stub.css",
-    "-o",
-    "dist/.stage/tailwind.css",
-]

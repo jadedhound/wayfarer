@@ -3,17 +3,27 @@ use leptos::*;
 use crate::utils::rw_utils::RwUtils;
 
 #[derive(Clone, Copy, Default)]
-pub struct ModalState(Option<u8>);
+pub struct ModalState(Option<ModalLocation>);
+
+#[derive(Clone, Copy, PartialEq)]
+pub enum ModalLocation {
+    CreatePC,
+    ClassOptionalBuff,
+    AddItemProp,
+    ShopItemDetails,
+    DeleteConfirm,
+    RecentlyRemoved,
+}
 
 impl ModalState {
-    pub fn show(id: u8) {
+    pub fn show(location: ModalLocation) {
         let stop_scroll = document()
             .body()
             .and_then(|body| body.class_list().add_1("no-scroll").ok());
         if stop_scroll.is_none() {
             logging::error!("Unable to restrict scrolling");
         }
-        ModalState::expect().update(|state| state.0 = Some(id))
+        ModalState::expect().update(|state| state.0 = Some(location))
     }
     pub fn hide() {
         let start_scroll = document()
@@ -26,16 +36,14 @@ impl ModalState {
     }
 }
 
-impl RwUtils for ModalState {
-    type Item = Self;
-}
+impl RwUtils for ModalState {}
 
 pub fn modal_grey_screen() -> impl IntoView {
     let hidden = move || ModalState::expect().get().0.is_none();
 
     view! {
         <div
-            class= "fixed top-0 h-full w-full z-30 bg-zinc-800 bg-opacity-75"
+            class= "fixed top-0 left-0 h-full w-full z-20 bg-zinc-800 bg-opacity-75"
             hidden=hidden
         />
     }
@@ -44,12 +52,12 @@ pub fn modal_grey_screen() -> impl IntoView {
 /// A centered popup modal.
 /// `id` range 0-9 is reserved for static modals.
 #[component]
-pub fn ModalCenter(children: Children, id: u8) -> impl IntoView {
-    let hidden = move || !ModalState::expect().get().0.is_some_and(|x| x == id);
+pub fn ModalCenter(children: Children, location: ModalLocation) -> impl IntoView {
+    let hidden = move || !ModalState::expect().get().0.is_some_and(|x| x == location);
     let dismiss = move |_| ModalState::hide();
 
     view! {
-        <div class= "fixed top-0 left-0 h-full w-full flex flex-col z-40" hidden=hidden>
+        <div class= "fixed top-0 left-0 h-full w-full flex flex-col z-[21]" hidden=hidden>
             <button class= "h-px grow" on:click=dismiss />
             <div class= "animate-popin p-2">
                 <div
@@ -65,11 +73,11 @@ pub fn ModalCenter(children: Children, id: u8) -> impl IntoView {
 }
 
 #[component]
-pub fn ModalCustom(children: Children, id: u8) -> impl IntoView {
-    let hidden = move || !ModalState::expect().get().0.is_some_and(|x| x == id);
+pub fn ModalCustom(children: Children, location: ModalLocation) -> impl IntoView {
+    let hidden = move || !ModalState::expect().get().0.is_some_and(|x| x == location);
 
     view! {
-        <div class= "relative z-40" hidden=hidden>
+        <div class= "relative z-[21]" hidden=hidden>
             <div class= "fixed top-0 left-0 h-full w-full">
                 { children() }
             </div>

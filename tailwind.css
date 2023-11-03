@@ -37,6 +37,12 @@ TAGS
 ------------------------------------------- 
 */
 
+body {
+    @apply bg-zinc-900 text-zinc-200 fill-zinc-200 stroke-zinc-200;
+    @apply flex flex-col p-2 gap-y-2 min-h-screen;
+    @apply select-none touch-pan-x touch-pan-y;
+}
+
 svg {
     fill: inherit;
     stroke: inherit;
@@ -57,6 +63,10 @@ CONVENIENCE
 }
 
 .flex[hidden] {
+    display: none !important;
+}
+
+.line-clamp-2[hidden] {
     display: none !important;
 }
 
@@ -118,21 +128,6 @@ h6 {
 
 .divide-rm-5 :nth-child(5) {
     border-left-width: 0px !important;
-}
-
-
-/* 
--------------------------------------------
-CHECKMARK
-------------------------------------------- 
-*/
-
-.checkmark-btn {
-    @apply rounded border-2 border-yellow-500 fill-transparent;
-}
-
-div input:checked~.checkmark-btn {
-    @apply fill-yellow-500;
 }
 
 
@@ -211,29 +206,16 @@ BUTTON
     @apply disabled:shadow-none disabled:bg-inherit disabled:border-zinc-800 disabled:text-zinc-500 disabled:stroke-zinc-700 disabled:fill-zinc-700;
 }
 
-.btn-no-font {
-    @apply btn-disabled rounded border-2 border-transparent shadow shadow-black;
-}
-
-.btn-no-font:disabled *,
-.btn-no-font:disabled * * {
-    @apply text-zinc-500;
-}
-
 .btn {
-    @apply btn-no-font font-tight;
+    @apply btn-disabled rounded border-2 border-transparent shadow shadow-black font-tight p-2;
 }
 
 .btn-surface-disabled {
     @apply disabled:bg-inherit disabled:border-zinc-600 disabled:text-zinc-500;
 }
 
-.btn-surface-no-font {
-    @apply btn-surface-disabled rounded border-2 border-transparent;
-}
-
 .btn-surface {
-    @apply btn-surface-no-font font-tight;
+    @apply btn-surface-disabled rounded border-2 border-transparent font-tight p-2;
 }
 
 /* 
@@ -260,41 +242,22 @@ input[type=number] {
 
 /* 
 -------------------------------------------
-FOLLOWERS
-------------------------------------------- 
-*/
-
-.folstat-border> :nth-child(-n+2) {
-    @apply border-b-2 border-inherit;
-}
-
-.folstat-border> :nth-child(2n+1) {
-    @apply border-r-2 border-inherit;
-}
-
-/* 
--------------------------------------------
 TABLE
 ------------------------------------------- 
 */
 
 .shaded-table {
-    @apply border-2 border-zinc-800 rounded;
+    @apply border-2 border-[#212125] rounded;
 }
 
 .shaded-table> :is(*):nth-child(even) {
-    @apply bg-zinc-800;
+    @apply bg-[#212125];
 }
 
-.shaded-table-light {
-    @apply border-2 border-zinc-700 rounded;
+.shaded-table-surface {
+    @apply border-2 border-[#3c3c3f] rounded;
 }
 
-.shaded-table-light> :is(*):nth-child(even) {
-    @apply bg-zinc-700;
-}
-
-.shade-even-2>*:nth-child(4n + 3),
-.shade-even-2>*:nth-child(4n + 4) {
-    @apply bg-zinc-800;
+.shaded-table-surface> :is(*):nth-child(even) {
+    @apply bg-[#3c3c3f];
 }

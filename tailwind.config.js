@@ -22,9 +22,15 @@ module.exports = {
       },
       animation: {
         "fade": "fadeIn .5s ease-in",
-        "popin": "popIn .3s ease-out"
+        "popin": "popIn .3s ease-out",
+        "notify": "notifyBounce .8s ease-out"
       },
       keyframes: {
+        notifyBounce: {
+            '50%': {
+              transform: 'scale(1.5)',
+            },
+        },
         fadeIn: {
           '0%': {
             opacity: '.2',

@@ -9,9 +9,7 @@ struct State {
     editing: bool,
 }
 
-impl RwUtils for State {
-    type Item = Self;
-}
+impl RwUtils for State {}
 
 pub(super) fn prof_view() -> impl IntoView {
     let state = State::provide();

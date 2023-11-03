@@ -2,13 +2,14 @@ use leptos::*;
 
 use super::view::ClassState;
 use crate::buffs::Buff;
+use crate::pc::session::Session;
 use crate::pc::PC;
 use crate::utils::rw_utils::RwUtils;
-use crate::views::modal::{ModalCenter, ModalState};
+use crate::views::modal::{ModalCenter, ModalLocation, ModalState};
 
-pub(super) fn optional_buff(i: usize) -> impl IntoView {
+pub fn optional_buff(i: usize) -> impl IntoView {
     let (pc, state) = (PC::expect(), ClassState::expect());
-    let disabled = create_read_slice(state, move |state| state.exp.level().get() < i * 2 + 2);
+    let disabled = Session::slice(move |sesh| sesh.level.get() < i * 2 + 2);
     let info_text = move || {
         let no_buff = view! {
             <div class= "font-tight text-sky-500"> "CHOOSE CLASS BUFF" </div>
@@ -35,7 +36,7 @@ pub(super) fn optional_buff(i: usize) -> impl IntoView {
     };
     let open_buff_picker = move || {
         remove_current_buff();
-        ModalState::show(10);
+        ModalState::show(ModalLocation::ClassOptionalBuff);
     };
     // When the button becomes disabled, remove the buff.
     create_effect(move |_| {
@@ -45,7 +46,8 @@ pub(super) fn optional_buff(i: usize) -> impl IntoView {
     });
 
     view! {
-        <button class= "col-start-2 col-span-6 btn-no-font bg-surface p-2"
+        <button
+            class= "col-start-2 col-span-6 btn !font-[inherit] bg-surface [&:disabled>*]:text-zinc-500"
             on:click=move |_| open_buff_picker()
             disabled=disabled
         >
@@ -74,7 +76,7 @@ pub(super) fn buff_picker() -> impl IntoView {
     };
 
     view! {
-        <ModalCenter id=10>
+        <ModalCenter location=ModalLocation::ClassOptionalBuff>
             <h4 class= "text-center"> "Choose Buff" </h4>
             { class_buffs }
         </ModalCenter>
@@ -93,7 +95,7 @@ fn modal_buff_view(buff: Buff) -> impl IntoView {
     let view = buff.into_view();
 
     view! {
-        <button class= "btn-surface-no-font bg-zinc-700 p-2"
+        <button class= "btn-surface !font-[inherit] bg-zinc-700"
             on:click=move |_| on_click(&buff)
         >
             { view }

@@ -9,7 +9,7 @@ use crate::utils::rw_utils::RwUtils;
 use crate::utils::RwSignalEnhance;
 use crate::views::delete_confirm::DeleteModal;
 
-pub(super) fn list() -> impl IntoView {
+pub fn list() -> impl IntoView {
     let pc = PC::expect();
     // Set what happens when a buff is confirmed for deletion.
     DeleteModal::set_effect(move |id| pc.update_discard(|pc| pc.buffs.remove(id)));
@@ -47,7 +47,8 @@ fn prop_order(buff: &&Buff) -> usize {
         // Highest importance/doesn't lower importance.
         BuffProp::Effect(_) => (),
         BuffProp::Duration(_) => (),
-        BuffProp::StatOverride(_, _) => (),
+        BuffProp::ScoreOverride(_, _) => (),
+        BuffProp::Score(_, _) => (),
         BuffProp::Expiry(_) => (),
         // Effects importance.
         BuffProp::Count(_) => sub += 1,

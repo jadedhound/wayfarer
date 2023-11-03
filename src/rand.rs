@@ -34,9 +34,4 @@ impl Rand {
         let i = self.inner.generate_range(0_usize..arr.len());
         arr[i]
     }
-
-    /// Random number `from` to `to`.
-    pub fn range(&mut self, from: u32, to: u32) -> u32 {
-        self.inner.generate_range(from..=to)
-    }
 }

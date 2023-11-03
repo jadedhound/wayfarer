@@ -1,5 +1,5 @@
 use super::{BuffPropRef as Prop, BuffRef};
-use crate::pc::PCStat;
+use crate::pc::Ability;
 
 const BLIND_PROP: [Prop; 2] = [Prop::Debuff, Prop::Effect("you are unable to see")];
 const BLIND: BuffRef = BuffRef::new("blinded", &BLIND_PROP);
@@ -13,10 +13,10 @@ const FRIGHT_PROP: [Prop; 2] = [
 ];
 const FRIGHT: BuffRef = BuffRef::new("frightened", &FRIGHT_PROP);
 
-const STUNNED_PROP: [Prop; 2] = [Prop::Debuff, Prop::StatOverride(PCStat::Guard, 0)];
+const STUNNED_PROP: [Prop; 2] = [Prop::Debuff, Prop::ScoreOverride(Ability::Guard, 0)];
 const STUNNED: BuffRef = BuffRef::new("stunned", &STUNNED_PROP);
 
-const ENCUMBERED_PROP: [Prop; 2] = [Prop::Debuff, Prop::StatOverride(PCStat::Guard, 0)];
+const ENCUMBERED_PROP: [Prop; 2] = [Prop::Debuff, Prop::ScoreOverride(Ability::Guard, 0)];
 pub const ENCUMBERED: BuffRef = BuffRef::new("encumbered", &ENCUMBERED_PROP);
 
 const INVISIBLE_PROP: [Prop; 1] = [Prop::Effect(

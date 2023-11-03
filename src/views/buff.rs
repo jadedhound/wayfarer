@@ -3,35 +3,38 @@ use leptos::*;
 use crate::buffs::{Buff, BuffProp};
 use crate::icons;
 use crate::pc::PC;
+use crate::utils::add_operator;
 use crate::utils::rw_utils::RwUtils;
 
 impl IntoView for &Buff {
     fn into_view(self) -> leptos::View {
+        let effects = self.props.iter().filter_map(prop_views).collect_view();
         view! {
             { name(self) }
-            { effect(self) }
+            { effects }
             { uses_txt(self) }
         }
         .into_view()
     }
 }
 
-fn effect(buff: &Buff) -> impl IntoView {
-    let effects: Vec<_> = buff
-        .props
-        .iter()
-        .filter_map(|prop| match prop {
-            BuffProp::Effect(x) => Some(format!("{x}.")),
-            BuffProp::StatOverride(stat, by) => Some(format!("{stat} is now {by}.")),
-            _ => None,
-        })
-        .collect();
-    let effects = effects.join(" ");
-    (!effects.is_empty()).then(move || {
-        view! {
-            <div class= "capitalise"> { effects } </div>
-        }
-    })
+fn prop_views(prop: &BuffProp) -> Option<View> {
+    match prop {
+        BuffProp::Effect(x) => newline(x),
+        BuffProp::Score(stat, value) => newline(format!("{stat} {}", add_operator(*value))),
+        BuffProp::ScoreOverride(stat, by) => newline(format!("{stat} is now {by}")),
+        _ => None,
+    }
+}
+
+fn newline<S>(s: S) -> Option<View>
+where
+    S: std::fmt::Display,
+{
+    let newline = view! {
+        <div class= "capitalise"> { format!("{s}.") } </div>
+    };
+    Some(newline.into_view())
 }
 
 fn uses_txt(buff: &Buff) -> impl IntoView {

@@ -1,10 +1,10 @@
 use super::{ItemPropRef as Prop, ItemRef};
 use crate::buffs::{BuffPropRef as BuffProp, BuffRef};
+use crate::pc::Ability;
 use crate::utils::counter::Counter;
 use crate::utils::turns::Turns;
 
 // ---- B ----
-const BOOK: ItemRef = ItemRef::simple("blank book", 300);
 const BEAR_TRAP: ItemRef = ItemRef::new(
     "bear trap",
     20,
@@ -12,6 +12,7 @@ const BEAR_TRAP: ItemRef = ItemRef::new(
         "once set, a creature that triggers the trap takes 1d8 damage",
     )],
 );
+const BEDROLL: ItemRef = ItemRef::simple("bedroll", 10);
 const BELL: ItemRef = ItemRef::simple("bell (small)", 20);
 const BELLOWS: ItemRef = ItemRef::simple("bellows", 10);
 const BLOCK_AND_TACKLE: ItemRef = ItemRef::simple("block and tackle", 30);
@@ -19,19 +20,11 @@ const BOTTLE: ItemRef = ItemRef::simple("bottle", 1);
 const BUCKET: ItemRef = ItemRef::simple("bucket", 5);
 // ---- C ----
 const CARDS: ItemRef = ItemRef::simple("cards (pack)", 5);
-const CALTROPS: ItemRef = ItemRef::new(
-    "caltrops",
-    10,
-    &[Prop::Usable(
-        "cover a 10 ft. square, impeding movement or dealing damage",
-    )],
-);
 const CAULDRON: ItemRef = ItemRef::simple("cauldron", 10);
-const CHALK: ItemRef = ItemRef::new("chalk", 1, &[Prop::Count(Counter::new(5))]);
+const CHALK: ItemRef = ItemRef::new("chalk", 5, &[Prop::Count(Counter::new(5))]);
 const CHISEL: ItemRef = ItemRef::simple("chisel", 10);
 const CROWBAR: ItemRef = ItemRef::simple("crowbar", 10);
 // ---- F ----
-const FAKE_JEWELS: ItemRef = ItemRef::simple("fake jewels", 50);
 const FACE_PAINT: ItemRef = ItemRef::simple("face paint", 10);
 const FISHING_NET: ItemRef = ItemRef::simple("fishing net", 10);
 const FISHING_ROD_AND_TACKLE: ItemRef = ItemRef::simple("fishing rod and tackle", 10);
@@ -42,7 +35,6 @@ const GRAPPLING_HOOK: ItemRef = ItemRef::simple("grappling hook", 10);
 const HAND_DRILL: ItemRef = ItemRef::simple("hand drill", 10);
 const HAMMER: ItemRef = ItemRef::simple("hammer", 50);
 const HORN: ItemRef = ItemRef::simple("horn", 10);
-const HOURGLASS: ItemRef = ItemRef::simple("hourglass", 300);
 // ---- I ----
 const IRON_CHAIN: ItemRef = ItemRef::simple("10 ft. iron chain", 10);
 const IRON_FILE: ItemRef = ItemRef::simple("iron file", 10);
@@ -81,6 +73,7 @@ pub const TORCH: ItemRef = ItemRef::new("torch", 1, &[Prop::Buff(TORCH_BUFF)]);
 const TORCH_BUFF: BuffRef = BuffRef::new(
     "torch light",
     &[
+        BuffProp::Score(Ability::QuickAccess, -1),
         BuffProp::Effect("a 30 ft circle around the torch is well lit"),
         BuffProp::Duration(Turns::hour()),
     ],
@@ -91,12 +84,12 @@ const WATERSKIN: ItemRef = ItemRef::simple("waterskin", 5);
 const WHISTLE: ItemRef = ItemRef::simple("whistle", 5);
 
 #[rustfmt::skip]
-pub const ITEMS: [&ItemRef; 52] = [
-    &BEAR_TRAP, &BELL, &BELLOWS, &BLOCK_AND_TACKLE, &BOTTLE, &BOOK, &BUCKET, 
-    &CARDS, &CALTROPS, &CHALK, &CHISEL, &CAULDRON, &CROWBAR, 
-    &FACE_PAINT, &FAKE_JEWELS, &FISHING_NET, &FISHING_ROD_AND_TACKLE, 
+pub const ITEMS: [&ItemRef; 49] = [
+    &BEAR_TRAP, &BEDROLL, &BELL, &BELLOWS, &BLOCK_AND_TACKLE, &BOTTLE, &BUCKET, 
+    &CARDS, &CHALK, &CHISEL, &CAULDRON, &CROWBAR, 
+    &FACE_PAINT, &FISHING_NET, &FISHING_ROD_AND_TACKLE, 
     &GLUE, &GRAPPLING_HOOK,
-    &HAND_DRILL, &HAMMER, &HORN, &HOURGLASS,
+    &HAND_DRILL, &HAMMER, &HORN,
     &IRON_CHAIN, &IRON_FILE, &IRON_TONGS, 
     &LADDER, &LENS, &LOADED_DICE, &LOCKPICK,
     &MANACLES, &MARBLES, &MIRROR,

@@ -1,5 +1,6 @@
 use leptos::*;
 
+use super::modal::ModalLocation;
 use crate::icons;
 use crate::utils::rw_utils::RwUtils;
 use crate::views::modal::{ModalCenter, ModalState};
@@ -12,7 +13,7 @@ pub struct DeleteModal {
 impl DeleteModal {
     pub fn show(id: usize) {
         Self::expect().update(|state| state.id = id);
-        ModalState::show(0);
+        ModalState::show(ModalLocation::DeleteConfirm);
     }
     pub fn set_effect<F>(f: F)
     where
@@ -31,9 +32,7 @@ impl Default for DeleteModal {
     }
 }
 
-impl RwUtils for DeleteModal {
-    type Item = Self;
-}
+impl RwUtils for DeleteModal {}
 
 pub fn delete_confirm_modal() -> impl IntoView {
     let state = DeleteModal::expect();
@@ -43,11 +42,11 @@ pub fn delete_confirm_modal() -> impl IntoView {
     };
 
     view! {
-     <ModalCenter id=0>
+     <ModalCenter location=ModalLocation::DeleteConfirm>
         <h5 class= "text-center"> "Are you sure?" </h5>
         <div class= "flex gap-2">
             <button
-                class= "btn-surface bg-red-800 py-2 basis-1/2 flex-center gap-2"
+                class= "btn-surface bg-red-800 basis-1/2 flex-center gap-2"
                 on:click=confirm
             >
                 <div class= "w-5 -translate-y-[2px]" inner_html=icons::TRASH />
@@ -55,7 +54,7 @@ pub fn delete_confirm_modal() -> impl IntoView {
                 <div class= "w-5 psuedo" />
             </button>
             <button
-                class= "btn-surface bg-zinc-700 py-2 basis-1/2"
+                class= "btn-surface bg-zinc-700 basis-1/2"
                 on:click=move |_| ModalState::hide()
             >
                 "CANCEL"

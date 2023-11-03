@@ -1,25 +1,25 @@
 [package]
 name = "wayfarer"
-version = "0.1.4"
+version = "0.1.5"
 edition = "2021"
 
 [dependencies]
 # WEB SPECIFICS
-leptos = { version = "0.5.1", features = ["serde", "csr"] }
-leptos_meta = { version = "0.5.1", features = ["csr"] }
-leptos_router = { version = "0.5.1", features = ["csr"]  }
+leptos = { version = "0.5.2", features = ["serde", "csr"] }
+leptos_meta = { version = "0.5.2", features = ["csr"] }
+leptos_router = { version = "0.5.2", features = ["csr"]  }
 wasm-bindgen = { version = "0.2" }
 gloo = { version = "0.10.0", features = ["futures", "events"] }
 web-sys = "0.3.64"
 js-sys = "0.3.61"
 # REQUIRED FUNCTIONALITY
+idb = "0.4"
+bincode = "1.3.3"
 serde = "1.0.159"
 serde_arrays = "0.1.0"
-simple_index = { git = "https://codeberg.org/jadehound/simple_index.git"}
 nanorand = { git = "https://github.com/Absolucy/nanorand-rs.git" }
 # CONVENIENCE/HELPERS
 thiserror = "1.0.40"
 strum = { version = "0.25", features = ["derive"] }
 const_format = "0.2.31"
-array-concat = "0.5.2"
 leptos-use = "0.8.0"

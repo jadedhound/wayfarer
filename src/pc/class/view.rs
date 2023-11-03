@@ -1,27 +1,23 @@
 use leptos::*;
 use web_sys::Event;
 
-use super::level::ClassExp;
 use super::view_optional::{buff_picker, optional_buff};
 use crate::buffs::{Buff, BuffProp};
 use crate::icons;
+use crate::pc::session::Session;
 use crate::pc::PC;
 use crate::utils::rw_utils::RwUtils;
 
 pub(super) struct ClassState {
-    pub exp: ClassExp,
     pub optional: [Option<Buff>; 3],
     pub chg_optional: usize,
 }
 
-impl RwUtils for ClassState {
-    type Item = Self;
-}
+impl RwUtils for ClassState {}
 
 impl Default for ClassState {
     fn default() -> Self {
         PC::expect().with(|pc| Self {
-            exp: pc.class.1,
             optional: filter_optional_buffs(pc),
             chg_optional: 0,
         })
@@ -29,11 +25,11 @@ impl Default for ClassState {
 }
 
 pub fn class() -> impl IntoView {
-    let pc = PC::expect();
-    let state = ClassState::provide();
-    let class = pc.with(|x| x.class.0.as_ref().to_string());
+    let (pc, sesh) = (PC::expect(), Session::expect());
+    ClassState::provide();
     let name = move || {
-        let lvl = state.with(|state| state.exp.level().get());
+        let class = pc.with(|pc| pc.class.0);
+        let lvl = sesh.with(|sesh| sesh.level.get());
         format!("{class} {lvl}")
     };
 
@@ -58,31 +54,24 @@ fn level_up_info() -> impl IntoView {
     view! {
         <div class= "">
             <span class= "font-bold"> "Health and Guard. " </span>
-            { format!("Every level increases you base health by 1 and your guard by {guard_bonus}.") }
+            { format!("Every level increases your base health by 1 and your guard by {guard_bonus}.") }
         </div>
     }
 }
 
 fn level() -> impl IntoView {
-    let (pc, state) = (PC::expect(), ClassState::expect());
-    let level = create_read_slice(state, |state| state.exp.level());
-    let curr_exp = move || state.with(|state| state.exp.get());
-    let exp_needed = PC::slice(move |pc| level.get().max_exp().saturating_sub(pc.class.1.get()));
+    let (pc, sesh) = (PC::expect(), Session::expect());
+    let level = move || sesh.with(|sesh| sesh.level);
+    let curr_exp = move || pc.with(|pc| pc.class.1.get());
+    let exp_needed = PC::slice(move |pc| level().max_exp().saturating_sub(pc.class.1.get()));
     let usr_num = RwSignal::new(0);
-    let incr_exp = move |_| {
-        pc.update(|pc| pc.class.1.incr(usr_num.get()));
-        state.update(|state| state.exp = pc.with(|pc| pc.class.1));
-    };
-    let decr_exp = move |_| {
-        pc.update(|pc| pc.class.1.decr(usr_num.get()));
-        state.update(|state| state.exp = pc.with(|pc| pc.class.1));
-    };
+    let change_exp = |op: isize| move |_| pc.update(|pc| pc.class.1.change(usr_num.get() * op));
     let on_usr_num = move |ev: Event| {
-        let num = event_target_value(&ev).parse::<usize>().unwrap_or_default();
+        let num = event_target_value(&ev).parse::<isize>().unwrap_or_default();
         usr_num.set(num)
     };
-    let min = move || level.get().min_exp();
-    let max = move || level.get().max_exp();
+    let min = move || level().min_exp();
+    let max = move || level().max_exp();
 
     view! {
         <div class= "relative h-12">
@@ -104,8 +93,8 @@ fn level() -> impl IntoView {
         </div>
         <div class= "flex gap-2">
             <button
-                class= "btn bg-red-800 px-3"
-                on:click=decr_exp
+                class= "btn bg-red-800"
+                on:click=change_exp(-1)
             >
                 <div class= "w-4" inner_html=icons::MINUS />
             </button>
@@ -116,8 +105,8 @@ fn level() -> impl IntoView {
                 on:input=on_usr_num
             />
             <button
-                class= "btn bg-green-800 px-3"
-                on:click=incr_exp
+                class= "btn bg-green-800"
+                on:click=change_exp(1)
             >
                 <div class= "w-4" inner_html=icons::PLUS />
             </button>
@@ -126,8 +115,8 @@ fn level() -> impl IntoView {
 }
 
 fn base_buff(i: usize) -> impl IntoView {
-    let (pc, state) = (PC::expect(), ClassState::expect());
-    let disabled = create_read_slice(state, move |state| state.exp.level().get() < i * 2 + 1);
+    let pc = PC::expect();
+    let disabled = Session::slice(move |sesh| sesh.level.get() < i * 2 + 1);
     let buff = pc.with(|pc| Buff::from(*pc.class.0.base_buffs[i]));
     let buff_view = buff.into_view();
 
@@ -152,7 +141,7 @@ fn base_buff(i: usize) -> impl IntoView {
 
     view! {
         <button
-            class= "col-start-2 col-span-6 btn-no-font bg-surface p-2"
+            class= "col-start-2 col-span-6 btn !font-[inherit] bg-surface [&:disabled>*>*]:text-zinc-500"
             disabled=disabled
         >
             { buff_view }

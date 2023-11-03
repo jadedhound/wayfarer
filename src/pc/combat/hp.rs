@@ -1,36 +1,21 @@
 use std::cmp;
 
 use leptos::*;
+use web_sys::Event;
 
-use super::PC;
 use crate::icons;
 use crate::pc::session::Session;
-use crate::pc::{update, PCStat};
-use crate::utils::expect_rw;
+use crate::pc::{Ability, PC};
 use crate::utils::rw_utils::RwUtils;
+use crate::utils::RwSignalEnhance;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default)]
 struct State {
     is_raw: bool,
-    been_interacted: bool,
-    abs_value: i32,
+    value: u32,
 }
 
-/// Each time the user clicks a button (heal or damage) to confirm a choice
-/// the state is reset to this default.
-impl Default for State {
-    fn default() -> Self {
-        Self {
-            is_raw: false,
-            been_interacted: false,
-            abs_value: 1,
-        }
-    }
-}
-
-impl RwUtils for State {
-    type Item = Self;
-}
+impl RwUtils for State {}
 
 pub fn hp() -> impl IntoView {
     State::provide();
@@ -38,19 +23,16 @@ pub fn hp() -> impl IntoView {
     view! {
         { guard }
         { health }
-        { heal_btn }
-        { input_range }
-        { damage_btn }
+        { heal_button }
+        { user_input }
+        { damage_button }
     }
 }
 
 fn guard() -> impl IntoView {
     let pc = PC::expect();
-    let max = Session::slice(|sesh| sesh.stats.get(PCStat::Guard));
-    let curr = move || {
-        let stam_dmg = pc.with(|pc| pc.guard_dmg);
-        max.get() - stam_dmg
-    };
+    let max = Session::slice(|sesh| sesh.abi_scores.get(Ability::Guard) as u32);
+    let curr = move || max.get().saturating_sub(pc.with(|pc| pc.guard_dmg));
     let num_or_icon = move || {
         const COLOUR: &str = "fill-green-800";
         let curr = curr();
@@ -86,11 +68,8 @@ fn health() -> impl IntoView {
     let (pc, state) = (PC::expect(), State::expect());
     let is_not_raw = create_read_slice(state, move |state| !state.is_raw);
     let invert_raw = move || state.update(|x| x.is_raw = !x.is_raw);
-    let max = Session::slice(|sesh| sesh.stats.get(PCStat::Health));
-    let curr = move || {
-        let health_dmg = pc.with(|pc| pc.health_dmg);
-        max.get() - health_dmg
-    };
+    let max = Session::slice(|sesh| sesh.abi_scores.get(Ability::Health) as u32);
+    let curr = move || max.get().saturating_sub(pc.with(|pc| pc.health_dmg));
 
     view! {
         <div class= "relative">
@@ -115,100 +94,61 @@ fn health() -> impl IntoView {
     }
 }
 
-fn heal_btn() -> impl IntoView {
-    let (pc, sesh, state) = (PC::expect(), Session::expect(), State::expect());
-    let is_max_hp = PC::slice(|pc| pc.health_dmg == 0);
-    let is_max_guard = create_memo(move |_| {
-        let no_damage = pc.with(|pc| pc.guard_dmg < 1);
-        let no_guard = sesh.with(|sesh| sesh.stats.get(PCStat::Guard) < 1);
-        no_damage || no_guard
-    });
-    let been_interacted = create_read_slice(state, |x| x.been_interacted);
-    let abs_value = create_read_slice(state, |x| x.abs_value);
-    let is_disabled = move || is_max_guard.get() && is_max_hp.get();
-
-    let icon = move || {
-        let icon = if is_max_guard.get() {
-            icons::HEALING
-        } else {
-            icons::FIST
-        };
-        view! {
-            <div class= "w-6" inner_html=icon />
-        }
-    };
-    let icon_or_text = move || {
-        if been_interacted.get() {
-            format!("+{}", abs_value.get()).into_view()
-        } else {
-            icon.into_view()
-        }
-    };
+fn heal_button() -> impl IntoView {
+    let (pc, state) = (PC::expect(), State::expect());
     let heal = move || {
-        let val = abs_value.get();
-        let mut rally_update = false;
+        let (value, is_raw) = state.with(|state| (state.value, state.is_raw));
+        logging::warn!("trying to heal {value}");
         pc.update(|pc| {
-            if been_interacted.get() {
-                pc.guard_dmg = cmp::max(pc.guard_dmg - val, 0);
-            } else if is_max_guard.get() {
-                pc.health_dmg -= 1
+            if is_raw {
+                pc.health_dmg = pc.health_dmg.saturating_sub(value);
             } else {
-                rally_update = true;
-                pc.guard_dmg = 0
+                pc.guard_dmg = pc.guard_dmg.saturating_sub(value);
             }
         });
-        if rally_update {
-            update::on_rally();
-        }
-        state.set(State::default());
+        state.reset();
     };
 
     view! {
         <button
-            class= "btn bg-green-800 rounded flex-center"
+            class= "btn bg-green-800 rounded flex-center col-span-2"
             on:click=move |_| heal()
-            disabled=is_disabled
         >
-            { icon_or_text }
+            "HEAL"
         </button>
     }
 }
 
-fn input_range() -> impl IntoView {
-    let state = expect_rw::<State>();
-    let update_val = move |val: String| {
-        let val = val.parse::<i32>().unwrap_or(1);
-        state.update(|state| {
-            state.been_interacted = true;
-            state.abs_value = val
-        })
+fn user_input() -> impl IntoView {
+    let state = State::expect();
+    let value = move || state.with(|state| state.value);
+    let display_value = move || {
+        let value = value();
+        (value > 0).then_some(value.to_string()).unwrap_or_default()
     };
-    let val = create_read_slice(state, |state| state.abs_value);
+    let set_value = move |ev: Event| {
+        let parsed = event_target_value(&ev).parse::<u32>().unwrap_or_default();
+        let parsed = cmp::min(parsed, 50);
+        state.update(|state| state.value = parsed);
+    };
 
     view! {
-        <div class= "relative h-12 col-span-5 flex items-center justify-between px-2 pointer-events-none">
-            <div class= "z-[1] w-4" inner_html=icons::MINUS />
-            <input
-                class= "absolute left-0 range yellow-thumb bg-yellow-900 yellow-bar w-full h-full pointer-events-auto"
-                type= "range"
-                min=1
-                max=12
-                on:input=move |ev| update_val(event_target_value(&ev))
-                prop:value=val
-            />
-            <div class= "z-[1] w-4" inner_html=icons::PLUS />
-        </div>
+        <input
+            class= "input col-span-3 text-center"
+            type= "number"
+            on:input=set_value
+            prop:value=display_value
+        />
     }
 }
 
-fn damage_btn() -> impl IntoView {
+fn damage_button() -> impl IntoView {
     let (pc, sesh, state) = (PC::expect(), Session::expect(), State::expect());
-    let val_slice = create_read_slice(state, |state| state.abs_value);
     let apply_dmg = move || {
-        let (dmg, is_raw) = state.with(|x| (x.abs_value, x.is_raw));
-        let (max_stam, max_health) = sesh.with(|sesh| {
-            let stam = sesh.stats.get(PCStat::Guard);
-            let health = sesh.stats.get(PCStat::Health);
+        let (damage, is_raw) = state.with(|state| (state.value, state.is_raw));
+        let (max_guard, max_health) = sesh.with(|sesh| {
+            let stam = sesh.abi_scores.get(Ability::Guard) as u32;
+            let health = sesh.abi_scores.get(Ability::Health) as u32;
             (stam, health)
         });
         pc.update(|pc| {
@@ -220,24 +160,24 @@ fn damage_btn() -> impl IntoView {
                 }
             };
 
-            if pc.guard_dmg >= max_stam || is_raw {
-                apply_to_health(dmg)
-            } else if dmg + pc.guard_dmg > max_stam {
-                apply_to_health(dmg - (max_stam - pc.guard_dmg));
-                pc.guard_dmg = max_stam;
+            if pc.guard_dmg >= max_guard || is_raw {
+                apply_to_health(damage)
+            } else if pc.guard_dmg + damage > max_guard {
+                apply_to_health(damage - (max_guard - pc.guard_dmg));
+                pc.guard_dmg = max_guard;
             } else {
-                pc.guard_dmg += dmg;
+                pc.guard_dmg += damage;
             }
         });
-        state.set(State::default())
+        state.reset()
     };
 
     view! {
         <button
-            class= "btn bg-red-800 flex-center"
+            class= "btn bg-red-800 flex-center col-span-2"
             on:click=move |_| apply_dmg()
         >
-            { move || format!("-{}", val_slice.get()) }
+            "DAMAGE"
         </button>
     }
 }

@@ -1,88 +1,45 @@
-use serde::{Deserialize, Serialize};
-use strum::{Display, EnumCount, EnumIter, FromRepr};
+use leptos::*;
+use leptos_router::A;
 
-use crate::items::ItemRef;
-use crate::utils::enum_array::{EnumArray, EnumRef};
+use super::PC;
+use crate::buffs::BuffProp;
 
-mod followers;
-mod overview;
+mod rally;
 mod rest;
-mod sell;
-mod shop;
+pub mod sell;
+pub mod shop;
 
-pub use overview::realm;
-pub use sell::Sell;
-pub use shop::ShopView;
-
-use super::session::Session;
-
-#[derive(Serialize, Deserialize, Clone)]
-pub struct Follower {
-    pub name: String,
-    pub level: u8,
-    pub stats: FollowerStatArray,
-}
-
-#[derive(Serialize, Deserialize, Clone, Copy, EnumCount, EnumIter, Display)]
-pub enum FollowerStat {
-    Health,
-    Expertise,
-    Inventory,
-    Morale,
-}
-
-impl EnumRef for FollowerStat {
-    fn index(&self) -> usize {
-        *self as usize
+pub fn realm() -> impl IntoView {
+    view! {
+        <h4 class= "text-center"> "Town" </h4>
+        <div class= "grid grid-cols-2 gap-1">
+            { shop::list::shop_list }
+            <A href= "sell" class= "btn bg-surface col-span-2 text-orange-500 text-center">
+                "SELL ITEMS"
+            </A>
+        </div>
+        <h4 class= "text-center"> "Rally" </h4>
+        { rally::rally }
+        <h4 class= "text-center"> "Rest" </h4>
+        { rest::rest }
     }
 }
 
-const STAT_COUNT: usize = FollowerStat::COUNT;
-pub type FollowerStatArray = EnumArray<FollowerStat, STAT_COUNT>;
-
-#[derive(Clone, Copy, EnumIter, Display, FromRepr, Default)]
-pub enum Shop {
-    #[default]
-    Alchemist,
-    #[strum(serialize = "Adventuring Supplies")]
-    Adventurer,
-    Blacksmith,
-    #[strum(serialize = "Arcane Forge")]
-    Arcane,
-    #[strum(serialize = "Hallowed Ground")]
-    Divine,
-}
-
-impl Shop {
-    fn items(&self) -> &[&'static ItemRef] {
-        use crate::items::{adventure, alchemist, arcane, blacksmith, divine};
-        match self {
-            Shop::Alchemist => &alchemist::ITEMS,
-            Shop::Blacksmith => &blacksmith::ITEMS,
-            Shop::Adventurer => &adventure::ITEMS,
-            Shop::Arcane => &arcane::ITEMS,
-            Shop::Divine => &divine::ITEMS,
-        }
-    }
-
-    /// If certain crafting requirements aren't met, the crafting area
-    /// cannot be used by the PC.
-    fn cannot_use(&self, sesh: &Session) -> bool {
-        match self {
-            Shop::Arcane => sesh.cast_arcane < 1,
-            Shop::Divine => sesh.cast_divine < 1,
-            _ => false,
-        }
-    }
-
-    /// Flavourful description of the shop.
-    fn desc(&self) -> &'static str {
-        match self {
-            Shop::Alchemist => "Liquids, powders and gases fill containers of all sizes, best step carefully around these shelves.",
-            Shop::Adventurer => "The walls are covered with gear of all kinds, some of them not so new.",
-            Shop::Blacksmith => "The sour smell of sweat, a tide of heat and the rythmic beats of a hammer assault your senses.",
-            Shop::Arcane => "Components, mundane to most but not you, for you have gazed beyond the veil and see them for what they truly are.",
-            Shop::Divine => "You step on holy ground, the gods are likely to listen to your requests for aid.",
+fn restore_buffs<F>(pc: &mut PC, filter: F)
+where
+    F: FnMut(&BuffProp) -> bool + Copy,
+{
+    let buff_arr = pc
+        .buffs
+        .values_mut()
+        .filter(|buff| buff.props.iter().any(filter));
+    for buff in buff_arr {
+        let count = buff.props.iter_mut().find_map(|prop| match prop {
+            BuffProp::Count(count) => Some(count),
+            _ => None,
+        });
+        if let Some(count) = count {
+            count.curr = count.max
         }
     }
 }

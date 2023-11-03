@@ -1,38 +1,37 @@
-use array_concat::{concat_arrays, concat_arrays_size};
+use std::cmp;
+
 pub use item_prop::*;
 use serde::{Deserialize, Serialize};
 
-use self::meta::ERROR_ITEM;
-use crate::buffs::{Buff, BuffRef};
+use crate::buffs::{self, Buff, BuffRef};
 use crate::utils::counter::Counter;
+use crate::utils::{array_len, flatten_array};
 
 pub mod adventure;
 pub mod alchemist;
 pub mod arcane;
-pub mod blacksmith;
+pub mod armoursmith;
 pub mod divine;
+pub mod fletcher;
 pub mod food;
+pub mod illicit_goods;
 mod item_prop;
 pub mod meta;
-pub mod search;
+pub mod weaponsmith;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Item {
     pub name: String,
     pub props: Vec<ItemProp>,
     pub base_price: u32,
-    pub desc: String,
 }
 
 impl Item {
     /// The price of an object is its base `item.price` x its count.
     pub fn price(&self) -> u32 {
         self.find_counter()
-            .map(|count| count.curr as u32 * self.base_price)
+            .map(|count| counter_price(self.base_price, count))
             .unwrap_or(self.base_price)
-    }
-    pub fn is_bulky(&self) -> bool {
-        self.props.contains(&ItemProp::Bulky)
     }
     pub fn find_mut_counter(&mut self) -> Option<&mut Counter> {
         self.props.iter_mut().find_map(|x| match x {
@@ -40,9 +39,9 @@ impl Item {
             _ => None,
         })
     }
-    pub fn find_counter(&self) -> Option<&Counter> {
+    pub fn find_counter(&self) -> Option<Counter> {
         self.props.iter().find_map(|x| match x {
-            ItemProp::Count(x) => Some(x),
+            ItemProp::Count(x) => Some(*x),
             _ => None,
         })
     }
@@ -67,25 +66,29 @@ impl Item {
 pub struct ItemRef {
     pub name: &'static str,
     pub props: &'static [ItemPropRef],
-    price: u32,
+    base_price: u32,
 }
 
 impl ItemRef {
-    pub const fn new(name: &'static str, price: u32, props: &'static [ItemPropRef]) -> Self {
-        Self { name, props, price }
+    pub const fn new(name: &'static str, base_price: u32, props: &'static [ItemPropRef]) -> Self {
+        Self {
+            name,
+            props,
+            base_price,
+        }
     }
-    pub const fn simple(name: &'static str, price: u32) -> Self {
+    pub const fn simple(name: &'static str, base_price: u32) -> Self {
         Self {
             name,
             props: &[],
-            price,
+            base_price,
         }
     }
     /// The price of an object is its base `item.price` * its count.
     pub fn price(&self) -> u32 {
         self.find_counter()
-            .map(|count| count.curr as u32 * self.price)
-            .unwrap_or(self.price)
+            .map(|count| counter_price(self.base_price, *count))
+            .unwrap_or(self.base_price)
     }
     pub fn find_counter(&self) -> Option<&Counter> {
         self.props.iter().find_map(|x| match x {
@@ -93,9 +96,20 @@ impl ItemRef {
             _ => None,
         })
     }
-    pub fn is_bulky(&self) -> bool {
-        self.props.contains(&ItemPropRef::Bulky)
+    /// Finds the first the slots used by the item.
+    pub fn find_bulky(&self) -> Option<usize> {
+        self.props.iter().find_map(|x| match x {
+            ItemPropRef::Bulky(x) => Some(*x),
+            _ => None,
+        })
     }
+}
+
+fn counter_price(base: u32, counter: Counter) -> u32 {
+    let ceil = |num: u32, dim: u32| num / dim + (num % dim != 0) as u32;
+    let adjusted = (base / counter.max as u32) * counter.curr as u32;
+    let rounded = ceil(adjusted, 5) * 5;
+    cmp::max(rounded, 1)
 }
 
 /// Possible damage dice which is a range of max base damage + quality range.
@@ -106,40 +120,29 @@ pub fn damage_die(i: usize) -> &'static str {
     DAMAGE_DIE[std::cmp::min(i, DAMAGE_DIE.len() - 1)]
 }
 
-pub const BUFFS: [&BuffRef;
-    concat_arrays_size!(
-        adventure::BUFFS,
-        alchemist::BUFFS,
-        alchemist::BUFFS,
-        arcane::BUFFS,
-        divine::BUFFS,
-        divine::BUFFS
-    )] = concat_arrays!(
-    adventure::BUFFS,
-    alchemist::BUFFS,
-    alchemist::BUFFS,
-    arcane::BUFFS,
-    divine::BUFFS,
-    divine::BUFFS
-);
-
-// STARTER GEAR
-pub const FIGHTER: [&ItemRef; 3] = [
-    &adventure::TORCH,
-    &blacksmith::WARHAMMER,
-    &blacksmith::SHIELD,
+pub const ALL: [&[&ItemRef]; 10] = [
+    &adventure::ITEMS,
+    &alchemist::ITEMS,
+    &arcane::ITEMS,
+    &armoursmith::ITEMS,
+    &divine::ITEMS,
+    &food::ITEMS,
+    &meta::ITEMS,
+    &weaponsmith::ITEMS,
+    &illicit_goods::ITEMS,
+    &fletcher::ITEMS,
 ];
-pub const ROGUE: [&ItemRef; 3] = [
-    &adventure::TORCH,
-    &blacksmith::DAGGER,
-    &blacksmith::LONGSWORD,
+const BUFF_ARRAY: [&[&BuffRef]; 7] = [
+    &adventure::BUFFS,
+    &alchemist::BUFFS,
+    &alchemist::BUFFS,
+    &arcane::BUFFS,
+    &divine::BUFFS,
+    &divine::BUFFS,
+    &illicit_goods::BUFFS,
 ];
-pub const MAGE: [&ItemRef; 3] = [
-    &adventure::TORCH,
-    &arcane::ARCANE_ARROW,
-    &arcane::FEATHER_FALL,
-];
-pub const CLERIC: [&ItemRef; 3] = [&adventure::TORCH, &divine::MESSAGE, &divine::CHARM];
+const BUFFS_LEN: usize = array_len(&BUFF_ARRAY);
+pub const BUFFS: [&BuffRef; BUFFS_LEN] = flatten_array(&BUFF_ARRAY, &buffs::ERROR);
 
 // -----------------------------------
 // OTHER IMPL
@@ -147,7 +150,7 @@ pub const CLERIC: [&ItemRef; 3] = [&adventure::TORCH, &divine::MESSAGE, &divine:
 
 impl Default for Item {
     fn default() -> Self {
-        ERROR_ITEM.into()
+        meta::ERROR_ITEM.into()
     }
 }
 
@@ -162,14 +165,13 @@ impl From<ItemRef> for Item {
         Self {
             name: value.name.into(),
             props: value.props.iter().map(|&x| x.into()).collect(),
-            base_price: value.price,
-            desc: String::new(),
+            base_price: value.base_price,
         }
     }
 }
 
 impl Default for &'static ItemRef {
     fn default() -> Self {
-        &ERROR_ITEM
+        &meta::ERROR_ITEM
     }
 }
