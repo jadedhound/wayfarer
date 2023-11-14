@@ -138,11 +138,13 @@ RANGE
 */
 
 .range::-webkit-slider-thumb {
+    box-shadow: -100vw 0 0 100vw;
     -webkit-appearance: none;
     width: 0;
 }
 
 .range::-moz-range-thumb {
+    box-shadow: -100vw 0 0 100vw;
     border: none;
     width: 0;
 }
@@ -152,48 +154,6 @@ RANGE
     overflow: hidden;
     -webkit-appearance: none;
     appearance: none;
-}
-
-/* CSS SPECIFIC FOR IOS */
-@supports (-webkit-touch-callout: none) {
-    .yellow-thumb::-webkit-slider-thumb {
-        background-color: theme(colors.yellow.500);
-        height: 48px;
-        width: 10px;
-    }
-}
-
-/* BAR COLOURS */
-.green-bar::-webkit-slider-thumb {
-    box-shadow: -20rem 0 0 20rem theme(colors.green.800);
-}
-
-.green-bar::-moz-range-thumb {
-    box-shadow: -20rem 0 0 20rem theme(colors.green.800);
-}
-
-.red-bar::-webkit-slider-thumb {
-    box-shadow: -20rem 0 0 20rem theme(colors.red.800);
-}
-
-.red-bar::-moz-range-thumb {
-    box-shadow: -20rem 0 0 20rem theme(colors.red.800);
-}
-
-.sky-bar::-webkit-slider-thumb {
-    box-shadow: -20rem 0 0 20rem theme(colors.sky.700);
-}
-
-.sky-bar::-moz-range-thumb {
-    box-shadow: -20rem 0 0 20rem theme(colors.sky.700);
-}
-
-.yellow-bar::-webkit-slider-thumb {
-    box-shadow: -20rem 0 0 20rem theme(colors.yellow.600);
-}
-
-.yellow-bar::-moz-range-thumb {
-    box-shadow: -20rem 0 0 20rem theme(colors.yellow.600);
 }
 
 /* 

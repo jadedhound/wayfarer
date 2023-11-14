@@ -76,7 +76,7 @@ fn level() -> impl IntoView {
     view! {
         <div class= "relative h-12">
             <input
-                class= "range bg-yellow-950 yellow-bar h-full w-full pointer-events-none"
+                class= "range bg-yellow-950 [color:theme(colors.yellow.600)] h-full w-full pointer-events-none"
                 type= "range"
                 prop:min=min
                 prop:max=max

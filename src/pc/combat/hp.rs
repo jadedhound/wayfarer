@@ -55,7 +55,7 @@ fn guard() -> impl IntoView {
             { num_or_icon }
         </div>
         <input
-            class= "range green-bar col-span-6 bg-inherit border-2 border-stone-400 pointer-events-none"
+            class= "range [color:theme(colors.green.800)] col-span-6 bg-inherit border-2 border-stone-400 pointer-events-none"
             type= "range"
             min=0
             max=max
@@ -78,7 +78,7 @@ fn health() -> impl IntoView {
         </div>
         <div class= "relative col-span-6">
             <input
-                class= "range red-bar w-full h-full bg-inherit border-2 border-stone-400 pointer-events-none"
+                class= "range [color:theme(colors.red.800)] w-full h-full bg-inherit border-2 border-stone-400 pointer-events-none"
                 type= "range"
                 min=0
                 max=max
