@@ -1,5 +1,4 @@
 use super::{ItemPropRef as Prop, ItemRef};
-use crate::buffs::{BuffPropRef as BuffProp, BuffRef as Buff};
 use crate::utils::turns::Turns;
 
 const fn free(name: &'static str, props: &'static [Prop]) -> ItemRef {
@@ -15,27 +14,22 @@ pub const ARCANE_ARROW: ItemRef = free(
         Prop::Range(100),
     ],
 );
-const ATTRACT: ItemRef = free("spell: attract", &[Prop::Buff(ATTRACT_BUFF)]);
-const ATTRACT_BUFF: Buff = Buff::new(
-    "arcane: attract",
+const ATTRACT: ItemRef = free(
+    "spell: attract",
     &[
-        BuffProp::Effect(
+        Prop::Usable(
             "two objects are magnetically attracted to one another if they come within 10 ft",
         ),
-        BuffProp::Duration(Turns::hour()),
+        Prop::Duration(Turns::hour()),
     ],
 );
 pub const AUDITORY_ILLUSION: ItemRef = free(
     "spell: auditory illusion",
-    &[Prop::Buff(AUDITORY_ILLUSION_BUFF)],
-);
-const AUDITORY_ILLUSION_BUFF: Buff = Buff::new(
-    "arcane: auditory illusion",
     &[
-        BuffProp::Effect(
+        Prop::Usable(
             "create an auditory illusion that seems to come from a direction of your choice",
         ),
-        BuffProp::Duration(Turns::one()),
+        Prop::Duration(Turns::one()),
     ],
 );
 const COMPREHEND: ItemRef = free(
@@ -59,28 +53,22 @@ const LEAP: ItemRef = free(
         Prop::Concentration,
     ],
 );
-const LIGHT: ItemRef = free("spell: light", &[Prop::Buff(LIGHT_BUFF)]);
-const LIGHT_BUFF: Buff = Buff::new(
-    "arcane: light",
+const LIGHT: ItemRef = free(
+    "spell: light",
     &[
-        BuffProp::Effect("an object you've touched sheds 30 ft. of light around itself"),
-        BuffProp::Duration(Turns::hour()),
+        Prop::Usable("an object you've touched sheds 30 ft. of light around itself"),
+        Prop::Duration(Turns::hour()),
     ],
 );
 const VISUAL_ILLUSION: ItemRef = free(
     "spell: visual illusion",
-    &[Prop::Buff(VISUAL_ILLUSION_BUFF)],
-);
-const VISUAL_ILLUSION_BUFF: Buff = Buff::new(
-    "arcane: visual illusion",
     &[
-        BuffProp::Effect(
+        Prop::Usable(
             "a silent, immobile illusion of your choice appears, up to the size of a bedroom",
         ),
-        BuffProp::Duration(Turns::one()),
+        Prop::Duration(Turns::one()),
     ],
 );
-
 pub const ITEMS: [&ItemRef; 8] = [
     &ARCANE_ARROW,
     &ATTRACT,
@@ -90,10 +78,4 @@ pub const ITEMS: [&ItemRef; 8] = [
     &LEAP,
     &LIGHT,
     &VISUAL_ILLUSION,
-];
-pub const BUFFS: [&Buff; 4] = [
-    &ATTRACT_BUFF,
-    &AUDITORY_ILLUSION_BUFF,
-    &LIGHT_BUFF,
-    &VISUAL_ILLUSION_BUFF,
 ];

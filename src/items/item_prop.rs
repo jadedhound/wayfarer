@@ -1,17 +1,17 @@
 use serde::{Deserialize, Serialize};
 use strum::Display;
 
-use crate::buffs::{Buff, BuffRef};
 use crate::pc::Ability;
 use crate::utils::counter::Counter;
+use crate::utils::turns::Turns;
 
 #[derive(Serialize, Deserialize, Clone, Display, PartialEq)]
 pub enum ItemProp {
-    Buff(Buff),
-    Bulky(usize),
+    Bulky,
     Concentration,
     Count(Counter),
     Damage(usize),
+    Duration(Turns),
     Effect(String),
     Passive,
     Range(u32),
@@ -22,11 +22,11 @@ pub enum ItemProp {
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum ItemPropRef {
-    Buff(BuffRef),
-    Bulky(usize),
+    Bulky,
     Concentration,
     Count(Counter),
     Damage(usize),
+    Duration(Turns),
     Effect(&'static str),
     Passive,
     Range(u32),
@@ -38,11 +38,11 @@ pub enum ItemPropRef {
 impl ItemProp {
     pub fn index(&self) -> usize {
         match self {
-            ItemProp::Buff(_) => 1,
-            ItemProp::Bulky(_) => 2,
-            ItemProp::Concentration => 3,
-            ItemProp::Count(_) => 4,
-            ItemProp::Damage(_) => 5,
+            ItemProp::Bulky => 1,
+            ItemProp::Concentration => 2,
+            ItemProp::Count(_) => 3,
+            ItemProp::Damage(_) => 4,
+            ItemProp::Duration(_) => 5,
             ItemProp::Effect(_) => 6,
             ItemProp::Range(_) => 7,
             ItemProp::Resist => 8,
@@ -58,12 +58,12 @@ impl From<ItemPropRef> for ItemProp {
         use ItemPropRef as Ref;
 
         match value {
-            Ref::Bulky(x) => Self::Bulky(x),
+            Ref::Bulky => Self::Bulky,
             Ref::Resist => Self::Resist,
             Ref::Count(x) => Self::Count(x),
-            Ref::Buff(x) => Self::Buff(x.into()),
             Ref::Usable(x) => Self::Usable(x.into()),
             Ref::Damage(x) => Self::Damage(x),
+            Ref::Duration(x) => Self::Duration(x),
             Ref::Range(x) => Self::Range(x),
             Ref::Effect(x) => Self::Effect(x.into()),
             Ref::Passive => Self::Passive,

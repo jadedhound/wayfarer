@@ -3,27 +3,28 @@ use serde::{Deserialize, Serialize};
 use strum::{EnumCount, EnumIter};
 
 use self::class::level::ClassExp;
-use crate::buffs::Buff;
-use crate::items::{self, Item, ItemProp};
+use crate::items::{self, Item};
 use crate::lobby::pc_basic::PCBasic;
 use crate::pc::class::PCClassRef;
 use crate::rand::Rand;
 use crate::utils::enum_array::{EnumArray, EnumRef};
 use crate::utils::fixed_vec::FixedVec;
-use crate::utils::index_map::IndexMap;
+use crate::utils::inventory::Inventory;
 use crate::utils::rw_utils::RwUtils;
 use crate::utils::turns::Turns;
 
 pub mod class;
-pub mod combat;
 pub mod edit_item;
 pub mod inventory;
 pub mod journal;
+pub mod main;
 mod navbar;
 pub mod realm;
 pub mod scout;
 pub mod session;
 mod update;
+
+const MAX_INVENTORY: usize = 10;
 
 #[derive(Serialize, Deserialize, Clone, Default)]
 pub struct PC {
@@ -34,10 +35,8 @@ pub struct PC {
     pub guard_dmg: u32,
     pub health_dmg: u32,
     pub wealth: u32,
-    pub inventory: IndexMap<Item>,
+    pub inventory: Inventory,
     pub recently_removed: FixedVec<Item>,
-    pub quick_access: FixedVec<usize>,
-    pub buffs: IndexMap<Buff>,
     pub turns: Turns,
     pub open_notes: Vec<usize>,
     pub fatigue: i32,
@@ -53,45 +52,8 @@ impl From<PCBasic> for PC {
             prof: value.class.prof.into(),
             wealth: 15 * 10,
             inventory: gen_inventory(value.class),
-            quick_access: FixedVec::new(2),
-            buffs: IndexMap::from(vec![Buff::from(*value.class.base_buffs[0])]),
             recently_removed: FixedVec::new(10),
             ..Default::default()
-        }
-    }
-}
-
-impl PC {
-    /// Removes an item from inventory, adding it to `pc.recently_removed`
-    /// removing it from `pc.quick_access`.
-    fn inventory_remove(&mut self, id: usize) {
-        self.quick_access.remove_where(|x| *x == id);
-        if let Some(mut item) = self.inventory.remove(id) {
-            let unique = !self.recently_removed.iter().any(|removed| removed == &item);
-            if unique {
-                if let Some(count) = item.find_mut_counter() {
-                    count.curr = count.max
-                }
-                self.recently_removed.push(item)
-            }
-        }
-    }
-
-    /// Consume an item (or item count) and apply its effects (if any).
-    fn use_item(&mut self, id: usize) {
-        let item = self.inventory.get_mut(id).unwrap();
-        for prop in item.props.iter() {
-            if let ItemProp::Buff(buff) = prop {
-                self.buffs.add(buff.clone())
-            }
-        }
-        if let Some(count) = item.find_mut_counter() {
-            count.curr -= 1;
-            if count.is_empty() {
-                self.inventory_remove(id);
-            }
-        } else {
-            self.inventory_remove(id);
         }
     }
 }
@@ -103,10 +65,6 @@ impl RwUtils for PC {}
 pub enum Ability {
     Guard,
     Health,
-    #[strum(serialize = "Max Inventory")]
-    MaxInventory,
-    #[strum(serialize = "Quick Access")]
-    QuickAccess,
     STR,
     DEX,
     INT,
@@ -142,8 +100,6 @@ impl From<PCClassRef> for AbiScores {
         vec![
             (Ability::Guard, 6),
             (Ability::Health, 2),
-            (Ability::MaxInventory, 10),
-            (Ability::QuickAccess, 2),
             (Ability::STR, stat_priority[0]),
             (Ability::DEX, stat_priority[1]),
             (Ability::INT, stat_priority[2]),
@@ -162,7 +118,7 @@ impl PartialEq for AbiScores {
     }
 }
 
-fn gen_inventory(class: PCClassRef) -> IndexMap<Item> {
+fn gen_inventory(class: PCClassRef) -> Inventory {
     let adventuring_gear: Vec<_> = Rand::with(|rand| {
         vec![(); class.adventuring_gear]
             .into_iter()
@@ -175,5 +131,6 @@ fn gen_inventory(class: PCClassRef) -> IndexMap<Item> {
         .chain([&&items::adventure::TORCH])
         .map(|item_ref| Item::from(**item_ref))
         .chain(adventuring_gear)
-        .collect()
+        .collect::<Vec<_>>()
+        .into()
 }

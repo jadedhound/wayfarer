@@ -18,15 +18,11 @@ impl Turns {
     pub const fn hour() -> Self {
         Self(6)
     }
-    pub fn next_day(&mut self) {
-        self.0 += TURNS_IN_DAY - self.in_turns()
+    pub fn add(&mut self, value: u64) {
+        self.0 = self.0.wrapping_add(value);
     }
-    pub fn change_by(&mut self, amount: i64) {
-        self.0 = (self.0 as i64 + amount) as u64
-    }
-    /// Adds a given `turn_ref` to this one.
-    pub fn add(&mut self, turn_ref: Self) {
-        self.0 += turn_ref.0;
+    pub fn sub(&mut self, value: u64) {
+        self.0 = self.0.saturating_sub(value);
     }
     pub fn is_expired(&self, time_ref: u64) -> bool {
         self.0 <= time_ref
@@ -34,10 +30,6 @@ impl Turns {
     /// Absolute time difference with a given `other`.
     pub fn abs_diff(&self, other: Self) -> Self {
         Self(u64::abs_diff(self.0, other.0))
-    }
-    /// Saturating subtract with a given `other`.
-    pub fn sub(&self, other: Self) -> Self {
-        Self(u64::saturating_sub(self.0, other.0))
     }
     pub fn in_days(&self) -> u64 {
         self.0 / TURNS_IN_DAY

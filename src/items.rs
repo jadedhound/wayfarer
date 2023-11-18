@@ -3,9 +3,7 @@ use std::cmp;
 pub use item_prop::*;
 use serde::{Deserialize, Serialize};
 
-use crate::buffs::{self, Buff, BuffRef};
 use crate::utils::counter::Counter;
-use crate::utils::{array_len, flatten_array};
 
 pub mod adventure;
 pub mod alchemist;
@@ -45,19 +43,18 @@ impl Item {
             _ => None,
         })
     }
-    /// Finds the first buff of the item.
-    pub fn find_buff(&self) -> Option<&Buff> {
-        self.props.iter().find_map(|x| match x {
-            ItemProp::Buff(x) => Some(x),
-            _ => None,
-        })
-    }
     /// Finds the first weapon damage of the item.
     pub fn find_damage(&self) -> Option<usize> {
         self.props.iter().find_map(|x| match x {
             ItemProp::Damage(x) => Some(*x),
             _ => None,
         })
+    }
+    /// Finds the first the slots used by the item.
+    pub fn is_bulky(&self) -> bool {
+        self.props
+            .iter()
+            .any(|prop| matches!(prop, ItemProp::Bulky))
     }
 }
 
@@ -97,11 +94,10 @@ impl ItemRef {
         })
     }
     /// Finds the first the slots used by the item.
-    pub fn find_bulky(&self) -> Option<usize> {
-        self.props.iter().find_map(|x| match x {
-            ItemPropRef::Bulky(x) => Some(*x),
-            _ => None,
-        })
+    pub fn is_bulky(&self) -> bool {
+        self.props
+            .iter()
+            .any(|prop| matches!(prop, ItemPropRef::Bulky))
     }
 }
 
@@ -132,17 +128,6 @@ pub const ALL: [&[&ItemRef]; 10] = [
     &illicit_goods::ITEMS,
     &fletcher::ITEMS,
 ];
-const BUFF_ARRAY: [&[&BuffRef]; 7] = [
-    &adventure::BUFFS,
-    &alchemist::BUFFS,
-    &alchemist::BUFFS,
-    &arcane::BUFFS,
-    &divine::BUFFS,
-    &divine::BUFFS,
-    &illicit_goods::BUFFS,
-];
-const BUFFS_LEN: usize = array_len(&BUFF_ARRAY);
-pub const BUFFS: [&BuffRef; BUFFS_LEN] = flatten_array(&BUFF_ARRAY, &buffs::ERROR);
 
 // -----------------------------------
 // OTHER IMPL

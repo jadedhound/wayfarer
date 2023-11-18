@@ -1,5 +1,4 @@
 use super::{ItemPropRef as Prop, ItemRef};
-use crate::buffs::{BuffPropRef as BuffProp, BuffRef as Buff};
 use crate::utils::turns::Turns;
 
 const fn free(name: &'static str, props: &'static [Prop]) -> ItemRef {
@@ -41,13 +40,11 @@ pub const BANE: ItemRef = free(
 );
 pub const CHARM: ItemRef = free(
     "spell: charm",
-    &[Prop::Buff(CHARM_BUFF), Prop::Range(30), Prop::Resist],
-);
-const CHARM_BUFF: Buff = Buff::new(
-    "divine: charm",
     &[
-        BuffProp::Effect("one creature treats you as a friend"),
-        BuffProp::Duration(Turns::hour()),
+        Prop::Usable("one creature treats you as a friend"),
+        Prop::Duration(Turns::hour()),
+        Prop::Range(30),
+        Prop::Resist,
     ],
 );
 pub const DEAFEN: ItemRef = free(
@@ -91,4 +88,3 @@ pub const ITEMS: [&ItemRef; 10] = [
     &HEALING_WORD,
     &MESSAGE,
 ];
-pub const BUFFS: [&Buff; 1] = [&CHARM_BUFF];

@@ -5,12 +5,10 @@ use crate::error::*;
 use crate::indexeddb;
 use crate::indexeddb::DBKey;
 use crate::lobby::{lobby, NewPCTimeout, PCList};
-use crate::pc::class::view::class;
-use crate::pc::combat::combat;
 use crate::pc::edit_item::edit_item;
-use crate::pc::inventory::inventory;
 use crate::pc::journal::edit_note::edit_note;
 use crate::pc::journal::overview::journal;
+use crate::pc::main::main;
 use crate::pc::realm::realm;
 use crate::pc::realm::sell::sell;
 use crate::pc::realm::shop::delegate::shop_delegate;
@@ -33,16 +31,14 @@ pub fn main_router() -> impl IntoView {
                     <Route path= "" view=secondary_assets>
                         <Route path= "" view=lobby />
                         <Route path= "pc/:id" view=pc_scout >
-                            <Route path= "overview" view=combat />
-                            <Route path= "inventory" view=inventory />
+                            <Route path= "main" view=main />
                             <Route path= "edit_item/:id" view=edit_item />
                             <Route path= "journal" view=journal />
                             <Route path= "edit_note/:id" view=edit_note />
                             <Route path= "realm" view=realm />
                             <Route path= "realm/buy/:repr" view=shop_delegate />
                             <Route path= "realm/sell" view=sell />
-                            <Route path= "class" view=class />
-                            <Route path= "*any" view=|| view!{ <Redirect path="overview" /> }/>
+                            <Route path= "*any" view=|| view!{ <Redirect path="main" /> }/>
                         </Route>
                     </Route>
                 </Route>
@@ -68,10 +64,24 @@ fn critical_assets() -> impl IntoView {
         load_assets
             .get()
             .map(|result| match result {
-                Ok(_) => main().into_view(),
+                Ok(_) => wrapper().into_view(),
                 Err(err) => fatal_page(err).into_view(),
             })
             .into_view()
+    }
+}
+
+fn wrapper() -> impl IntoView {
+    view! {
+        <Outlet />
+        // Z-10
+        { toast_notification }
+        // Z-20
+        { modal_grey_screen }
+        // Z-30
+        { revealer_screen }
+        // Ever present delete modal
+        { delete_confirm_modal }
     }
 }
 
@@ -84,18 +94,4 @@ fn secondary_assets() -> impl IntoView {
     });
 
     move || load_assets.get().flatten().map(|_| Outlet()).into_view()
-}
-
-fn main() -> impl IntoView {
-    view! {
-        <Outlet />
-        // Z-10
-        { toast_notification }
-        // Z-20
-        { modal_grey_screen }
-        // Z-30
-        { revealer_screen }
-        // Ever present delete modal
-        { delete_confirm_modal }
-    }
 }

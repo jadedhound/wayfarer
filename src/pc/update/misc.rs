@@ -3,7 +3,7 @@ use leptos::*;
 use leptos_use::use_debounce_fn;
 
 use crate::pc::session::Session;
-use crate::pc::{Ability, PC};
+use crate::pc::PC;
 use crate::utils::rw_utils::RwUtils;
 
 /// Collates the 3 different `AbiScores` in `Session` to get the final values.
@@ -33,9 +33,6 @@ pub fn collate_abi_scores() {
                 *base.get_mut(abi) = score
             }
             sesh.update(|sesh| sesh.abi_scores = base);
-            let quick_size = base.get(Ability::QuickAccess) as usize;
-            log!("    | Resizing quick access to {quick_size}");
-            pc.update(|pc| pc.quick_access.resize(quick_size));
         },
         100.0,
     );

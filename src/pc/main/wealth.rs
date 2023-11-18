@@ -19,6 +19,7 @@ pub fn wealth() -> impl IntoView {
     let disabled = create_read_slice(input, |input| input < &1);
 
     view! {
+        <h4 class= "text-center"> "Wealth" </h4>
         <div class= "grid grid-cols-7 gap-x-2">
             <button
                 class= "btn bg-red-800 row-span-2 flex-center"

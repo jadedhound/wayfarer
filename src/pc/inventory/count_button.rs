@@ -12,7 +12,8 @@ const CHG_BTN: &str =
 
 pub fn count_button(id: usize) -> impl IntoView {
     let pc = PC::expect();
-    let hide_btns = create_memo(move |_| !Revealer::is_shown(RevLocation::CountButton, id));
+    let is_interactive = create_memo(move |_| Revealer::is_shown(RevLocation::CountButton, id));
+    let is_non_interactive = move || !is_interactive.get();
     let count = PC::slice(move |pc| {
         pc.inventory
             .get(id)
@@ -21,8 +22,8 @@ pub fn count_button(id: usize) -> impl IntoView {
     });
     let curr = move || count.get().curr;
     let max = move || count.get().max;
-    let cannot_add = move || hide_btns.get() || curr() >= max();
-    let cannot_remove = move || hide_btns.get() || curr() < 2;
+    let cannot_add = move || is_non_interactive() || curr() >= max();
+    let cannot_remove = move || is_non_interactive() || curr() < 2;
     let change_stack = move |by: i64| {
         pc.update(|pc| {
             let item_count = pc
@@ -46,9 +47,10 @@ pub fn count_button(id: usize) -> impl IntoView {
             </button>
             <button
                 class=concat_if(
-                    move || !hide_btns.get(),
+                    is_interactive.into(),
                     "px-4 h-10 flex items-center gap-2 border-2 border-transparent rounded",
-                    "bg-black !border-sky-800"
+                    "bg-black !border-sky-800",
+                    "",
                 )
                 on:click=move |_| { Revealer::show(RevLocation::CountButton, id) }
             >

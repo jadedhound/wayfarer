@@ -12,7 +12,7 @@ pub fn shop_view() -> impl IntoView {
     let state = State::expect();
     let shop = state.with_untracked(|state| state.shop);
     let to_item = move |item_ref: &'static ItemRef| {
-        let weight = item_ref.find_bulky().unwrap_or(1);
+        let weight = item_ref.is_bulky() as usize + 1;
         let add_to_cart = move || {
             state.update(|state| {
                 state.weight += weight;

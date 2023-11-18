@@ -4,6 +4,7 @@ use super::note_view::note_view;
 use crate::icons;
 use crate::pc::journal::{Journal, Note};
 use crate::utils::rw_utils::RwUtils;
+use crate::utils::RwSignalEnhance;
 
 pub fn journal() -> impl IntoView {
     let journal = Journal::expect();
@@ -33,7 +34,7 @@ fn new_note_input() -> impl IntoView {
     let new_note = create_rw_signal(String::new());
     let create_note = move |_| {
         let name = new_note.get();
-        journal.update(|journal| journal.add(Note::new(name)));
+        journal.update_discard(|journal| journal.add(Note::new(name)));
         new_note.set(String::new())
     };
 

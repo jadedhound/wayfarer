@@ -13,7 +13,7 @@ use crate::views::wealth::wealth_short;
 pub fn cart_view() -> impl IntoView {
     let state = State::expect();
     let to_view = move |(id, item_ref): (usize, &'static ItemRef)| {
-        let weight = item_ref.find_bulky().unwrap_or(1);
+        let weight = item_ref.is_bulky() as usize + 1;
         let remove_from_cart = move || {
             state.update(|state| {
                 state.weight = state.weight.saturating_sub(weight);
@@ -86,7 +86,7 @@ fn price() -> impl IntoView {
     };
     let inv_left = create_memo(move |_| {
         let curr = state.with(|state| state.weight);
-        let max = sesh.with(|sesh| sesh.empty_inv_slots);
+        let max = pc.with(|pc| pc.inventory.vacancy()).unwrap_or(0);
         (curr <= max).then_some(max.saturating_sub(curr))
     });
     let inv_left = move || {
@@ -121,7 +121,7 @@ fn purchase_button() -> impl IntoView {
         state.reset();
         pc.update(|pc| {
             for item in items.values() {
-                pc.inventory.add(Item::from(**item))
+                pc.inventory.add(Item::from(**item));
             }
             pc.wealth -= price;
         });

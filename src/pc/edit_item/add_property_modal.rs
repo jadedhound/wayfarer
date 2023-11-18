@@ -9,7 +9,7 @@ use crate::views::modal::{ModalCenter, ModalLocation, ModalState};
 /// Props that can be added by the user.
 fn addable_props() -> [Prop; 9] {
     [
-        Prop::Bulky(2),
+        Prop::Bulky,
         Prop::Concentration,
         Prop::Count(Counter::new(2)),
         Prop::Damage(1),

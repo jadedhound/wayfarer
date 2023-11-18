@@ -80,11 +80,13 @@ impl<T: Clone> IndexMap<T> {
     pub fn keys(&self) -> impl Iterator<Item = usize> + '_ {
         self.iter().map(|(i, _)| i)
     }
-    pub fn add(&mut self, t: T) {
+    pub fn add(&mut self, t: T) -> usize {
         if let Some(id) = self.removed_ids.pop() {
-            self.values[id] = Some(t)
+            self.values[id] = Some(t);
+            id
         } else {
-            self.values.push(Some(t))
+            self.values.push(Some(t));
+            self.len() - 1
         }
     }
     pub fn remove(&mut self, id: usize) -> Option<T> {

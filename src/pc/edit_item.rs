@@ -104,14 +104,14 @@ fn apply_button() -> impl IntoView {
     let nav_to_inventory = move || {
         let path = use_location().pathname.get_untracked();
         let url: Vec<&str> = path.split('/').take(3).collect();
-        let url = format!("{}/inventory", url.join("/"));
+        let url = format!("{}/main", url.join("/"));
         (use_navigate())(&url, Default::default());
     };
     let save_item = move |_| {
         let State { id, item } = state.get();
         // Removing and adding to trigger relevant update functions.
         pc.update_discard(|pc| pc.inventory.remove(id));
-        pc.update(|pc| pc.inventory.add(item));
+        pc.update_discard(|pc| pc.inventory.add(item));
         nav_to_inventory();
     };
     view! {

@@ -13,9 +13,8 @@ pub const KITE_SHIELD: ItemRef = ItemRef::new(
 const TOWER_SHIELD: ItemRef = ItemRef::new(
     "tower shield",
     10,
-    &[ARMOUR_PROP, Prop::Count(Counter::new(4)), Prop::Bulky(2)],
+    &[ARMOUR_PROP, Prop::Count(Counter::new(4)), Prop::Bulky],
 );
-const BELT_POUCH: ItemRef = ItemRef::new("belt pouch", 10, &[Prop::Score(Ability::QuickAccess, 1)]);
 
 const GAMBESON: ItemRef = ItemRef::new("gambeson", 50, &[Prop::Passive, ARMOUR_PROP]);
 const BRIGANDINE: ItemRef = ItemRef::new(
@@ -25,7 +24,7 @@ const BRIGANDINE: ItemRef = ItemRef::new(
         Prop::Passive,
         ARMOUR_PROP,
         Prop::Count(Counter::new(3)),
-        Prop::Bulky(2),
+        Prop::Bulky,
     ],
 );
 const CHAINMAIL: ItemRef = ItemRef::new(
@@ -35,7 +34,7 @@ const CHAINMAIL: ItemRef = ItemRef::new(
         Prop::Passive,
         ARMOUR_PROP,
         Prop::Count(Counter::new(5)),
-        Prop::Bulky(2),
+        Prop::Bulky,
     ],
 );
 const HALF_PLATE: ItemRef = ItemRef::new(
@@ -45,7 +44,7 @@ const HALF_PLATE: ItemRef = ItemRef::new(
         Prop::Passive,
         ARMOUR_PROP,
         Prop::Count(Counter::new(9)),
-        Prop::Bulky(3),
+        Prop::Bulky,
     ],
 );
 const FULL_PLATE: ItemRef = ItemRef::new(
@@ -55,15 +54,14 @@ const FULL_PLATE: ItemRef = ItemRef::new(
         Prop::Passive,
         ARMOUR_PROP,
         Prop::Count(Counter::new(12)),
-        Prop::Bulky(3),
+        Prop::Bulky,
     ],
 );
 
-pub const ITEMS: [&ItemRef; 9] = [
+pub const ITEMS: [&ItemRef; 8] = [
     &BUCKLER,
     &KITE_SHIELD,
     &TOWER_SHIELD,
-    &BELT_POUCH,
     &GAMBESON,
     &BRIGANDINE,
     &CHAINMAIL,

@@ -1,6 +1,5 @@
 use super::item_prop::ItemPropRef as Prop;
 use super::ItemRef;
-use crate::buffs::{BuffPropRef as BuffProp, BuffRef};
 use crate::utils::counter::Counter;
 use crate::utils::turns::Turns;
 
@@ -36,6 +35,7 @@ const LISTENING_CONE: ItemRef = ItemRef::new(
         Prop::Count(Counter::new(3)),
     ],
 );
+const LOADED_DICE: ItemRef = ItemRef::simple("loaded dice (full set)", 5);
 const MINDPIERCING_ARROW: ItemRef = ItemRef::new(
     "mindpiercing arrow",
     super::fletcher::PRICES[2],
@@ -53,25 +53,17 @@ const ODORLESS_POISON: ItemRef = ItemRef::new(
 const SWAMP_FEVER_VIAL: ItemRef = ItemRef::new(
     "swamp fever vial",
     super::alchemist::PRICES[1],
-    &[Prop::Buff(SWAMP_FEVER)],
-);
-const SWAMP_FEVER: BuffRef = BuffRef::new(
-    "swamp fever",
-    &[
-        BuffProp::Effect("having imbibed this potion, you begin to lash out against everything in an uncontrollable rage"),
-        BuffProp::Duration(Turns::hour()),
-        BuffProp::Debuff,
-    ],
+    &[Prop::Usable("having imbibed this potion, you begin to lash out against everything in an uncontrollable rage"), Prop::Duration(Turns::hour())],
 );
 
-pub const ITEMS: [&ItemRef; 8] = [
+pub const ITEMS: [&ItemRef; 9] = [
     &ANISEED_VIAL,
     &BLOOD_SEEKER_VIAL,
     &CALTROPS,
     &FAKE_JEWELS,
     &LISTENING_CONE,
+    &LOADED_DICE,
     &MINDPIERCING_ARROW,
     &ODORLESS_POISON,
     &SWAMP_FEVER_VIAL,
 ];
-pub const BUFFS: [&BuffRef; 1] = [&SWAMP_FEVER];

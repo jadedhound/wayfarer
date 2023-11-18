@@ -6,18 +6,17 @@ use crate::items::meta::EMPTY_ITEM;
 use crate::items::ItemProp;
 use crate::pc::inventory::count_button::count_button;
 use crate::pc::session::Session;
-use crate::pc::{Ability, PC};
-use crate::utils::concat_if;
+use crate::pc::{MAX_INVENTORY, PC};
 use crate::utils::rw_utils::RwUtils;
+use crate::views::delete_confirm::DeleteModal;
 use crate::views::revealer::{RevLocation, Revealer};
 use crate::views::wealth::maybe_wealth;
 
 pub fn backpack() -> impl IntoView {
-    let sesh = Session::expect();
-    let id_list = move || sesh.with(|sesh| sesh.sorted_inv.clone());
+    let pc = PC::expect();
+    let id_list = move || pc.with(|pc| pc.inventory.keys().collect::<Vec<usize>>());
 
     view! {
-        { fatigue }
         <div class= "flex flex-col shaded-table">
             <For
                 each=id_list
@@ -29,52 +28,9 @@ pub fn backpack() -> impl IntoView {
     }
 }
 
-fn fatigue() -> impl IntoView {
-    let pc = PC::expect();
-    let fatigue = PC::slice(|pc| pc.fatigue);
-    let is_locked = RwSignal::new(true);
-    #[rustfmt::skip]
-    let lock_icon = move || {
-        if is_locked.get() { icons::LOCKED } else { icons::UNLOCKED }
-    };
-    #[rustfmt::skip]
-    let lock_colour = move || {
-        if is_locked.get() { "fill-zinc-500" } else { "fill-yellow-500" }
-    };
-
-    view! {
-        <div class= "flex gap-4 border-y-2 border-orange-600 py-2">
-            <button
-                class=move || format!("ml-2 w-5 {}", lock_colour())
-                on:click=move |_| is_locked.update(|x| *x = !*x)
-                inner_html=lock_icon
-            />
-            <div class= "w-12 grow">
-                <h6> "Fatigue" </h6>
-                <div class= "italic">
-                    "Each point of fatigue reduces the available inventory."
-                </div>
-            </div>
-            <button
-                class= "w-5 rotate-180 disabled:invisible"
-                on:click=move |_| pc.update(|pc| pc.fatigue -= 1)
-                disabled=move || { fatigue.get() < 1 || is_locked.get() }
-                inner_html=icons::RIGHT_CHEV
-            />
-            <h5 class= "self-center"> { fatigue } </h5>
-            <button
-                class= "w-5 disabled:invisible"
-                on:click=move |_| pc.update(|pc| pc.fatigue += 1)
-                disabled=move || { fatigue.get() > 9 || is_locked.get() }
-                inner_html=icons::RIGHT_CHEV
-            />
-        </div>
-    }
-}
-
 /// Shows empty slots for a PC.
 fn empty_slots() -> impl IntoView {
-    let sesh = Session::expect();
+    let pc = PC::expect();
     let empty = move |i| {
         view! {
             <div class= "flex">
@@ -85,13 +41,15 @@ fn empty_slots() -> impl IntoView {
     };
 
     move || {
-        sesh.with(|sesh| {
-            let max_inv = sesh.abi_scores.get(Ability::MaxInventory) as usize;
-            (sesh.empty_inv_slots > 0).then(|| {
-                (max_inv - sesh.empty_inv_slots + 1..=max_inv)
-                    .map(empty)
-                    .collect_view()
-            })
+        pc.with(|pc| {
+            pc.inventory
+                .size()
+                .filter(|&amount| amount > 0)
+                .map(|curr| {
+                    (curr + 1..=pc.inventory.max_size())
+                        .map(empty)
+                        .collect_view()
+                })
         })
     }
 }
@@ -127,47 +85,12 @@ fn item_view(id: usize) -> impl IntoView {
 }
 
 fn slot_by_weight(id: usize) -> impl IntoView {
-    let (pc, sesh) = (PC::expect(), Session::expect());
-    let is_quick = PC::slice(move |pc| pc.quick_access.iter().any(|x| x == &id));
-    let disabled = PC::slice(move |pc| pc.quick_access.is_full() && !is_quick.get_untracked());
-    let toggle_quick = move |_| {
-        if is_quick.get() {
-            pc.update(|pc| {
-                pc.quick_access.remove_where(|x| *x == id);
-            });
-        } else {
-            pc.update(|pc| pc.quick_access.push(id));
-        }
-    };
-    let icon_or_range = move || {
-        if disabled.get() {
-            let range = sesh.with(|sesh| sesh.inv_slots.get(id).copied().unwrap_or_default());
-            view! {
-                <div class= "text-center">
-                    { range }
-                </div>
-            }
-            .into_view()
-        } else {
-            view! {
-                <div class= "w-4" inner_html=icons::STAR />
-            }
-            .into_view()
-        }
-    };
-
+    let pc = PC::expect();
+    let slot = move || pc.with(|pc| pc.inventory.get_slot(id)).into_view();
     view! {
-        <button
-            class=concat_if(
-                move || is_quick.get(),
-                "stroke-yellow-500 fill-transparent w-12 flex-center",
-                "fill-yellow-500"
-            )
-            on:click=toggle_quick
-            disabled=disabled
-        >
-            { icon_or_range }
-        </button>
+        <div class= "w-12 flex-center">
+            { slot }
+        </div>
     }
 }
 
@@ -175,13 +98,17 @@ fn more_button(id: usize) -> impl IntoView {
     let pc = PC::expect();
     let show_delete_modal = move |_| {
         Revealer::hide();
-        pc.update(|pc| pc.inventory_remove(id))
+        pc.update(|pc| {
+            if let Some(item) = pc.inventory.remove(id) {
+                pc.recently_removed.push_unique(item);
+            }
+        })
     };
     let copy_item = move |_| {
         Revealer::hide();
         pc.update(|pc| {
             if let Some(item) = pc.inventory.get(id).cloned() {
-                pc.inventory.add(item)
+                pc.inventory.add(item);
             }
         })
     };
@@ -191,11 +118,17 @@ fn more_button(id: usize) -> impl IntoView {
             .map(|item| {
                 item.props
                     .iter()
-                    .any(|prop| matches!(prop, ItemProp::Buff(_) | ItemProp::Usable(_)))
+                    .any(|prop| matches!(prop, ItemProp::Usable(_)))
             })
             .unwrap_or(false)
     });
-    let use_item = move |_| pc.update(|pc| pc.use_item(id));
+    let use_item = move |_| {
+        pc.update(|pc| {
+            if let Some(item) = pc.inventory.use_item(id) {
+                pc.recently_removed.push_unique(item);
+            }
+        })
+    };
     let menu_hidden = create_memo(move |_| Revealer::is_hidden(RevLocation::BackpackMore, id));
 
     view! {

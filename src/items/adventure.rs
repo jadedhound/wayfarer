@@ -1,8 +1,5 @@
 use super::{ItemPropRef as Prop, ItemRef};
-use crate::buffs::{BuffPropRef as BuffProp, BuffRef};
-use crate::pc::Ability;
 use crate::utils::counter::Counter;
-use crate::utils::turns::Turns;
 
 // ---- B ----
 const BEAR_TRAP: ItemRef = ItemRef::new(
@@ -42,7 +39,6 @@ const IRON_TONGS: ItemRef = ItemRef::simple("iron tongs", 10);
 // ---- L ----
 const LADDER: ItemRef = ItemRef::simple("10 ft. ladder", 10);
 const LENS: ItemRef = ItemRef::simple("lens", 100);
-const LOADED_DICE: ItemRef = ItemRef::simple("loaded dice (full set)", 5);
 const LOCKPICK: ItemRef = ItemRef::simple("lockpicks", 100);
 // ---- M ----
 const MANACLES: ItemRef = ItemRef::simple("iron manacles", 10);
@@ -69,29 +65,21 @@ const SPONGE: ItemRef = ItemRef::simple("large sponge", 5);
 const TAR: ItemRef = ItemRef::simple("tar (pot)", 10);
 const TENT_PERSONAL: ItemRef = ItemRef::simple("tent (personal)", 50);
 const TENT_3_MAN: ItemRef = ItemRef::simple("tent (3 man)", 100);
-pub const TORCH: ItemRef = ItemRef::new("torch", 1, &[Prop::Buff(TORCH_BUFF)]);
-const TORCH_BUFF: BuffRef = BuffRef::new(
-    "torch light",
-    &[
-        BuffProp::Score(Ability::QuickAccess, -1),
-        BuffProp::Effect("a 30 ft circle around the torch is well lit"),
-        BuffProp::Duration(Turns::hour()),
-    ],
-);
+pub const TORCH: ItemRef = ItemRef::simple("torch", 1);
 const TWINE: ItemRef = ItemRef::simple("twine (300 ft)", 5);
 // ---- W ----
 const WATERSKIN: ItemRef = ItemRef::simple("waterskin", 5);
 const WHISTLE: ItemRef = ItemRef::simple("whistle", 5);
 
 #[rustfmt::skip]
-pub const ITEMS: [&ItemRef; 49] = [
+pub const ITEMS: [&ItemRef; 48] = [
     &BEAR_TRAP, &BEDROLL, &BELL, &BELLOWS, &BLOCK_AND_TACKLE, &BOTTLE, &BUCKET, 
     &CARDS, &CHALK, &CHISEL, &CAULDRON, &CROWBAR, 
     &FACE_PAINT, &FISHING_NET, &FISHING_ROD_AND_TACKLE, 
     &GLUE, &GRAPPLING_HOOK,
     &HAND_DRILL, &HAMMER, &HORN,
     &IRON_CHAIN, &IRON_FILE, &IRON_TONGS, 
-    &LADDER, &LENS, &LOADED_DICE, &LOCKPICK,
+    &LADDER, &LENS, &LOCKPICK,
     &MANACLES, &MARBLES, &MIRROR,
     &NAILS, &NEEDLE,
     &PADLOCK_AND_KEY, &PERFUME, &PITON, &POLE, 
@@ -101,4 +89,3 @@ pub const ITEMS: [&ItemRef; 49] = [
     &TAR, &TENT_3_MAN, &TENT_PERSONAL, &TORCH, &TWINE,
     &WATERSKIN, &WHISTLE,
 ];
-pub const BUFFS: [&BuffRef; 1] = [&TORCH_BUFF];

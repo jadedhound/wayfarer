@@ -6,6 +6,7 @@ pub mod counter;
 pub mod enum_array;
 pub mod fixed_vec;
 pub mod index_map;
+pub mod inventory;
 pub mod rw_utils;
 pub mod search;
 pub mod turns;
@@ -42,17 +43,21 @@ where
     create_local_resource_with_initial_value(|| (), move |_| asset(), None)
 }
 
-/// Concats the string (with a space inbetween) if `predicate` is true.
-pub fn concat_if<F, S>(predicate: F, base: S, addon: S) -> impl Fn() -> String
+/// Concats `base` with either `if_true` or `if_false` depending on the `predicate` given.
+pub fn concat_if<S>(
+    predicate: Signal<bool>,
+    base: S,
+    if_true: S,
+    if_false: S,
+) -> impl Fn() -> String
 where
     S: std::fmt::Display,
-    F: Fn() -> bool,
 {
     move || {
-        if predicate() {
-            format!("{base} {addon}")
+        if predicate.get() {
+            format!("{base} {if_true}")
         } else {
-            base.to_string()
+            format!("{base} {if_false}")
         }
     }
 }

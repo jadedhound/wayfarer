@@ -1,4 +1,3 @@
-pub mod buff;
 pub mod checkbox;
 pub mod confirm_button;
 pub mod delete_confirm;

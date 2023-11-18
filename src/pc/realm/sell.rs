@@ -121,7 +121,7 @@ where
     F: Fn(usize) + 'static,
 {
     let (pc, state) = (PC::expect(), State::expect());
-    let item = pc.with_untracked(|pc| pc.inventory.expect(id));
+    let item = pc.with_untracked(|pc| pc.inventory.get(id).cloned().unwrap());
     let details_hidden = item.props.is_empty();
     let price = maybe_wealth(item.price());
     let open_details = move |_| {
@@ -229,7 +229,11 @@ fn sell_button() -> impl IntoView {
         state.update_discard(|state| state.cart.clear());
         pc.update(|pc| {
             // Remove items.
-            cart_ids.into_iter().for_each(|id| pc.inventory_remove(id));
+            for id in cart_ids {
+                if let Some(item) = pc.inventory.remove(id) {
+                    pc.recently_removed.push_unique(item)
+                }
+            }
             // Add price.
             pc.wealth += price;
         })
@@ -251,7 +255,7 @@ fn ItemDetails() -> impl IntoView {
     let (pc, state) = (PC::expect(), State::expect());
     let item = move || {
         let id = state.with(|state| state.modal_item_id);
-        pc.with(|pc| pc.inventory.expect(id))
+        pc.with(|pc| pc.inventory.get(id).cloned().unwrap())
     };
     let stacks = move || {
         item()

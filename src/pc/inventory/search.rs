@@ -6,7 +6,7 @@ use leptos::*;
 use crate::items::{Item, ItemRef};
 use crate::pc::PC;
 use crate::utils::rw_utils::RwUtils;
-use crate::utils::{expect_rw, search as utils_search, ArrayEnhance};
+use crate::utils::{expect_rw, search as utils_search, ArrayEnhance, RwSignalEnhance};
 use crate::{icons, items};
 
 #[derive(Default)]
@@ -49,7 +49,7 @@ fn item_view() -> impl IntoView {
     let item = state.with(|x| x.found_item.clone().unwrap_or_default());
     let item_view = item.into_view();
     let add_item = move || {
-        pc.update(|pc| pc.inventory.add(item.clone()));
+        pc.update_discard(|pc| pc.inventory.add(item.clone()));
         state.set(State::default());
     };
     let del_item = move || state.set(State::default());

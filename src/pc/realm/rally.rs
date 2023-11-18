@@ -1,7 +1,5 @@
 use leptos::*;
 
-use super::restore_buffs;
-use crate::buffs::BuffProp;
 use crate::icons;
 use crate::pc::PC;
 use crate::utils::rw_utils::RwUtils;
@@ -15,7 +13,6 @@ pub fn rally() -> impl IntoView {
         pc.update(|pc| {
             pc.guard_dmg = 0;
             pc.fatigue += 1;
-            restore_buffs(pc, |prop| matches!(prop, BuffProp::Rally));
         });
         Toast::show("rally", "guard restored, faitgue added");
     };

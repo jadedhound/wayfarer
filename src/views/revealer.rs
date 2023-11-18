@@ -57,3 +57,42 @@ pub fn revealer_screen() -> impl IntoView {
         />
     }
 }
+
+#[derive(Clone, Copy)]
+pub struct RevealerCustom(RwSignal<Option<EventListener>>);
+
+impl RevealerCustom {
+    pub fn new() -> Self {
+        Self(RwSignal::new(None))
+    }
+    pub fn show(&self) {
+        let target = web_sys::window().unwrap();
+        let signal = self.0;
+        let listener = EventListener::new(&target, "scroll", move |_| signal.set(None));
+        self.0.set(Some(listener))
+    }
+    pub fn hide(&self) {
+        self.0.set(None)
+    }
+    pub fn is_shown(&self) -> bool {
+        self.0.with(|rev| rev.is_some())
+    }
+    pub fn is_hidden(&self) -> bool {
+        self.0.with(|rev| rev.is_none())
+    }
+}
+
+impl RwUtils for RevealerCustom {}
+
+pub fn revealer_custom_screen(revealer: RevealerCustom) -> impl IntoView {
+    let hidden = move || revealer.is_hidden();
+    let hide_rev = move |_| revealer.hide();
+
+    view! {
+        <button
+            on:click=hide_rev
+            class= "fixed top-0 left-0 z-30 h-full w-full"
+            hidden=hidden
+        />
+    }
+}

@@ -37,7 +37,7 @@ where
                 </button>
                 <div class= "relative w-12 grow">
                     <input
-                        class= "range sky-bar bg-sky-950 w-full h-full pointer-events-none"
+                        class= "range [color:theme(colors.sky.800)] bg-sky-950 w-full h-full pointer-events-none"
                         type= "range"
                         min=0
                         max=max

@@ -1,46 +1,35 @@
 use leptos::*;
 use leptos_router::*;
 
-use self::hp::hp;
-use self::prof::prof_view;
-use self::quick_access::quick_access;
-use self::time_tracker::time_tracker;
 use crate::icons;
 use crate::lobby::PCList;
+use crate::pc::inventory::inventory;
 use crate::pc::session::Session;
 use crate::pc::{Ability, PC};
-use crate::utils::add_operator;
 use crate::utils::rw_utils::RwUtils;
+use crate::utils::{add_operator, concat_if};
 
-mod buff_list;
-mod buff_search;
-mod buff_view;
+mod fatigue;
 mod hp;
 mod prof;
-mod quick_access;
-mod time_tracker;
+mod turn_tracker;
 mod use_button;
+mod wealth;
 
-pub fn combat() -> impl IntoView {
+pub fn main() -> impl IntoView {
     view! {
         { name }
         { ability_scores }
         <div class= "grid grid-cols-7 gap-y-1 gap-x-2">
-            { class_view }
-            { prof_view }
-            { hp }
+            { prof::prof_view }
+            { hp::hp }
         </div>
-        <h4 class= "text-center"> "Time Tracker" </h4>
-        { time_tracker }
-        <h4 class= "text-center"> "Quick Access" </h4>
-        { quick_access }
-        <h4 class= "text-center"> "Buffs & Debuffs" </h4>
-        { buff_search::search  }
-        { buff_list::list }
-        <A href= "/" class= "btn bg-red-800 flex-center gap-2 mt-4">
-            <div class= "w-5" inner_html=icons::EXIT />
-            "EXIT TO LOBBY"
-        </A>
+        { turn_tracker::turn_tracker }
+        { wealth::wealth }
+        <h4 class= "text-center"> "Equipment" </h4>
+        <h4 class= "text-center"> "Backpack" </h4>
+        { fatigue::fatigue }
+        { inventory }
     }
 }
 
@@ -66,18 +55,11 @@ fn name() -> impl IntoView {
         }
         editting.update(|edit| *edit = !*edit);
     };
-    let colour = move || {
-        if editting.get() {
-            "bg-green-800"
-        } else {
-            "bg-surface"
-        }
-    };
 
     view! {
         <div class= "flex gap-2">
             <button
-                class=move || format!("btn {}", colour())
+                class=concat_if(editting.into(), "btn", "bg-green-800", "bg-surface")
                 on:click=edit_or_save
                 disabled=disabled
             >
@@ -121,22 +103,6 @@ fn ability_scores() -> impl IntoView {
         <div class= "grid grid-cols-4 divide-x-2 divide-rm-5 divide-sky-700 font-tight text-2xl text-center">
             { names }
             { stats }
-        </div>
-    }
-}
-
-fn class_view() -> impl IntoView {
-    let text = PC::expect().with(|pc| {
-        let (class, exp) = pc.class;
-        format!("{class} LEVEL {}", exp.level().get())
-    });
-
-    view! {
-        <A class= "btn bg-surface flex-center" href= "../class">
-            <div class= "w-6 fill-yellow-500" inner_html=icons::BULLSEYE />
-        </A>
-        <div class= "col-span-6 uppercase font-tight self-center text-xl">
-            { text }
         </div>
     }
 }

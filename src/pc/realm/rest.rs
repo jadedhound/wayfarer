@@ -1,12 +1,10 @@
 use leptos::*;
 use strum::Display;
 
-use super::restore_buffs;
-use crate::buffs::BuffProp;
 use crate::icons;
 use crate::pc::PC;
 use crate::utils::rw_utils::RwUtils;
-use crate::utils::turns::Turns;
+use crate::utils::turns::{Turns, TURNS_IN_DAY};
 use crate::views::checkbox::Checkbox;
 use crate::views::revealer::{RevLocation, Revealer};
 use crate::views::toast::Toast;
@@ -178,10 +176,7 @@ fn complete_rest() -> impl IntoView {
         let pc = PC::expect();
         let onclick = move |_| {
             onclick();
-            pc.update(|pc| {
-                pc.turns.add(Turns::new(1, 0));
-                restore_buffs(pc, |prop| matches!(prop, BuffProp::Rest | BuffProp::Rally))
-            });
+            pc.update(|pc| pc.turns.add(TURNS_IN_DAY));
             Revealer::hide();
         };
         view! {

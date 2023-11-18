@@ -48,8 +48,12 @@ fn add_back_item(item: Item) -> impl IntoView {
     let item_view = item.into_view();
     let add_back = move |_| {
         pc.update(|pc| {
-            pc.inventory.add(item.clone());
+            let mut item = item.clone();
+            if let Some(counter) = item.find_mut_counter() {
+                counter.curr = counter.max
+            }
             pc.recently_removed.remove_where(|removed| removed == &item);
+            pc.inventory.add(item);
         })
     };
 

@@ -37,7 +37,7 @@ pub fn edit_props() -> impl IntoView {
 fn delegate((i, _): (usize, usize)) -> impl IntoView {
     let state = State::expect();
     match state.with(|state| state.item.props.get(i).cloned().unwrap()) {
-        Prop::Bulky(_) => bulky(i),
+        Prop::Bulky => simple(i),
         Prop::Concentration => simple(i),
         Prop::Count(_) => counter(i),
         Prop::Damage(_) => damage(i),
@@ -88,22 +88,6 @@ fn counter(i: usize) -> Option<View> {
         |count, value| *count = Counter::new(cmp::max(value, 1)),
     );
     row_number(i, value, set_value, 2, 15)
-}
-
-fn bulky(i: usize) -> Option<View> {
-    let (value, set_value) = prop_slice(
-        i,
-        |prop| match prop {
-            Prop::Bulky(x) => Some(*x),
-            _ => None,
-        },
-        |prop| match prop {
-            Prop::Bulky(x) => Some(x),
-            _ => None,
-        },
-        |curr, value| *curr = value,
-    );
-    row_number(i, value, set_value, 2, 8)
 }
 
 fn damage(i: usize) -> Option<View> {

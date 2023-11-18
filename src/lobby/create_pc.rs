@@ -6,6 +6,7 @@ use crate::lobby::{NewPCTimeout, PCList, LOCKOUT_MINS};
 use crate::pc::class::PCClassRef;
 use crate::rand::Rand;
 use crate::utils::rw_utils::RwUtils;
+use crate::utils::RwSignalEnhance;
 use crate::views::checkbox::Checkbox;
 use crate::views::modal::{ModalCenter, ModalLocation, ModalState};
 
@@ -96,7 +97,7 @@ fn create_btn() -> impl IntoView {
     let rev_shown = RwSignal::new(false);
     let create_pc = move |_| {
         rev_shown.set(false);
-        pc_list.update(|list| list.0.add(pc_basic.get()));
+        pc_list.update_discard(|list| list.0.add(pc_basic.get()));
         new_pc_timeout.update(|time| {
             // 10 secs of padding is needed due to rounding after division
             time.0 = LOCKOUT_MINS + js_sys::Date::now() + 10000.0;

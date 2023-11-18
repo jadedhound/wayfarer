@@ -1,5 +1,4 @@
 use super::ItemRef;
-use crate::buffs::{BuffPropRef as BuffProp, BuffRef};
 use crate::items::ItemPropRef as Prop;
 use crate::utils::turns::Turns;
 
@@ -49,33 +48,20 @@ const VANISHING_POWDER: ItemRef = ItemRef::new(
 // TIER 2
 // -----------------------------------
 
-const BOTTLE_BREATH: ItemRef =
-    ItemRef::new("bottled breath", PRICES[1], &[Prop::Buff(LONGBREATH_BUFF)]);
-const LONGBREATH_BUFF: BuffRef = BuffRef::new(
-    "long breath",
-    &[
-        BuffProp::Effect("you don't need to breathe while you hold this breath"),
-        BuffProp::Duration(Turns::hour()),
-    ],
-);
-const CALMING_BREW: ItemRef = ItemRef::new("calming brew", PRICES[1], &[Prop::Buff(SERENELY_CALM)]);
-const SERENELY_CALM: BuffRef = BuffRef::new(
-    "serenely calm",
-    &[
-        BuffProp::Effect("having imbibed this potion, very little seems to anger or stress you"),
-        BuffProp::Duration(Turns::hour()),
-    ],
-);
-const POTION_OF_LONGSTRIDER: ItemRef = ItemRef::new(
-    "potion of longstrider",
+const BOTTLE_BREATH: ItemRef = ItemRef::new(
+    "bottled breath",
     PRICES[1],
-    &[Prop::Buff(LONGSTRIDER_BUFF)],
-);
-const LONGSTRIDER_BUFF: BuffRef = BuffRef::new(
-    "longstrider",
     &[
-        BuffProp::Effect("your speed is doubled"),
-        BuffProp::Duration(Turns::hour()),
+        Prop::Usable("you don't need to breathe while you hold this breath"),
+        Prop::Duration(Turns::hour()),
+    ],
+);
+const CALMING_BREW: ItemRef = ItemRef::new(
+    "calming brew",
+    PRICES[1],
+    &[
+        Prop::Usable("the imbiber becomes serenely calm"),
+        Prop::Duration(Turns::hour()),
     ],
 );
 const SCHOLARS_DRAUGHT: ItemRef = ItemRef::new(
@@ -85,12 +71,7 @@ const SCHOLARS_DRAUGHT: ItemRef = ItemRef::new(
 );
 
 #[rustfmt::skip]
-pub const BUFFS: [&BuffRef; 3] = [
-    &LONGSTRIDER_BUFF, &LONGBREATH_BUFF, 
-    &SERENELY_CALM
-];
-#[rustfmt::skip]
-pub const ITEMS: [&ItemRef; 9] = [
+pub const ITEMS: [&ItemRef; 8] = [
     &ACID_VIAL,
     &BOTTLE_GREASE,
     &CRACKER_NUTS,
@@ -98,6 +79,5 @@ pub const ITEMS: [&ItemRef; 9] = [
     &VANISHING_POWDER,
     &BOTTLE_BREATH,
     &CALMING_BREW,
-    &POTION_OF_LONGSTRIDER,
     &SCHOLARS_DRAUGHT,
 ];
