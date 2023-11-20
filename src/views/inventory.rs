@@ -11,9 +11,10 @@ use crate::utils::rw_utils::RwUtils;
 use crate::views::revealer::{RevLocation, Revealer};
 use crate::views::wealth::maybe_wealth;
 
-pub fn inventory_view(
+pub fn inventory_view<V: IntoView + 'static>(
     getter: impl Fn(&PC) -> &Inventory + 'static + Copy,
     setter: impl Fn(&mut PC) -> &mut Inventory + 'static + Copy,
+    options: impl Fn(usize) -> V + 'static + Copy,
 ) -> impl IntoView {
     let pc = PC::expect();
     let id_list = move || pc.with(|pc| getter(pc).keys().collect::<Vec<usize>>());
@@ -23,7 +24,7 @@ pub fn inventory_view(
             <For
                 each=id_list
                 key=|id| *id
-                children=move |id| item_view(id, getter, setter)
+                children=move |id| item_view(id, getter, setter, options)
             />
             { empty_slots(getter) }
         </div>
@@ -31,13 +32,14 @@ pub fn inventory_view(
 }
 
 /// Renders the item with the `id` given.
-fn item_view(
+fn item_view<V: IntoView>(
     id: usize,
-    getter: impl Fn(&PC) -> &Inventory + 'static,
+    getter: impl Fn(&PC) -> &Inventory + 'static + Copy,
     setter: impl Fn(&mut PC) -> &mut Inventory + 'static + Copy,
+    options: impl Fn(usize) -> V + 'static + Copy,
 ) -> impl IntoView {
     let pc = PC::expect();
-    let item = pc.with_untracked(|pc| pc.backpack.get(id).cloned().unwrap_or(EMPTY_ITEM.into()));
+    let item = pc.with_untracked(|pc| getter(pc).get(id).cloned().unwrap_or(EMPTY_ITEM.into()));
     let stacks = item.find_counter().map(|_| count_button(id));
     let item_view = item.into_view();
     let price = move || {
@@ -50,7 +52,7 @@ fn item_view(
     view! {
         <div class= "relative">
             <div class= "flex gap-2 w-full items-stretch">
-                { slot_by_weight(id) }
+                { slot_by_weight(id, getter) }
                 <div class= "py-2 w-12 grow flex flex-col">
                     { item_view }
                     <div class= "flex items-center justify-between flex-wrap">
@@ -58,15 +60,15 @@ fn item_view(
                         { stacks }
                     </div>
                 </div>
-                { more_button(id, setter) }
+                { more_button(id, setter, options) }
             </div>
         </div>
     }
 }
 
-fn slot_by_weight(id: usize) -> impl IntoView {
+fn slot_by_weight(id: usize, getter: impl Fn(&PC) -> &Inventory + 'static + Copy) -> impl IntoView {
     let pc = PC::expect();
-    let slot = move || pc.with(|pc| pc.backpack.get_slot(id)).into_view();
+    let slot = move || pc.with(|pc| getter(pc).get_slot(id)).into_view();
     view! {
         <div class= "w-12 flex-center">
             { slot }
@@ -74,9 +76,10 @@ fn slot_by_weight(id: usize) -> impl IntoView {
     }
 }
 
-fn more_button(
+fn more_button<V: IntoView>(
     id: usize,
     setter: impl Fn(&mut PC) -> &mut Inventory + 'static + Copy,
+    options: impl Fn(usize) -> V + 'static + Copy,
 ) -> impl IntoView {
     let pc = PC::expect();
     let show_delete_modal = move |_| {
@@ -91,7 +94,7 @@ fn more_button(
         Revealer::hide();
         pc.update(|pc| {
             if let Some(item) = setter(pc).get(id).cloned() {
-                pc.backpack.add(item);
+                setter(pc).add(item);
             }
         })
     };
@@ -136,6 +139,7 @@ fn more_button(
                     </A>
                     <button hidden=cannot_use on:click=use_item> "USE" </button>
                     <button on:click=copy_item> "COPY" </button>
+                    { options(id) }
                 </div>
             </div>
         </div>

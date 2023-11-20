@@ -7,7 +7,7 @@ use crate::pc::session::Session;
 use crate::pc::{Ability, PC};
 use crate::utils::rw_utils::RwUtils;
 use crate::utils::{add_operator, concat_if};
-use crate::views::backpack::inventory_view;
+use crate::views::inventory::inventory_view;
 
 mod fatigue;
 mod hp;
@@ -30,13 +30,44 @@ pub fn main() -> impl IntoView {
         </div>
         { turn_tracker::turn_tracker }
         <h4 class= "text-center"> "Equipment" </h4>
-        { inventory_view(|pc| &pc.equipment, |pc| &mut pc.equipment) }
+        { inventory_view(|pc| &pc.equipment, |pc| &mut pc.equipment, equipment_options) }
         { wealth::wealth }
         <h4 class= "text-center"> "Backpack" </h4>
         { search::search_view }
         { fatigue::fatigue }
-        { inventory_view(|pc| &pc.backpack, |pc| &mut pc.backpack) }
+        { inventory_view(|pc| &pc.backpack, |pc| &mut pc.backpack, backpack_options) }
+        { recently_removed::button }
         <div class= "psuedo h-16" hidden=spacer_hidden />
+        { recently_removed::modal }
+    }
+}
+
+fn backpack_options(id: usize) -> impl IntoView {
+    let pc = PC::expect();
+    let move_item = move |_| {
+        pc.update(|pc| {
+            if let Some(item) = pc.backpack.remove(id) {
+                pc.equipment.add(item);
+            }
+        })
+    };
+    let cannot_equip = PC::slice(|pc| !pc.equipment.vacancy().is_some_and(|amount| amount > 0));
+    view! {
+        <button hidden=cannot_equip on:click=move_item> "EQUIP" </button>
+    }
+}
+
+fn equipment_options(id: usize) -> impl IntoView {
+    let pc = PC::expect();
+    let move_item = move |_| {
+        pc.update(|pc| {
+            if let Some(item) = pc.equipment.remove(id) {
+                pc.backpack.add(item);
+            }
+        })
+    };
+    view! {
+        <button on:click=move_item> "UNEQUIP" </button>
     }
 }
 
