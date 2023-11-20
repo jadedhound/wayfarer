@@ -12,7 +12,7 @@ pub fn rally() -> impl IntoView {
     let rally = move || {
         pc.update(|pc| {
             pc.guard_dmg = 0;
-            pc.fatigue += 1;
+            pc.backpack.resize(pc.backpack.max_size().saturating_sub(1))
         });
         Toast::show("rally", "guard restored, faitgue added");
     };

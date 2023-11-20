@@ -1,5 +1,7 @@
+pub mod backpack;
 pub mod checkbox;
 pub mod confirm_button;
+pub mod count_button;
 pub mod delete_confirm;
 pub mod item;
 pub mod modal;

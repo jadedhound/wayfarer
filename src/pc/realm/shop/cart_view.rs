@@ -86,7 +86,7 @@ fn price() -> impl IntoView {
     };
     let inv_left = create_memo(move |_| {
         let curr = state.with(|state| state.weight);
-        let max = pc.with(|pc| pc.inventory.vacancy()).unwrap_or(0);
+        let max = pc.with(|pc| pc.backpack.vacancy()).unwrap_or(0);
         (curr <= max).then_some(max.saturating_sub(curr))
     });
     let inv_left = move || {
@@ -121,7 +121,7 @@ fn purchase_button() -> impl IntoView {
         state.reset();
         pc.update(|pc| {
             for item in items.values() {
-                pc.inventory.add(Item::from(**item));
+                pc.backpack.add(Item::from(**item));
             }
             pc.wealth -= price;
         });

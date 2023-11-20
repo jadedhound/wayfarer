@@ -49,7 +49,7 @@ fn item_view() -> impl IntoView {
     let item = state.with(|x| x.found_item.clone().unwrap_or_default());
     let item_view = item.into_view();
     let add_item = move || {
-        pc.update_discard(|pc| pc.inventory.add(item.clone()));
+        pc.update_discard(|pc| pc.backpack.add(item.clone()));
         state.set(State::default());
     };
     let del_item = move || state.set(State::default());

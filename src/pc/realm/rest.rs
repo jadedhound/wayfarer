@@ -1,3 +1,5 @@
+use std::cmp;
+
 use leptos::*;
 use strum::Display;
 
@@ -32,10 +34,10 @@ pub fn rest() -> impl IntoView {
     let state = State::provide();
     let (has_bedroll, has_tent) = pc.with_untracked(|pc| {
         let has_bedroll = pc
-            .inventory
+            .backpack
             .values()
             .any(|item| item.name.contains("bedroll"));
-        let has_tent = pc.inventory.values().any(|item| item.name.contains("tent"));
+        let has_tent = pc.backpack.values().any(|item| item.name.contains("tent"));
         (has_bedroll, has_tent)
     });
     state.update(|state| {
@@ -192,13 +194,13 @@ fn complete_rest() -> impl IntoView {
 
     let pc = PC::expect();
     let failure = move || {
-        pc.update(|pc| pc.fatigue += 1);
+        pc.update(|pc| pc.backpack.resize(pc.backpack.max_size().saturating_sub(1)));
         Toast::show("rest failure", "fatigue added to inventory");
     };
     let partial = move || {
         pc.update(|pc| {
             pc.guard_dmg = 0;
-            pc.fatigue = pc.fatigue.saturating_sub(1);
+            pc.backpack.resize(cmp::min(pc.backpack.max_size() + 1, 10));
         });
         Toast::show("partial rest", "fatigue removed and guard restored");
     };
@@ -206,7 +208,7 @@ fn complete_rest() -> impl IntoView {
         pc.update(|pc| {
             pc.guard_dmg = 0;
             pc.health_dmg = pc.health_dmg.saturating_sub(1);
-            pc.fatigue = pc.fatigue.saturating_sub(1);
+            pc.backpack.resize(cmp::min(pc.backpack.max_size() + 1, 10));
         });
         Toast::show(
             "rest success",

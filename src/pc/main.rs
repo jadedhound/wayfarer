@@ -3,20 +3,24 @@ use leptos_router::*;
 
 use crate::icons;
 use crate::lobby::PCList;
-use crate::pc::inventory::inventory;
 use crate::pc::session::Session;
 use crate::pc::{Ability, PC};
 use crate::utils::rw_utils::RwUtils;
 use crate::utils::{add_operator, concat_if};
+use crate::views::backpack::inventory_view;
 
 mod fatigue;
 mod hp;
 mod prof;
+mod recently_removed;
+mod search;
 mod turn_tracker;
 mod use_button;
 mod wealth;
 
 pub fn main() -> impl IntoView {
+    let spacer_hidden = PC::slice(|pc| pc.backpack.vacancy().is_some_and(|vacancy| vacancy > 0));
+
     view! {
         { name }
         { ability_scores }
@@ -25,11 +29,14 @@ pub fn main() -> impl IntoView {
             { hp::hp }
         </div>
         { turn_tracker::turn_tracker }
-        { wealth::wealth }
         <h4 class= "text-center"> "Equipment" </h4>
+        { inventory_view(|pc| &pc.equipment, |pc| &mut pc.equipment) }
+        { wealth::wealth }
         <h4 class= "text-center"> "Backpack" </h4>
+        { search::search_view }
         { fatigue::fatigue }
-        { inventory }
+        { inventory_view(|pc| &pc.backpack, |pc| &mut pc.backpack) }
+        <div class= "psuedo h-16" hidden=spacer_hidden />
     }
 }
 

@@ -6,7 +6,7 @@ use crate::utils::rw_utils::RwUtils;
 
 pub fn fatigue() -> impl IntoView {
     let pc = PC::expect();
-    let fatigue = PC::slice(|pc| pc.fatigue);
+    let fatigue = PC::slice(|pc| 10 - pc.backpack.max_size());
     let is_locked = RwSignal::new(true);
     #[rustfmt::skip]
     let lock_icon = move || {
@@ -16,18 +16,8 @@ pub fn fatigue() -> impl IntoView {
     let lock_colour = move || {
         if is_locked.get() { "fill-zinc-500" } else { "fill-yellow-500" }
     };
-    let reduce = move |_| {
-        pc.update(|pc| {
-            pc.fatigue -= 1;
-            pc.inventory.resize(pc.inventory.max_size() + 1);
-        })
-    };
-    let increase = move |_| {
-        pc.update(|pc| {
-            pc.fatigue += 1;
-            pc.inventory.resize(pc.inventory.max_size() - 1);
-        })
-    };
+    let decr = move |_| pc.update(|pc| pc.backpack.resize(pc.backpack.max_size() + 1));
+    let incr = move |_| pc.update(|pc| pc.backpack.resize(pc.backpack.max_size() - 1));
 
     view! {
         <div class= "flex gap-4 border-y-2 border-orange-600 py-2">
@@ -44,14 +34,14 @@ pub fn fatigue() -> impl IntoView {
             </div>
             <button
                 class= "w-5 rotate-180 disabled:invisible"
-                on:click=reduce
+                on:click=decr
                 disabled=move || { fatigue.get() < 1 || is_locked.get() }
                 inner_html=icons::RIGHT_CHEV
             />
             <h5 class= "self-center"> { fatigue } </h5>
             <button
                 class= "w-5 disabled:invisible"
-                on:click=increase
+                on:click=incr
                 disabled=move || { fatigue.get() > 9 || is_locked.get() }
                 inner_html=icons::RIGHT_CHEV
             />

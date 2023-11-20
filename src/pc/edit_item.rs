@@ -110,8 +110,8 @@ fn apply_button() -> impl IntoView {
     let save_item = move |_| {
         let State { id, item } = state.get();
         // Removing and adding to trigger relevant update functions.
-        pc.update_discard(|pc| pc.inventory.remove(id));
-        pc.update_discard(|pc| pc.inventory.add(item));
+        pc.update_discard(|pc| pc.backpack.remove(id));
+        pc.update_discard(|pc| pc.backpack.add(item));
         nav_to_inventory();
     };
     view! {
@@ -136,7 +136,7 @@ impl Default for State {
             .get("id")
             .and_then(|id| id.parse::<usize>().ok())
             .unwrap_or_default();
-        let item = pc.with_untracked(|pc| pc.inventory.get(id).cloned().unwrap_or_default());
+        let item = pc.with_untracked(|pc| pc.backpack.get(id).cloned().unwrap_or_default());
         Self { id, item }
     }
 }

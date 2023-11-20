@@ -1,68 +1,48 @@
 use leptos::*;
 use leptos_router::A;
 
+use super::count_button::count_button;
 use crate::icons;
 use crate::items::meta::EMPTY_ITEM;
 use crate::items::ItemProp;
-use crate::pc::inventory::count_button::count_button;
-use crate::pc::session::Session;
-use crate::pc::{MAX_INVENTORY, PC};
+use crate::pc::PC;
+use crate::utils::inventory::Inventory;
 use crate::utils::rw_utils::RwUtils;
-use crate::views::delete_confirm::DeleteModal;
 use crate::views::revealer::{RevLocation, Revealer};
 use crate::views::wealth::maybe_wealth;
 
-pub fn backpack() -> impl IntoView {
+pub fn inventory_view(
+    getter: impl Fn(&PC) -> &Inventory + 'static + Copy,
+    setter: impl Fn(&mut PC) -> &mut Inventory + 'static + Copy,
+) -> impl IntoView {
     let pc = PC::expect();
-    let id_list = move || pc.with(|pc| pc.inventory.keys().collect::<Vec<usize>>());
+    let id_list = move || pc.with(|pc| getter(pc).keys().collect::<Vec<usize>>());
 
     view! {
-        <div class= "flex flex-col shaded-table">
+        <div class= "flex flex-col shaded-table empty:hidden">
             <For
                 each=id_list
                 key=|id| *id
-                children=item_view
+                children=move |id| item_view(id, getter, setter)
             />
-            { empty_slots }
+            { empty_slots(getter) }
         </div>
     }
 }
 
-/// Shows empty slots for a PC.
-fn empty_slots() -> impl IntoView {
-    let pc = PC::expect();
-    let empty = move |i| {
-        view! {
-            <div class= "flex">
-                <div class= "w-12 flex-center"> { i } </div>
-                <div class= "psuedo h-20 w-12 grow" />
-            </div>
-        }
-    };
-
-    move || {
-        pc.with(|pc| {
-            pc.inventory
-                .size()
-                .filter(|&amount| amount > 0)
-                .map(|curr| {
-                    (curr + 1..=pc.inventory.max_size())
-                        .map(empty)
-                        .collect_view()
-                })
-        })
-    }
-}
-
 /// Renders the item with the `id` given.
-fn item_view(id: usize) -> impl IntoView {
+fn item_view(
+    id: usize,
+    getter: impl Fn(&PC) -> &Inventory + 'static,
+    setter: impl Fn(&mut PC) -> &mut Inventory + 'static + Copy,
+) -> impl IntoView {
     let pc = PC::expect();
-    let item = pc.with_untracked(|pc| pc.inventory.get(id).cloned().unwrap_or(EMPTY_ITEM.into()));
+    let item = pc.with_untracked(|pc| pc.backpack.get(id).cloned().unwrap_or(EMPTY_ITEM.into()));
     let stacks = item.find_counter().map(|_| count_button(id));
     let item_view = item.into_view();
     let price = move || {
         let price = pc
-            .with(|pc| pc.inventory.get(id).map(|item| item.price()))
+            .with(|pc| pc.backpack.get(id).map(|item| item.price()))
             .unwrap_or_default();
         maybe_wealth(price)
     };
@@ -78,7 +58,7 @@ fn item_view(id: usize) -> impl IntoView {
                         { stacks }
                     </div>
                 </div>
-                { more_button(id) }
+                { more_button(id, setter) }
             </div>
         </div>
     }
@@ -86,7 +66,7 @@ fn item_view(id: usize) -> impl IntoView {
 
 fn slot_by_weight(id: usize) -> impl IntoView {
     let pc = PC::expect();
-    let slot = move || pc.with(|pc| pc.inventory.get_slot(id)).into_view();
+    let slot = move || pc.with(|pc| pc.backpack.get_slot(id)).into_view();
     view! {
         <div class= "w-12 flex-center">
             { slot }
@@ -94,12 +74,15 @@ fn slot_by_weight(id: usize) -> impl IntoView {
     }
 }
 
-fn more_button(id: usize) -> impl IntoView {
+fn more_button(
+    id: usize,
+    setter: impl Fn(&mut PC) -> &mut Inventory + 'static + Copy,
+) -> impl IntoView {
     let pc = PC::expect();
     let show_delete_modal = move |_| {
         Revealer::hide();
         pc.update(|pc| {
-            if let Some(item) = pc.inventory.remove(id) {
+            if let Some(item) = setter(pc).remove(id) {
                 pc.recently_removed.push_unique(item);
             }
         })
@@ -107,13 +90,13 @@ fn more_button(id: usize) -> impl IntoView {
     let copy_item = move |_| {
         Revealer::hide();
         pc.update(|pc| {
-            if let Some(item) = pc.inventory.get(id).cloned() {
-                pc.inventory.add(item);
+            if let Some(item) = setter(pc).get(id).cloned() {
+                pc.backpack.add(item);
             }
         })
     };
     let cannot_use = pc.with_untracked(|pc| {
-        !pc.inventory
+        !pc.backpack
             .get(id)
             .map(|item| {
                 item.props
@@ -124,7 +107,7 @@ fn more_button(id: usize) -> impl IntoView {
     });
     let use_item = move |_| {
         pc.update(|pc| {
-            if let Some(item) = pc.inventory.use_item(id) {
+            if let Some(item) = setter(pc).use_item(id) {
                 pc.recently_removed.push_unique(item);
             }
         })
@@ -156,5 +139,26 @@ fn more_button(id: usize) -> impl IntoView {
                 </div>
             </div>
         </div>
+    }
+}
+
+/// Shows empty slots for a PC.
+fn empty_slots(getter: impl Fn(&PC) -> &Inventory + 'static + Copy) -> impl IntoView {
+    let pc = PC::expect();
+    let empty = move |i| {
+        view! {
+            <div class= "flex">
+                <div class= "w-12 flex-center"> { i } </div>
+                <div class= "psuedo h-20 w-12 grow" />
+            </div>
+        }
+    };
+
+    move || {
+        pc.with(|pc| {
+            getter(pc)
+                .size()
+                .map(|curr| (curr + 1..=getter(pc).max_size()).map(empty).collect_view())
+        })
     }
 }

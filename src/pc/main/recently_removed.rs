@@ -53,7 +53,7 @@ fn add_back_item(item: Item) -> impl IntoView {
                 counter.curr = counter.max
             }
             pc.recently_removed.remove_where(|removed| removed == &item);
-            pc.inventory.add(item);
+            pc.backpack.add(item);
         })
     };
 

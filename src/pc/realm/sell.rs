@@ -45,7 +45,7 @@ impl Reputation {
 pub fn sell() -> impl IntoView {
     let (pc, state) = (PC::expect(), State::provide());
     let cart_is_full = move || {
-        let pc_len = pc.with(|pc| pc.inventory.len());
+        let pc_len = pc.with(|pc| pc.backpack.len());
         let cart_len = state.with(|state| state.cart.len());
         cart_len >= pc_len
     };
@@ -99,7 +99,7 @@ fn inventory() -> impl IntoView {
     let inventory = move || {
         let selling_items = state.with(|state| state.cart.clone());
         pc.with(|pc| {
-            pc.inventory
+            pc.backpack
                 .iter()
                 .filter(|(id, _)| !selling_items.contains(id))
                 .map(|(id, _)| id)
@@ -121,7 +121,7 @@ where
     F: Fn(usize) + 'static,
 {
     let (pc, state) = (PC::expect(), State::expect());
-    let item = pc.with_untracked(|pc| pc.inventory.get(id).cloned().unwrap());
+    let item = pc.with_untracked(|pc| pc.backpack.get(id).cloned().unwrap());
     let details_hidden = item.props.is_empty();
     let price = maybe_wealth(item.price());
     let open_details = move |_| {
@@ -211,7 +211,7 @@ fn calc_value(pc: &PC, state: &State) -> u32 {
     state
         .cart
         .iter()
-        .flat_map(|id| pc.inventory.get(*id))
+        .flat_map(|id| pc.backpack.get(*id))
         .map(|item| item.price())
         .sum::<u32>()
 }
@@ -230,7 +230,7 @@ fn sell_button() -> impl IntoView {
         pc.update(|pc| {
             // Remove items.
             for id in cart_ids {
-                if let Some(item) = pc.inventory.remove(id) {
+                if let Some(item) = pc.backpack.remove(id) {
                     pc.recently_removed.push_unique(item)
                 }
             }
@@ -255,7 +255,7 @@ fn ItemDetails() -> impl IntoView {
     let (pc, state) = (PC::expect(), State::expect());
     let item = move || {
         let id = state.with(|state| state.modal_item_id);
-        pc.with(|pc| pc.inventory.get(id).cloned().unwrap())
+        pc.with(|pc| pc.backpack.get(id).cloned().unwrap())
     };
     let stacks = move || {
         item()

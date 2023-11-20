@@ -15,7 +15,7 @@ pub fn count_button(id: usize) -> impl IntoView {
     let is_interactive = create_memo(move |_| Revealer::is_shown(RevLocation::CountButton, id));
     let is_non_interactive = move || !is_interactive.get();
     let count = PC::slice(move |pc| {
-        pc.inventory
+        pc.backpack
             .get(id)
             .and_then(|x| x.find_counter())
             .unwrap_or_default()
@@ -27,7 +27,7 @@ pub fn count_button(id: usize) -> impl IntoView {
     let change_stack = move |by: i64| {
         pc.update(|pc| {
             let item_count = pc
-                .inventory
+                .backpack
                 .get_mut(id)
                 .and_then(|item| item.find_mut_counter());
             if let Some(count) = item_count {

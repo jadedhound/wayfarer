@@ -7,7 +7,6 @@ use serde::{Deserialize, Serialize};
 use super::index_map::IndexMap;
 use crate::icons;
 use crate::items::Item;
-use crate::pc::PC;
 
 #[derive(Serialize, Deserialize, Clone, Default)]
 pub struct Inventory {
@@ -18,6 +17,12 @@ pub struct Inventory {
 }
 
 impl Inventory {
+    pub fn new(max_size: usize) -> Self {
+        Self {
+            max_size,
+            ..Default::default()
+        }
+    }
     /// Add an item.
     pub fn add(&mut self, item: Item) {
         let name = item.name.clone();
@@ -77,8 +82,7 @@ impl Inventory {
     pub fn vacancy(&self) -> Option<usize> {
         Some(self.max_size.saturating_sub(self.size()?))
     }
-    /// The current size of the inventory, which will not exceed `max_size`
-    /// regardless of how many items there are actually in the inventory.
+    /// The current size of the inventory.
     pub fn size(&self) -> Option<usize> {
         self.sorted
             .last()
@@ -138,10 +142,7 @@ impl Inventory {
 
 impl From<Vec<Item>> for Inventory {
     fn from(value: Vec<Item>) -> Self {
-        let mut inv = Self {
-            max_size: 10,
-            ..Default::default()
-        };
+        let mut inv = Self::new(10);
         for item in value {
             inv.add(item)
         }

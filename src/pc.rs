@@ -15,7 +15,6 @@ use crate::utils::turns::Turns;
 
 pub mod class;
 pub mod edit_item;
-pub mod inventory;
 pub mod journal;
 pub mod main;
 mod navbar;
@@ -23,8 +22,6 @@ pub mod realm;
 pub mod scout;
 pub mod session;
 mod update;
-
-const MAX_INVENTORY: usize = 10;
 
 #[derive(Serialize, Deserialize, Clone, Default)]
 pub struct PC {
@@ -35,11 +32,11 @@ pub struct PC {
     pub guard_dmg: u32,
     pub health_dmg: u32,
     pub wealth: u32,
-    pub inventory: Inventory,
+    pub equipment: Inventory,
+    pub backpack: Inventory,
     pub recently_removed: FixedVec<Item>,
     pub turns: Turns,
     pub open_notes: Vec<usize>,
-    pub fatigue: i32,
 }
 
 impl From<PCBasic> for PC {
@@ -51,7 +48,8 @@ impl From<PCBasic> for PC {
             abi_scores: AbiScores::from(value.class),
             prof: value.class.prof.into(),
             wealth: 15 * 10,
-            inventory: gen_inventory(value.class),
+            equipment: Inventory::new(10),
+            backpack: gen_inventory(value.class),
             recently_removed: FixedVec::new(10),
             ..Default::default()
         }
